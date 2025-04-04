@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  extract:
+    build:
+      context: .
+      dockerfile: src/extract/Dockerfile
+    container_name: extract_service
+    command: python extract_data.py
+    volumes:
+      # Monter le code source spécifique pour d'éventuelles modifications locales (moins critique pour les jobs batch)
+      - ./src/extract:/app
+      # Monter les données partagées
+      - ./data:/app/data
+      # Monter la configuration partagée
+      - ./config.yaml:/app/config.yaml
+    working_dir: /app
+
+  prepare_data:
+    build:
+      context: .
+      dockerfile: src/prepare_data/Dockerfile
+    container_name: prepare_data_service
+    command: python prepare_data.py
+    volumes:
+      - ./src/prepare_data:/app
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+    working_dir: /app
+    depends_on:
+      - extract
+
+  train_model:
+    build:
+      context: .
+      dockerfile: src/train_model/Dockerfile
+    container_name: train_model_service
+    command: python train_model.py
+    volumes:
+      - ./src/train_model:/app
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./config.yaml:/app/config.yaml
+    working_dir: /app
+    depends_on:
+      - prepare_data
+
+  api:
+    build:
+      context: .
+      dockerfile: src/api/Dockerfile
+    container_name: api_service
+    # La commande uvicorn référence maintenant le module 'api' (api.py) dans /app
+    command: uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      # Monter le code source de l'API est crucial pour --reload
+      - ./src/api:/app
+      # Monter les modèles partagés
+      - ./models:/app/models
+      # Monter la configuration partagée
+      - ./config.yaml:/app/config.yaml
+    ports:
+      - "8000:8000"
+    working_dir: /app
+    depends_on:
+      - train_model
