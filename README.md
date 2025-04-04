@@ -59,3 +59,26 @@ uvicorn api:app --reload
 cd tests
 pytest tests.py
 ```
+
+## Utilisation avec Docker Compose
+
+Vous pouvez utiliser Docker Compose pour gérer les différents microservices du projet.
+
+### Exécuter tous les services
+
+Pour lancer tous les services définis dans le fichier `docker-compose.yml` (en respectant les dépendances) :
+
+```bash
+docker-compose up -d
+```
+Pour lancer un seul microservice *sans* démarrer ses dépendances :
+
+```bash
+docker-compose up --no-deps prepare_data
+```
+
+Pour arrêter les services :
+
+```bash
+docker-compose down
+```
