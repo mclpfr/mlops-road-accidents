@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  extract:
+  extract_data:
     build:
       context: .
       dockerfile: src/extract/Dockerfile
@@ -25,7 +25,7 @@ services:
       - ./config.yaml:/app/config.yaml
     working_dir: /app
     depends_on:
-      - extract
+      - extract_data
 
   train_model:
     build:

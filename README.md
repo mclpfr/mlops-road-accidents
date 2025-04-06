@@ -62,8 +62,6 @@ pytest tests.py
 
 ## Utilisation avec Docker Compose
 
-Vous pouvez utiliser Docker Compose pour gérer les différents microservices du projet.
-
 ### Exécuter tous les services
 
 Pour lancer tous les services définis dans le fichier `docker-compose.yml` (en respectant les dépendances) :
