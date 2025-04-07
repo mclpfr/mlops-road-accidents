@@ -1,11 +1,11 @@
-# Projet de Prédiction des Accidents de la Route - MLOps
+# Road Accident Prediction Project - MLOps
 
-## Aperçu du Projet
-Ce projet vise à prédire la gravité des accidents de la route en France en utilisant des techniques de machine learning. L'objectif est de fournir une estimation des urgences en temps réel pour les services de police et médicaux.
+## Project Overview
+This project aims to predict the severity of road accidents in France using machine learning techniques. The goal is to provide real-time urgency estimates for police and medical services.
 
-## Prérequis
+## Prerequisites
 - Python 3.10
-- Bibliothèques Python : 
+- Python libraries: 
   - pandas
   - scikit-learn
   - numpy
@@ -18,64 +18,64 @@ Ce projet vise à prédire la gravité des accidents de la route en France en ut
   - python-multipart
 
 ## Installation
-1. Clonez le dépôt
+1. Clone the repository
 ```bash
 git clone https://github.com/mclpfr/mlops-road-accidents.git
 ```
-2. Créez un environnement virtuel
+2. Create a virtual environment
 ```bash
 python3.10 -m venv venv
 source venv/bin/activate
 ```
-3. Installez les dépendances
+3. Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-## Utilisation
-### Extraction des Données
+## Usage
+### Data Extraction
 ```bash
 python src/extract_data.py
 ```
 
-### Prétraitement des Données
+### Data Preprocessing
 ```bash
 python src/prepare_data.py
 ```
 
-### Entraînement du Modèle
+### Model Training
 ```bash
 python src/train_model.py
 ```
 
-### Lancement API
+### Run all services
 ```bash
 cd src
 uvicorn api:app --reload
 ```
 
-### Lancement de tests unitaires
+### Run unit tests
 ```bash
 cd tests
 pytest tests.py
 ```
 
-## Utilisation avec Docker Compose
+## Usage with Docker Compose
 
-### Exécuter tous les services
+### Run all services
 
-Pour lancer tous les services définis dans le fichier `docker-compose.yml` (en respectant les dépendances) :
+To run all services defined in the `docker-compose.yml` file (respecting dependencies):
 
 ```bash
 docker-compose up -d
 ```
-Pour lancer un seul microservice *sans* démarrer ses dépendances :
+To run a single microservice *without* starting its dependencies:
 
 ```bash
 docker-compose up --no-deps prepare_data
 ```
 
-Pour arrêter les services :
+To stop services:
 
 ```bash
 docker-compose down

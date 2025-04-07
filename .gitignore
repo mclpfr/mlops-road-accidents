@@ -3,6 +3,9 @@ env/
 *.pyc
 __pycache__/
 *.csv
-data/raw/
-data/processed/
+!*.dvc
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
 models/

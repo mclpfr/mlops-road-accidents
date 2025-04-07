@@ -14,14 +14,14 @@ ENV OMP_NUM_THREADS=1
 # Install Python dependencies with specific versions
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create models directory
-RUN mkdir -p /app/models
+# Create necessary directory for raw data
+RUN mkdir -p /app/data/raw
 
 # Copy the configuration file
 COPY config.yaml .
 
 # Copy the specific script for this service
-COPY src/train_model/train_model.py .
+COPY src/extract_data/extract_data.py .
 
 # The entry point will be defined in docker-compose
-CMD ["python", "train_model.py"]
+CMD ["python", "extract_data.py"]

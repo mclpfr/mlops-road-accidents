@@ -4,11 +4,10 @@ services:
   extract_data:
     build:
       context: .
-      dockerfile: src/extract/Dockerfile
-    container_name: extract_service
+      dockerfile: src/extract_data/Dockerfile
+    container_name: extract_data_service
     command: python extract_data.py
     volumes:
-      - ./src/extract:/app
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml
     working_dir: /app
@@ -18,9 +17,8 @@ services:
       context: .
       dockerfile: src/prepare_data/Dockerfile
     container_name: prepare_data_service
-    command: python prepare_data.py
+    command: sh -c "while [ ! -f /app/data/raw/accidents_2023.csv ]; do sleep 1; done; python prepare_data.py"
     volumes:
-      - ./src/prepare_data:/app
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml
     working_dir: /app
@@ -32,9 +30,8 @@ services:
       context: .
       dockerfile: src/train_model/Dockerfile
     container_name: train_model_service
-    command: python train_model.py
+    command: sh -c "while [ ! -f /app/data/processed/prepared_accidents_2023.csv ]; do sleep 1; done; python train_model.py"
     volumes:
-      - ./src/train_model:/app
       - ./data:/app/data
       - ./models:/app/models
       - ./config.yaml:/app/config.yaml
