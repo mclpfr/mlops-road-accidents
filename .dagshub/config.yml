@@ -1,0 +1,14 @@
+project:
+  name: mlops-road-accidents
+
+data:
+  path: data/  
+  exclude:
+    - tests/  
+
+models:
+  path: models/ 
+
+root:
+  include:
+    - tests/ 
