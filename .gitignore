@@ -10,3 +10,4 @@ data/processed/*
 !data/processed/.gitkeep
 models/
 .dvc/
+config.yaml

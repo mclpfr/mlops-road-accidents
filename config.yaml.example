@@ -3,6 +3,6 @@ data_extraction:
   url: "https://www.data.gouv.fr/en/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/"
 
 mlflow:
-  tracking_uri: "https://dagshub.com/mclpfr/mlops-road-accidents.mlflow"
-  username: "mclpfr"
-  password: "46fb4962402bf1118d644028129e9c98e5f60ce6" 
+  tracking_uri: "https://dagshub.com/USERNAME/REPOSITORY.mlflow"
+  username: "USERNAME"
+  password: "YOUR_DAGSHUB_TOKEN" 

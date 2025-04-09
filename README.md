@@ -3,6 +3,40 @@
 ## Project Overview
 This project aims to predict the severity of road accidents in France using machine learning techniques. The goal is to provide real-time urgency estimates for police and medical services.
 
+## Configuration
+
+### MLflow Configuration
+
+You can obtain your Dagshub token from your Dagshub account:
+1. Go to https://dagshub.com/user/settings/tokens
+2. Create a new token
+3. Copy the token and use it as the value for MLFLOW_TRACKING_PASSWORD
+
+### Configuration File
+
+Create a local `config.yaml` file based on the template `config.yaml.example`:
+
+```bash
+cp config.yaml.example config.yaml
+```
+
+Then edit `config.yaml` with your personal information. Here are the variables you need to configure:
+
+```yaml
+data_extraction:
+  year: "2023"  
+  url: "https://www.data.gouv.fr/en/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/"
+
+mlflow:
+  tracking_uri: "https://dagshub.com/YOUR_USERNAME/mlops-road-accidents.mlflow" 
+  username: "YOUR_USERNAME"  
+  password: "YOUR_DAGSHUB_TOKEN"
+```
+
+Replace the following placeholders with your actual information:
+- `YOUR_USERNAME`: Your Dagshub username
+- `YOUR_DAGSHUB_TOKEN`: The API token you generated from Dagshub
+
 ## Prerequisites
 - Python 3.10
 - Python libraries: 
@@ -16,6 +50,7 @@ This project aims to predict the severity of road accidents in France using mach
   - uvicorn
   - pyyaml
   - python-multipart
+  - mlflow
 
 ## Installation
 1. Clone the repository
