@@ -1,18 +1,55 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sklearn.metrics import classification_report
+from pydantic import BaseModel
 import joblib
 import pandas as pd
 import io
 
 # Initialiser l'application FastAPI
 app = FastAPI()
+security = HTTPBasic()
+
+# Identification des utilisateurs pour faire des tests
+users = {
+    "alice": "wonder",
+    "clem": "juice"
+}
+
+# Modèles Pydantic pour les données
+class Feature(BaseModel):
+    catu: int
+    sexe: int
+    trajet: int
+    catr: int
+    circ: int
+    vosp: int
+    prof: int
+    plan: int
+    surf: int
+    situ: int
+    lum: int
+    atm: int
+    col: int
 
 # Charger le modèle entraîné
 model = joblib.load("../models/rf_model_2023.joblib")
 
+# Fonction pour vérifier l'authentification
+def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = users.get(credentials.username)
+    if not (correct_username and credentials.password == correct_username):
+        raise HTTPException(status_code=401, detail="Identifiants incorrects")
+    return credentials.username
+
+# Endpoint pour vérifier l'API
+@app.get("/verify")
+def verify_api():
+    return {"message": "L'API est fonctionnelle."}
+
 # Endpoint pour faire des prédictions
-@app.post("/predict")
+@app.post("/predict", current_user: str = Depends(get_current_user))
 async def predict(file: UploadFile = File()):
     try:
         # Lire le fichier CSV avec pandas
