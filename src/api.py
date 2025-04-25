@@ -2,7 +2,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sklearn.metrics import classification_report
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 import joblib
 import pandas as pd
 import io
@@ -32,6 +32,9 @@ class Feature(BaseModel):
     lum: int
     atm: int
     col: int
+    
+    class Config:
+        extra = 'allow'
 
 # Charger le modèle entraîné
 model = joblib.load("../models/rf_model_2023.joblib")
@@ -49,31 +52,42 @@ def verify_api():
     return {"message": "L'API est fonctionnelle."}
 
 # Endpoint pour faire des prédictions
-@app.post("/predict", current_user: str = Depends(get_current_user))
-async def predict(file: UploadFile = File()):
+@app.post("/predict")
+async def predict_csv(file_request: UploadFile = File(), current_user: str = Depends(get_current_user)):
     try:
         # Lire le fichier CSV avec pandas
-        contents = await file.read()
+        contents = await file_request.read()
         df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
         
-        # Select relevant features
-        features = ["catu", "sexe", "trajet", "catr", "circ", "vosp", "prof", "plan", "surf", "situ", "lum", "atm", "col"]
-        target = "grav"  # Binary target column (0: grave, 1: not grave)
+        records = df.to_dict(orient='records')
         
-        # Ensure all selected features exist in the dataset
-        available_features = [col for col in features if col in df.columns]
-        if not available_features:
+        # Valider chaque enregistrement avec le modèle Pydantic
+        features = [Feature(**record) for record in records]
+        if not features:
             raise ValueError("None of the selected features are available in the dataset.")
         
+        #return {"message": "Données validées avec succès", "features": features}
+        
+        # Select model features
+        model_features = ["catu", "sexe", "trajet", "catr", "circ", "vosp", "prof", "plan", "surf", "situ", "lum", "atm", "col"]
+        target = "grav"  # Binary target column (0: grave, 1: not grave)
+        
         # Prepare features (X) and target (y)
-        X = pd.get_dummies(df[available_features], drop_first=True)  # Convert categorical variables to dummy variables
+        X = pd.get_dummies(df[model_features], drop_first=True)  # Convert categorical variables to dummy variables
         y = df[target]
         
         # Faire les prédictions avec le modèle
         y_pred = model.predict(X)
         
         # Classification report
-        return JSONResponse({"classification report": classification_report(y, y_pred)})
+        #return JSONResponse({"classification report": classification_report(y, y_pred)})
+        return {"classification report": classification_report(y, y_pred, output_dict=True)}
     
     except ImportError as e:
         return JSONResponse({'error': str(e)}, status_code=500)
+    except ValidationError as e:
+        # Retourner une erreur si la validation échoue
+        raise HTTPException(status_code=422, detail=e.errors())
+    except Exception as e:
+        # Gérer d'autres exceptions possibles
+        raise HTTPException(status_code=500, detail=str(e))
