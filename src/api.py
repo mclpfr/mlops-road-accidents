@@ -1,7 +1,7 @@
 import io
+import json
 import pandas as pd
 import joblib
-import json
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -13,7 +13,7 @@ app = FastAPI()
 security = HTTPBasic()
 
 # Charger les informations sensibles depuis le fichier JSON
-with open('../config.json') as f:
+with open('../config.json', encoding='utf-8') as f:
     users = json.load(f)
 
 # Modèles Pydantic pour les données
@@ -31,7 +31,7 @@ class Feature(BaseModel):
     lum: int
     atm: int
     col: int
-    
+
     class Config:
         extra = 'allow'
 
@@ -86,7 +86,7 @@ async def predict_csv(file_request: UploadFile = File(), current_user: str = Dep
         df_report = pd.DataFrame(report).transpose()
         df_report.to_csv("../data/out/classification_report.csv")
         
-        return {"message": "Prédiction effectuée avec succès"}
+        return {"user": current_user, "message": "Prédiction effectuée avec succès"}
         
         # Classification report
         #return JSONResponse({"classification report": classification_report(y, y_pred)})
