@@ -1,21 +1,20 @@
+import io
+import pandas as pd
+import joblib
+import json
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sklearn.metrics import classification_report
 from pydantic import BaseModel, ValidationError
-import joblib
-import pandas as pd
-import io
 
 # Initialiser l'application FastAPI
 app = FastAPI()
 security = HTTPBasic()
 
-# Identification des utilisateurs pour faire des tests
-users = {
-    "alice": "wonder",
-    "clem": "juice"
-}
+# Charger les informations sensibles depuis le fichier JSON
+with open('../config.json') as f:
+    users = json.load(f)
 
 # Modèles Pydantic pour les données
 class Feature(BaseModel):
