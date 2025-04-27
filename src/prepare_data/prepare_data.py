@@ -14,12 +14,16 @@ def prepare_data(config_path="config.yaml"):
     year = config["data_extraction"]["year"]
 
     # Define paths for raw and processed data
+    varied_path = os.path.join("data/raw", f"accidents_{year}_varied.csv")
     raw_path = os.path.join("data/raw", f"accidents_{year}.csv")
     processed_dir = "data/processed"
     os.makedirs(processed_dir, exist_ok=True)
 
-    # Load the raw CSV file
-    data = pd.read_csv(raw_path, low_memory=False)
+    # Utiliser le fichier varié s'il existe, sinon le fichier original
+    if os.path.exists(varied_path):
+        data = pd.read_csv(varied_path, low_memory=False)
+    else:
+        data = pd.read_csv(raw_path, low_memory=False)
 
     # Handle missing values by filling with the mode of each column
     data.fillna(data.mode().iloc[0], inplace=True)

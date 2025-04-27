@@ -1,0 +1,19 @@
+data_extraction:
+  year: "2023"
+  url: "https://www.data.gouv.fr/en/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/"
+
+mlflow:
+  tracking_uri: "https://dagshub.com/USERNAME/REPOSITORY.mlflow"
+  username: "USERNAME"
+  password: "YOUR_DAGSHUB_TOKEN" 
+
+postgresql:
+  host: "postgres"
+  port: "5432"
+  user: "postgres"
+  password: "YOUR_POSTGRES_PASSWORD"
+  database: "road_accidents" 
+
+dagshub:
+  user: "USERNAME"
+  token: "YOUR_DAGSHUB_TOKEN" 

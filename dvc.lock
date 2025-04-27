@@ -1,58 +1,58 @@
 schema: '2.0'
 stages:
   extract:
-    cmd: python src/extract_data.py
+    cmd: python src/extract_data/extract_data.py
     deps:
     - path: config.yaml
       hash: md5
-      md5: d901891b45c9cc17698a9f910939f660
-      size: 182
-    - path: src/extract_data.py
+      md5: 83acbde3b0b463c02cc02f800db1e058
+      size: 537
+    - path: src/extract_data/extract_data.py
       hash: md5
-      md5: e951287354383aa3168e6aedbf919326
-      size: 3023
+      md5: c57352bf936c1cd2656285b0569fc6b5
+      size: 2949
     outs:
     - path: data/raw/accidents_2023.csv
       hash: md5
-      md5: 4f53b1aa637e78d2f259c270a78ce522
-      size: 74846529
+      md5: fbb1e459ca3aac25fdbf35a3d04173e9
+      size: 74537187
   prepare:
-    cmd: python src/prepare_data.py
+    cmd: python src/prepare_data/prepare_data.py
     deps:
     - path: config.yaml
       hash: md5
-      md5: d901891b45c9cc17698a9f910939f660
-      size: 182
+      md5: 83acbde3b0b463c02cc02f800db1e058
+      size: 537
     - path: data/raw/accidents_2023.csv
       hash: md5
-      md5: 4f53b1aa637e78d2f259c270a78ce522
-      size: 74846529
-    - path: src/prepare_data.py
+      md5: fbb1e459ca3aac25fdbf35a3d04173e9
+      size: 74537187
+    - path: src/prepare_data/prepare_data.py
       hash: md5
-      md5: b3cd24819cbcd55dcbdc1f1b2f14505f
-      size: 1673
+      md5: b9dd76683ad99f348b6fe23149074b2e
+      size: 1856
     outs:
     - path: data/processed/prepared_accidents_2023.csv
       hash: md5
-      md5: fb7b484cc57f115c58c7aa7bae5614f5
-      size: 267086414
+      md5: a04c5aab8e5b2c4311002178f7329394
+      size: 266777072
   models:
-    cmd: python src/train_model.py
+    cmd: python src/train_model/train_model.py
     deps:
     - path: config.yaml
       hash: md5
-      md5: d901891b45c9cc17698a9f910939f660
-      size: 182
+      md5: 83acbde3b0b463c02cc02f800db1e058
+      size: 537
     - path: data/processed/prepared_accidents_2023.csv
       hash: md5
-      md5: fb7b484cc57f115c58c7aa7bae5614f5
-      size: 267086414
-    - path: src/train_model.py
+      md5: a04c5aab8e5b2c4311002178f7329394
+      size: 266777072
+    - path: src/train_model/train_model.py
       hash: md5
-      md5: 099718eed19f5b693c428456eb701417
-      size: 2327
+      md5: 0860d99fa169152db8fa042459882cde
+      size: 13831
     outs:
     - path: models/rf_model_2023.joblib
       hash: md5
-      md5: d0fc8e65be1bdad5950f47f71d005ddc
-      size: 474532265
+      md5: f2e6a6a39f06238a04f9bde12b15a618
+      size: 474532297
