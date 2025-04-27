@@ -110,7 +110,7 @@ async def predict_csv(file_request: UploadFile = File(), current_user: str = Dep
         return JSONResponse({'error': str(e)}, status_code=500)
     except ValidationError as e:
         # Retourner une erreur si la validation échoue
-        raise HTTPException(status_code=422, detail=e.errors())
+        raise HTTPException(status_code=422, detail=e.errors()) from e
     except Exception as e:
         # Gérer d'autres exceptions possibles
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
