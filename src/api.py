@@ -57,41 +57,55 @@ async def predict_csv(file_request: UploadFile = File(), current_user: str = Dep
         # Lire le fichier CSV avec pandas
         contents = await file_request.read()
         df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
-        
+
         records = df.to_dict(orient='records')
-        
+
         # Valider chaque enregistrement avec le modèle Pydantic
         features = [Feature(**record) for record in records]
         if not features:
             raise ValueError("None of the selected features are available in the dataset.")
-        
+
         #return {"message": "Données validées avec succès", "features": features}
-        
+
         # Select model features
-        model_features = ["catu", "sexe", "trajet", "catr", "circ", "vosp", "prof", "plan", "surf", "situ", "lum", "atm", "col"]
+        model_features = [
+            "catu",
+            "sexe",
+            "trajet",
+            "catr",
+            "circ",
+            "vosp",
+            "prof",
+            "plan",
+            "surf",
+            "situ",
+            "lum",
+            "atm",
+            "col"
+            ]
         target = "grav"
-        
+
         # Prepare features (X) and target (y)
-        X = pd.get_dummies(df[model_features], drop_first=True)  # Convert categorical variables to dummy variables
-        y = df[target].apply(lambda x: 0 if x in [3, 4] else 1)  # Binary target column (0: grave, 1: not grave)
-        
+        X = pd.get_dummies(df[model_features], drop_first=True)
+        y = df[target].apply(lambda x: 0 if x in [3, 4] else 1)  # 0: grave, 1: not grave
+
         # Faire les prédictions avec le modèle
         y_pred = model.predict(X)
-        
+
         # Sortie des résultats
         df_ypred = pd.DataFrame(y_pred)
         df_ypred.to_csv("../data/out/y_pred.csv", index=False)
-        
+
         report = classification_report(y, y_pred, output_dict=True)
         df_report = pd.DataFrame(report).transpose()
         df_report.to_csv("../data/out/classification_report.csv")
-        
+
         return {"user": current_user, "message": "Prédiction effectuée avec succès"}
-        
+
         # Classification report
         #return JSONResponse({"classification report": classification_report(y, y_pred)})
         #return {"classification report": classification_report(y, y_pred, output_dict=True)}
-    
+
     except ImportError as e:
         return JSONResponse({'error': str(e)}, status_code=500)
     except ValidationError as e:
