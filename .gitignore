@@ -4,6 +4,7 @@ env/
 __pycache__/
 *.csv
 config.json
+config_perso.yaml
 data/out/
 data/raw/
 data/processed/
