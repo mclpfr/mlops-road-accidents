@@ -4,8 +4,8 @@ data_extraction:
 
 mlflow:
   tracking_uri: "https://dagshub.com/mclpfr/mlops-road-accidents.mlflow"
-  username: "mclpfr"
-  password: "46fb4962402bf1118d644028129e9c98e5f60ce6" 
+  username: "franciscdata"
+  password: "de2de5faad01289556c22675be4580843d7216e6" 
 
 postgresql:
   host: "postgres"
@@ -15,5 +15,5 @@ postgresql:
   database: "road_accidents" 
 
 dagshub:
-  user: "mclpfr"
-  token: "46fb4962402bf1118d644028129e9c98e5f60ce6" 
+  user: "franciscdata"
+  token: "de2de5faad01289556c22675be4580843d7216e6"
