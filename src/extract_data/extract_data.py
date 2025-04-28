@@ -60,14 +60,37 @@ def download_accident_data(config_path="config.yaml"):
     lieux = pd.read_csv(os.path.join(output_dir, f'lieux-{year}.csv'), sep=";", low_memory=False)
     caract = pd.read_csv(os.path.join(output_dir, f'caract-{year}.csv'), sep=";", low_memory=False)
 
+    # Keep only necessary columns from each dataset
+    usagers_cols = ['Num_Acc', 'grav']  # Only keep Num_Acc and grav from usagers
+    vehicules_cols = [col for col in vehicules.columns if col not in ['grav']]  # Remove grav if exists
+    lieux_cols = [col for col in lieux.columns if col not in ['grav']]  # Remove grav if exists
+    caract_cols = [col for col in caract.columns if col not in ['grav']]  # Remove grav if exists
+
+    # Select only necessary columns
+    usagers = usagers[usagers_cols]
+    vehicules = vehicules[vehicules_cols]
+    lieux = lieux[lieux_cols]
+    caract = caract[caract_cols]
+
     # Merge the datasets on the 'Num_Acc' column
     merged_data = caract.merge(usagers, on="Num_Acc").merge(vehicules, on="Num_Acc").merge(lieux, on="Num_Acc")
 
+    # Convert 'grav' column to numeric, handling any potential string values
+    merged_data['grav'] = pd.to_numeric(merged_data['grav'].astype(str).str.strip('"'), errors='coerce')
+
+    # Limit the dataset to half its original size to optimize performance
+    original_size = len(merged_data)
+    half_size = original_size // 2
+    print(f"Limiting the dataset to {half_size} rows (original size: {original_size} rows)")
+    merged_data = merged_data.head(half_size)
+    
     # Save the merged data to the output directory
     output_path = os.path.join(output_dir, f'accidents_{year}.csv')
-    merged_data.to_csv(output_path, index=False)
+    merged_data.to_csv(output_path, sep=';', index=False)
 
     print(f'Download and merge completed: All CSV files for {year} are stored in "{output_dir}".')
+    with open(os.path.join(output_dir, "extract_data.done"), "w") as f:
+        f.write("done\n")
 
 # Execute the function
 if __name__ == "__main__":

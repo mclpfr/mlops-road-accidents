@@ -1,12 +1,12 @@
 FROM python:3.10-slim
 
-# Arguments pour UID et GID
+# Arguments for UID and GID
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
 WORKDIR /app
 
-# Configuration de la limite de mémoire
+# Memory and environment config
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONMEM=256m
 ENV JAVA_OPTS="-Xmx512m -Xms256m"
@@ -20,8 +20,9 @@ RUN mkdir -p /app/data /app/models && \
     useradd -u ${USER_ID} -g appuser -s /bin/bash -m appuser && \
     chown -R appuser:appuser /app /app/data /app/models
 
-COPY src/auto_dvc/. .
+COPY src/retrieve_data/. .
 
 USER appuser
 
-CMD ["python", "auto_dvc.py"] 
+CMD ["python", "retrieve_data.py"]
+

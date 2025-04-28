@@ -1,7 +1,7 @@
 import pandas as pd
 import joblib
 import yaml
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 import os
@@ -36,6 +36,20 @@ def load_config(config_path="config.yaml"):
                 "tracking_uri": os.getenv("MLFLOW_TRACKING_URI"),
                 "username": os.getenv("MLFLOW_TRACKING_USERNAME"),
                 "password": os.getenv("MLFLOW_TRACKING_PASSWORD")
+            },
+            "model": {
+                "type": "RandomForestClassifier",
+                "hyperparameters": {
+                    "n_estimators": [100],
+                    "max_depth": [None],
+                    "min_samples_split": [2],
+                    "min_samples_leaf": [1],
+                    "max_features": ["sqrt"],
+                    "class_weight": [None]
+                },
+                "random_state": 42,
+                "test_size": 0.2,
+                "cv_folds": 5
             }
         }
         return config
@@ -73,10 +87,14 @@ def train_model(config_path="config.yaml"):
                 logger.info(f"Existing registered models: {model_names}")
                 
                 for model_name in model_names:
-                    latest_versions = client.get_latest_versions(model_name)
-                    logger.info(f"Model {model_name} has {len(latest_versions)} versions")
-                    for version in latest_versions:
-                        logger.info(f"  Version: {version.version}, Stage: {version.current_stage}")
+                    all_versions = client.search_model_versions(f"name='{model_name}'")
+                    logger.info(f"Model {model_name} has {len(all_versions)} versions")
+                    # Log only the latest version with best model tag
+                    best_versions = [v for v in all_versions if v.tags and "best_model" in v.tags]
+                    if best_versions:
+                        best_version = best_versions[0]
+                        logger.info(f"  Latest best version: {best_version.version}, Stage: {best_version.current_stage}")
+                        logger.info(f"  Tags: {best_version.tags}")
             except Exception as e:
                 logger.error(f"Error checking existing models: {str(e)}")
                 
@@ -131,12 +149,22 @@ def train_model(config_path="config.yaml"):
         # Prepare features (X) and target (y)
         X = pd.get_dummies(data[available_features], drop_first=True)
         y = data[target]
+        
+        if y.isna().any():
+            logger.info(f"Found {y.isna().sum()} NaN values in target variable. Dropping these rows.")
+            mask = ~y.isna()
+            X = X[mask]
+            y = y[mask]
+            logger.info(f"After removing NaN values: {len(X)} samples remaining")
 
         # Use a fixed value for reproducibility
         logger.info(f"Random seed used for this run: 42")
 
         # Split the data into training and testing sets
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        model_config = config.get("model", {})
+        test_size = model_config.get("test_size", 0.2)
+        random_state = model_config.get("random_state", 42)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
         logger.info(f"Data split into training ({len(X_train)} samples) and testing ({len(X_test)} samples) sets")
 
         # Start an MLflow run without using the context manager to be able to end it explicitly
@@ -145,22 +173,42 @@ def train_model(config_path="config.yaml"):
         try:
             logger.info(f"Started MLflow run with ID: {run.info.run_id}")
             
-            # Log parameters
+            # Récupération des hyperparamètres depuis la configuration
+            hyperparameters = model_config.get("hyperparameters", {})
+            cv_folds = model_config.get("cv_folds", 5)
+            
+            # Grid search avec validation croisée
+            logger.info("Starting Grid Search for hyperparameter optimization...")
+            rf_model = RandomForestClassifier(random_state=random_state)
+            grid_search = GridSearchCV(
+                estimator=rf_model,
+                param_grid=hyperparameters,
+                cv=cv_folds,
+                scoring='accuracy',
+                n_jobs=-1,
+                verbose=2
+            )
+            
+            # Entraînement avec recherche d'hyperparamètres
+            logger.info("Training model with hyperparameter optimization...")
+            grid_search.fit(X_train, y_train)
+            
+            # Récupération du meilleur modèle
+            model = grid_search.best_estimator_
+            best_params = grid_search.best_params_
+            
+            # Log des paramètres
             params = {
-                "model_type": "RandomForestClassifier",
-                "n_estimators": 100,
-                "random_state": 42,
+                "model_type": model_config.get("type", "RandomForestClassifier"),
                 "year": year,
-                "features": json.dumps(available_features)
+                "features": json.dumps(available_features),
+                "cv_folds": cv_folds,
+                "test_size": test_size,
+                **best_params  # Ajoute les meilleurs hyperparamètres trouvés
             }
             mlflow.log_params(params)
-            logger.info("Logged model parameters")
+            logger.info(f"Best parameters found: {best_params}")
             
-            # Train a Random Forest Classifier
-            model = RandomForestClassifier(n_estimators=100, random_state=42)
-            model.fit(X_train, y_train)
-            logger.info("Model training completed")
-
             # Evaluate the model on the test set
             y_pred = model.predict(X_test)
             report = classification_report(y_test, y_pred, output_dict=True)
@@ -197,29 +245,50 @@ def train_model(config_path="config.yaml"):
                     
                     # Get all versions of the model
                     all_versions = client.search_model_versions(f"name='{model_name}'")
+                    logger.info(f"Found {len(all_versions)} total versions for model {model_name}")
                     
                     # Find the version tagged as best_model
                     for version in all_versions:
-                        tags = version.tags
-                        if "best_model" in tags:
+                        if version.tags and "best_model" in version.tags:
                             try:
-                                version_accuracy = float(tags["best_model"])
+                                version_accuracy = float(version.tags["best_model"])
+                                logger.info(f"Found model version {version.version} with best_model tag and accuracy {version_accuracy}")
                                 if version_accuracy > best_model_accuracy:
                                     best_model_accuracy = version_accuracy
                                     best_model_version = version.version
-                                logger.info(f"Found existing best_model (version {version.version}) with accuracy: {version_accuracy}")
                             except ValueError:
-                                logger.warning(f"Invalid accuracy value in best_model tag: {tags['best_model']}")
+                                logger.warning(f"Invalid accuracy value in best_model tag: {version.tags['best_model']}")
+                    
+                    if best_model_version is not None:
+                        logger.info(f"Current best model is version {best_model_version} with accuracy {best_model_accuracy}")
+                    else:
+                        logger.info("No existing model found with best_model tag")
                     
                     # Only tag the current model as best_model if it's better than previous best
                     if current_accuracy > best_model_accuracy:
-                        client.set_model_version_tag(
-                            name=model_name,
-                            version=model_version.version,
-                            key="best_model",
-                            value=str(current_accuracy)
-                        )
-                        logger.info(f"Tagged model version {model_version.version} as best_model with accuracy: {current_accuracy} (improved from {best_model_accuracy})")
+                        # Si on a trouvé un ancien meilleur modèle, on retire son tag
+                        if best_model_version is not None:
+                            try:
+                                client.delete_model_version_tag(
+                                    name=model_name,
+                                    version=best_model_version,
+                                    key="best_model"
+                                )
+                                logger.info(f"Removed best_model tag from version {best_model_version}")
+                            except Exception as e:
+                                logger.error(f"Error removing best_model tag from version {best_model_version}: {str(e)}")
+                        
+                        # On tague le nouveau modèle comme best_model
+                        try:
+                            client.set_model_version_tag(
+                                name=model_name,
+                                version=model_version.version,
+                                key="best_model",
+                                value=str(current_accuracy)
+                            )
+                            logger.info(f"Tagged model version {model_version.version} as best_model with accuracy: {current_accuracy} (improved from {best_model_accuracy})")
+                        except Exception as e:
+                            logger.error(f"Error setting best_model tag for version {model_version.version}: {str(e)}")
                     else:
                         logger.info(f"Current model accuracy ({current_accuracy}) is not better than existing best model ({best_model_accuracy}), keeping existing best_model tag")
                 except Exception as e:
@@ -254,14 +323,27 @@ def train_model(config_path="config.yaml"):
             
             # Only save as best_model if it has better accuracy than previous best
             if current_accuracy > best_model_accuracy:
+                # Save the best model as a complete file, not a symbolic link
                 joblib.dump(model, best_model_path)
                 logger.info(f"Model saved locally to {model_path} and {best_model_path} (as new best model)")
             else:
+                # If a better model already exists, check if it exists physically
+                if os.path.exists(best_model_path):
+                    logger.info(f"Keeping existing best_model at {best_model_path}")
+                else:
+                    # If it doesn't exist, use the current model as the best model
+                    joblib.dump(model, best_model_path)
+                    logger.info(f"No existing best_model found. Creating one with current model at {best_model_path}")
+                
                 logger.info(f"Model saved locally to {model_path} (keeping existing best_model)")
             
             # Explicitly end the run successfully, even if registration in the registry failed
             mlflow.end_run(status="FINISHED")
             logger.info("MLflow run marked as FINISHED successfully")
+
+            # Création du fichier de signal de fin pour auto_dvc
+            with open("models/training.lock", "w") as f:
+                f.write("done\n")
 
         except Exception as e:
             # In case of error, end the run with a failure status
@@ -286,6 +368,7 @@ def train_model(config_path="config.yaml"):
             # Create a simple dummy model if needed
             dummy_model = RandomForestClassifier(n_estimators=10)
             joblib.dump(dummy_model, previous_model_path)
+
             joblib.dump(dummy_model, best_model_path)
             logger.info(f"Created fallback model files due to error")
         except:

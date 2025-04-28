@@ -1,6 +1,5 @@
 version: '3.8'
 
-# Utilisation de valeurs fixes pour UID et GID
 x-user-info: &user-info
   USER_ID: "1000"
   GROUP_ID: "1000"
@@ -26,14 +25,20 @@ services:
       args:
         <<: *user-info
     container_name: prepare_data_service
-    command: sh -c "python prepare_data.py"
+    command: >
+      sh -c "
+        while [ ! -f /app/data/raw/extract_data.done ]; do
+          echo 'Waiting for extract_data to finish...';
+          sleep 5;
+        done;
+        python prepare_data.py
+      "
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml
     working_dir: /app
     depends_on:
-      extract_data:
-        condition: service_completed_successfully
+      - extract_data
 
   train_model:
     build:
@@ -42,15 +47,24 @@ services:
       args:
         <<: *user-info
     container_name: train_model_service
-    command: sh -c "python train_model.py"
+    user: root
+    command: >
+      sh -c "
+        while [ ! -f /app/data/processed/prepared_data.done ]; do
+          echo 'Waiting for prepare_data to finish...';
+          sleep 5;
+        done;
+        chown -R appuser:appuser /app/models;
+        rm -f /app/models/training.lock;
+        su -c 'python train_model.py' appuser
+      "
     volumes:
       - ./data:/app/data
       - ./models:/app/models
       - ./config.yaml:/app/config.yaml
     working_dir: /app
     depends_on:
-      prepare_data:
-        condition: service_completed_successfully
+      - prepare_data
 
   postgres:
     build:
@@ -73,7 +87,7 @@ services:
       retries: 5
     depends_on:
       train_model:
-        condition: service_completed_successfully
+        condition: service_started
 
   data_import:
     build:
@@ -105,6 +119,11 @@ services:
     user: root
     command: >
       sh -c "
+        echo 'Waiting for extract_data, prepare_data, and train_model to complete...';
+        while [ ! -f /app/models/training.lock ]; do
+          echo 'Waiting for training to complete...';
+          sleep 5;
+        done;
         chown -R appuser:appuser /app/.dvc;
         su -c 'python auto_dvc.py' appuser
       "
@@ -112,17 +131,37 @@ services:
       - ./data:/app/data
       - ./models:/app/models
       - ./.dvc:/app/.dvc
-      - ./.dvc/config.local:/app/.dvc/config.local
+      - ./.dvc/config:/app/.dvc/config
       - ./.dvcignore:/app/.dvcignore
       - ./dvc.yaml:/app/dvc.yaml
-      - ./dvc.lock:/app/dvc.lock
       - ./config.yaml:/app/config.yaml
       - ./src:/app/src
       - ./.git:/app/.git
     working_dir: /app
     depends_on:
-      data_import:
-        condition: service_completed_successfully
+      - train_model
+
+  retrieve_data:
+    build:
+      context: .
+      dockerfile: src/retrieve_data/Dockerfile
+      args:
+        <<: *user-info
+    container_name: retrieve_data_service
+    user: root
+    command: >
+      su -c 'python retrieve_data.py' appuser
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./.dvc:/app/.dvc
+      - ./.dvc/config:/app/.dvc/config
+      - ./.dvcignore:/app/.dvcignore
+      - ./dvc.yaml:/app/dvc.yaml
+      - ./config.yaml:/app/config.yaml
+      - ./src:/app/src
+      - ./.git:/app/.git
+    working_dir: /app
 
 volumes:
   postgres_data:

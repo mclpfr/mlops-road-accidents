@@ -7,6 +7,19 @@ mlflow:
   username: "USERNAME"
   password: "YOUR_DAGSHUB_TOKEN" 
 
+model:
+  type: "RandomForestClassifier"
+  hyperparameters:
+    n_estimators: [100, 200, 300]
+    max_depth: [10, 20, 30, null]
+    min_samples_split: [2, 5, 10]
+    min_samples_leaf: [1, 2, 4]
+    max_features: ["sqrt", "log2"]
+    class_weight: ["balanced", null]
+  random_state: 42
+  test_size: 0.2
+  cv_folds: 5
+
 postgresql:
   host: "postgres"
   port: "5432"

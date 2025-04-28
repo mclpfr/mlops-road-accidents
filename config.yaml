@@ -3,17 +3,35 @@ data_extraction:
   url: "https://www.data.gouv.fr/en/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/"
 
 mlflow:
+  enabled: true
   tracking_uri: "https://dagshub.com/mclpfr/mlops-road-accidents.mlflow"
   username: "franciscdata"
   password: "de2de5faad01289556c22675be4580843d7216e6" 
+
+model:
+  type: "RandomForestClassifier"
+  hyperparameters:
+    n_estimators: [100]
+    max_depth: [10]
+    min_samples_split: [2]
+    min_samples_leaf: [1]
+    max_features: ["sqrt"]
+    class_weight: ["balanced"]
+  random_state: 42
+  test_size: 0.2
+  cv_folds: 3
 
 postgresql:
   host: "postgres"
   port: "5432"
   user: "postgres"
-  password: "postgres"
+  password: "YOUR_POSTGRES_PASSWORD"
   database: "road_accidents" 
 
 dagshub:
   user: "franciscdata"
   token: "de2de5faad01289556c22675be4580843d7216e6"
+
+dvc:
+  dagshub_user: "mclpfr"
+  dagshub_token: "46fb4962402bf1118d644028129e9c98e5f60ce6" 
