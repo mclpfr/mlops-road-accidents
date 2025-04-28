@@ -85,7 +85,7 @@ def train_model(config_path="config.yaml"):
             raise
 
         # Create experiment with a fixed name
-        experiment_name = "road-accidents"
+        experiment_name = "traffic-incidents-2023"
         try:
             # Check if the experiment already exists
             experiment = mlflow.get_experiment_by_name(experiment_name)
