@@ -1,0 +1,62 @@
+schema: '2.0'
+stages:
+  extract:
+    cmd: python src/extract_data/extract_data.py
+    deps:
+    - path: config.yaml
+      hash: md5
+      md5: bdcc4e86843db1151e9135579554d933
+      size: 923
+    - path: src/extract_data/extract_data.py
+      hash: md5
+      md5: cded15028c1b2ad3acd37c8fe3d51f8d
+      size: 4140
+    outs:
+    - path: data/raw/accidents_2023.csv
+      hash: md5
+      md5: b0e57af82ee49505b87f07cbc4af4304
+      size: 26874584
+  prepare:
+    cmd: python src/prepare_data/prepare_data.py
+    deps:
+    - path: config.yaml
+      hash: md5
+      md5: bdcc4e86843db1151e9135579554d933
+      size: 923
+    - path: data/raw/accidents_2023.csv
+      hash: md5
+      md5: b0e57af82ee49505b87f07cbc4af4304
+      size: 26874584
+    - path: src/prepare_data/prepare_data.py
+      hash: md5
+      md5: dbcab7d00b300e024110ed118b91a14d
+      size: 2393
+    outs:
+    - path: data/processed/prepared_accidents_2023.csv
+      hash: md5
+      md5: 3e3df05e74ab37c003a2fe9754aae42c
+      size: 94708611
+  models:
+    cmd: python src/train_model/train_model.py
+    deps:
+    - path: config.yaml
+      hash: md5
+      md5: bdcc4e86843db1151e9135579554d933
+      size: 923
+    - path: data/processed/prepared_accidents_2023.csv
+      hash: md5
+      md5: 3e3df05e74ab37c003a2fe9754aae42c
+      size: 94708611
+    - path: src/train_model/train_model.py
+      hash: md5
+      md5: 06431c551e99072b82b3846a446cfb46
+      size: 18315
+    outs:
+    - path: models/best_model_2023.joblib
+      hash: md5
+      md5: f666d0bee831fb3c9412d647ca18038a
+      size: 649
+    - path: models/rf_model_2023.joblib
+      hash: md5
+      md5: 0bed82eed999e7dd6fa2710d26279409
+      size: 2102969
