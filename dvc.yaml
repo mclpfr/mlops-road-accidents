@@ -22,4 +22,3 @@ stages:
     - config.yaml
     outs:
     - models/rf_model_2023.joblib
-    - models/best_model_2023.joblib
