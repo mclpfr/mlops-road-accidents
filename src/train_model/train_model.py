@@ -12,6 +12,7 @@ import logging
 import random
 import time
 import traceback
+import subprocess
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -173,11 +174,11 @@ def train_model(config_path="config.yaml"):
         try:
             logger.info(f"Started MLflow run with ID: {run.info.run_id}")
             
-            # Récupération des hyperparamètres depuis la configuration
+            # Getting hyperparameters from configuration
             hyperparameters = model_config.get("hyperparameters", {})
             cv_folds = model_config.get("cv_folds", 5)
             
-            # Grid search avec validation croisée
+            # Grid search with cross validation
             logger.info("Starting Grid Search for hyperparameter optimization...")
             rf_model = RandomForestClassifier(random_state=random_state)
             grid_search = GridSearchCV(
@@ -189,22 +190,22 @@ def train_model(config_path="config.yaml"):
                 verbose=2
             )
             
-            # Entraînement avec recherche d'hyperparamètres
+            # Training with hyperparameter search
             logger.info("Training model with hyperparameter optimization...")
             grid_search.fit(X_train, y_train)
             
-            # Récupération du meilleur modèle
+            # Retrieving the best model
             model = grid_search.best_estimator_
             best_params = grid_search.best_params_
             
-            # Log des paramètres
+            # Logging parameters
             params = {
                 "model_type": model_config.get("type", "RandomForestClassifier"),
                 "year": year,
                 "features": json.dumps(available_features),
                 "cv_folds": cv_folds,
                 "test_size": test_size,
-                **best_params  # Ajoute les meilleurs hyperparamètres trouvés
+                **best_params  # Adding the best hyperparameters found
             }
             mlflow.log_params(params)
             logger.info(f"Best parameters found: {best_params}")
@@ -266,7 +267,7 @@ def train_model(config_path="config.yaml"):
                     
                     # Only tag the current model as best_model if it's better than previous best
                     if current_accuracy > best_model_accuracy:
-                        # Si on a trouvé un ancien meilleur modèle, on retire son tag
+                        # If we found a previous best model, remove its tag
                         if best_model_version is not None:
                             try:
                                 client.delete_model_version_tag(
@@ -278,7 +279,7 @@ def train_model(config_path="config.yaml"):
                             except Exception as e:
                                 logger.error(f"Error removing best_model tag from version {best_model_version}: {str(e)}")
                         
-                        # On tague le nouveau modèle comme best_model
+                        # Tag the new model as best_model
                         try:
                             client.set_model_version_tag(
                                 name=model_name,
@@ -316,32 +317,74 @@ def train_model(config_path="config.yaml"):
             
             # Save the trained model locally
             model_path = f"{model_dir}/rf_model_{year}.joblib"
-            best_model_path = f"{model_dir}/best_model_{year}.joblib"
             
             # Always save the current model
             joblib.dump(model, model_path)
             
             # Only save as best_model if it has better accuracy than previous best
             if current_accuracy > best_model_accuracy:
-                # Save the best model as a complete file, not a symbolic link
-                joblib.dump(model, best_model_path)
-                logger.info(f"Model saved locally to {model_path} and {best_model_path} (as new best model)")
-            else:
-                # If a better model already exists, check if it exists physically
-                if os.path.exists(best_model_path):
-                    logger.info(f"Keeping existing best_model at {best_model_path}")
-                else:
-                    # If it doesn't exist, use the current model as the best model
-                    joblib.dump(model, best_model_path)
-                    logger.info(f"No existing best_model found. Creating one with current model at {best_model_path}")
+                # No longer save best_model file
+                # joblib.dump(model, best_model_path)
+                logger.info(f"Model saved locally to {model_path} (as new best model)")
                 
-                logger.info(f"Model saved locally to {model_path} (keeping existing best_model)")
+                # Creating a metadata file for Git
+                metadata_path = f"{model_dir}/model_metadata.json"
+                with open(metadata_path, "w") as f:
+                    json.dump({
+                        "model_version": model_version.version, 
+                        "accuracy": float(current_accuracy),
+                        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "features": available_features,
+                        "data_source": data_path
+                    }, f, indent=2)
+                
+                # Git commit for the metadata only (not the model)
+                try:
+                    # Only force-add metadata file, not the model
+                    subprocess.run(["git", "add", "-f", metadata_path], check=True)
+                    
+                    # Using DVC to track both the model and data files
+                    try:
+                        # Use dvc commit instead of dvc add for model file (already defined in dvc.yaml)
+                        subprocess.run(["dvc", "commit", model_path, "--force"], check=True)
+                        logger.info(f"DVC commit done for model: {model_path}")
+                        
+                        # Check if data file is also in dvc.yaml
+                        if os.path.exists("dvc.yaml"):
+                            with open("dvc.yaml", "r") as f:
+                                dvc_content = f.read()
+                            
+                            if data_path in dvc_content:
+                                # Use commit if the file is defined in dvc.yaml
+                                subprocess.run(["dvc", "commit", data_path, "--force"], check=True)
+                                logger.info(f"DVC commit done for data: {data_path}")
+                            else:
+                                # Use add if it's not defined in dvc.yaml
+                                subprocess.run(["dvc", "add", data_path], check=True)
+                                logger.info(f"DVC add done for data: {data_path}")
+                        else:
+                            # If no dvc.yaml, use add
+                            subprocess.run(["dvc", "add", data_path], check=True)
+                            logger.info(f"DVC add done for data: {data_path}")
+                    except Exception as e:
+                        logger.error(f"Error during DVC operations: {str(e)}")
+                        logger.error(traceback.format_exc())
+                    
+                    # Create git commit with metadata file
+                    commit_message = f"Best model version: {model_version.version}, accuracy: {current_accuracy:.4f}"
+                    subprocess.run(["git", "commit", "-m", commit_message], check=True)
+                    logger.info(f"Git commit done: {commit_message}")
+                except Exception as e:
+                    logger.error(f"Error during git commit: {str(e)}")
+            else:
+                # If a better model already exists, no need to do anything with best_model
+                logger.info(f"Model saved locally to {model_path}")
             
             # Explicitly end the run successfully, even if registration in the registry failed
             mlflow.end_run(status="FINISHED")
             logger.info("MLflow run marked as FINISHED successfully")
 
-            # Création du fichier de signal de fin pour auto_dvc
+            # Creating end signal file for auto_dvc
             with open("models/training.lock", "w") as f:
                 f.write("done\n")
 
@@ -363,14 +406,12 @@ def train_model(config_path="config.yaml"):
             
             # If previous model exists, use that
             previous_model_path = f"{model_dir}/rf_model_{year}.joblib"
-            best_model_path = f"{model_dir}/best_model_{year}.joblib"
             
             # Create a simple dummy model if needed
             dummy_model = RandomForestClassifier(n_estimators=10)
             joblib.dump(dummy_model, previous_model_path)
 
-            joblib.dump(dummy_model, best_model_path)
-            logger.info(f"Created fallback model files due to error")
+            logger.info(f"Created fallback model file due to error")
         except:
             logger.error("Could not create fallback model files")
         raise
