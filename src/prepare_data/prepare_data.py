@@ -14,13 +14,16 @@ def prepare_data(config_path="config.yaml"):
     year = config["data_extraction"]["year"]
 
     # Define paths for raw and processed data
+    synthet_path = os.path.join("data/raw", f"accidents_{year}_synthet.csv")
     varied_path = os.path.join("data/raw", f"accidents_{year}_varied.csv")
     raw_path = os.path.join("data/raw", f"accidents_{year}.csv")
     processed_dir = "data/processed"
     os.makedirs(processed_dir, exist_ok=True)
 
-    # Use the varied file if it exists, otherwise the original file
-    if os.path.exists(varied_path):
+    # Use the synthetic file if it exists, otherwise the varied file, otherwise the original file
+    if os.path.exists(synthet_path):
+        data = pd.read_csv(synthet_path, low_memory=False, sep=';')
+    elif os.path.exists(varied_path):
         data = pd.read_csv(varied_path, low_memory=False, sep=';')
     else:
         data = pd.read_csv(raw_path, low_memory=False, sep=';')

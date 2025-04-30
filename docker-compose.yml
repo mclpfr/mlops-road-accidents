@@ -18,6 +18,28 @@ services:
       - ./config.yaml:/app/config.yaml
     working_dir: /app
 
+  synthet_data:
+    build:
+      context: .
+      dockerfile: src/synthet_data/Dockerfile
+      args:
+        <<: *user-info
+    container_name: synthet_data_service
+    command: >
+      sh -c "
+        while [ ! -f /app/data/raw/accidents_2023.csv ]; do
+          echo 'Waiting for extract_data to finish...';
+          sleep 5;
+        done;
+        python synthet_data.py
+      "
+    volumes:
+      - ./data:/app/data
+      - ./config.yaml:/app/config.yaml
+    working_dir: /app
+    depends_on:
+      - extract_data
+
   prepare_data:
     build:
       context: .
@@ -38,7 +60,7 @@ services:
       - ./config.yaml:/app/config.yaml
     working_dir: /app
     depends_on:
-      - extract_data
+      - synthet_data
 
   train_model:
     build:
@@ -109,59 +131,59 @@ services:
       postgres:
         condition: service_healthy
 
-  auto_dvc:
-    build:
-      context: .
-      dockerfile: src/auto_dvc/Dockerfile
-      args:
-        <<: *user-info
-    container_name: auto_dvc_service
-    user: root
-    command: >
-      sh -c "
-        echo 'Waiting for extract_data, prepare_data, and train_model to complete...';
-        while [ ! -f /app/models/training.lock ]; do
-          echo 'Waiting for training to complete...';
-          sleep 5;
-        done;
-        chown -R appuser:appuser /app/.dvc;
-        su -c 'python auto_dvc.py' appuser
-      "
-    volumes:
-      - ./data:/app/data
-      - ./models:/app/models
-      - ./.dvc:/app/.dvc
-      - ./.dvc/config:/app/.dvc/config
-      - ./.dvcignore:/app/.dvcignore
-      - ./dvc.yaml:/app/dvc.yaml
-      - ./config.yaml:/app/config.yaml
-      - ./src:/app/src
-      - ./.git:/app/.git
-    working_dir: /app
-    depends_on:
-      - train_model
-
-  retrieve_data:
-    build:
-      context: .
-      dockerfile: src/retrieve_data/Dockerfile
-      args:
-        <<: *user-info
-    container_name: retrieve_data_service
-    user: root
-    command: >
-      su -c 'python retrieve_data.py' appuser
-    volumes:
-      - ./data:/app/data
-      - ./models:/app/models
-      - ./.dvc:/app/.dvc
-      - ./.dvc/config:/app/.dvc/config
-      - ./.dvcignore:/app/.dvcignore
-      - ./dvc.yaml:/app/dvc.yaml
-      - ./config.yaml:/app/config.yaml
-      - ./src:/app/src
-      - ./.git:/app/.git
-    working_dir: /app
+#  auto_dvc:
+#    build:
+#      context: .
+#      dockerfile: src/auto_dvc/Dockerfile
+#      args:
+#        <<: *user-info
+#    container_name: auto_dvc_service
+#    user: root
+#    command: >
+#      sh -c "
+#        echo 'Waiting for extract_data, prepare_data, and train_model to complete...';
+#        while [ ! -f /app/models/training.lock ]; do
+#          echo 'Waiting for training to complete...';
+#          sleep 5;
+#        done;
+#        chown -R appuser:appuser /app/.dvc;
+#        su -c 'python auto_dvc.py' appuser
+#      "
+#    volumes:
+#      - ./data:/app/data
+#      - ./models:/app/models
+#      - ./.dvc:/app/.dvc
+#      - ./.dvc/config:/app/.dvc/config
+#      - ./.dvcignore:/app/.dvcignore
+#      - ./dvc.yaml:/app/dvc.yaml
+#      - ./config.yaml:/app/config.yaml
+#      - ./src:/app/src
+#      - ./.git:/app/.git
+#    working_dir: /app
+#    depends_on:
+#      - train_model
+#
+#  retrieve_data:
+#    build:
+#      context: .
+#      dockerfile: src/retrieve_data/Dockerfile
+#      args:
+#        <<: *user-info
+#    container_name: retrieve_data_service
+#    user: root
+#    command: >
+#      su -c 'python retrieve_data.py' appuser
+#    volumes:
+#      - ./data:/app/data
+#      - ./models:/app/models
+#      - ./.dvc:/app/.dvc
+#      - ./.dvc/config:/app/.dvc/config
+#      - ./.dvcignore:/app/.dvcignore
+#      - ./dvc.yaml:/app/dvc.yaml
+#      - ./config.yaml:/app/config.yaml
+#      - ./src:/app/src
+#      - ./.git:/app/.git
+#    working_dir: /app
 
 volumes:
   postgres_data:
