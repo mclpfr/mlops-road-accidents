@@ -298,130 +298,123 @@ def train_model(config_path="config.yaml"):
                     logger.error(traceback.format_exc())
                     # Continue even if tagging fails
                 
-                # Promote to production
-                try:
-                    client.transition_model_version_stage(
-                        name=model_name,
-                        version=model_version.version,
-                        stage="Production"
-                    )
-                    logger.info(f"Promoted version {model_version.version} to Production")
-                except Exception as e:
-                    logger.error(f"Error promoting model to Production: {str(e)}")
-                    logger.error(traceback.format_exc())
-                    # Continue even if promotion fails
+                # Save the trained model locally
+                model_path = f"{model_dir}/rf_model_{year}.joblib"
+                
+                # Only save the current model if it is better than the previous best
+                if current_accuracy > best_model_accuracy:
+                    joblib.dump(model, model_path)
+                    # Save as best_model file
+                    best_model_path = f"{model_dir}/best_model_2023.joblib"
+                    joblib.dump(model, best_model_path)
+                    logger.info(f"Model saved locally to {model_path} and as best model to {best_model_path}")
+
+                    # Génération du fichier de métadonnées complet
+                    metadata_path = f"{model_dir}/best_model_2023_metadata.json"
+                    try:
+                        # Récupérer le hash du commit git
+                        commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
+                    except Exception as e:
+                        commit_hash = None
+                        logger.warning(f"Could not get git commit hash: {e}")
+
+                    # Récupérer les infos MLflow
+                    experiment_id = run.info.experiment_id
+                    experiment_name = experiment_name  # déjà défini plus haut
+                    last_run_id = run.info.run_id
+                    run_name = run.info.run_name
+
+                    # Hyperparamètres utilisés (ceux du meilleur modèle)
+                    hyperparameters = best_params.copy()
+                    # On s'assure d'avoir les valeurs demandées
+                    for k in ["n_estimators", "max_depth", "class_weight"]:
+                        if k not in hyperparameters:
+                            hyperparameters[k] = None
+
+                    # Nombre total d'échantillons
+                    total_samples = len(X)
+
+                    # Création du dictionnaire de métadonnées
+                    metadata = {
+                        "model_version": str(model_version.version),
+                        "model_type": model_config.get("type", "RandomForestClassifier"),
+                        "accuracy": float(current_accuracy),
+                        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                        "git_info": {
+                            "commit_hash": commit_hash
+                        },
+                        "mlflow_info": {
+                            "experiment_id": str(experiment_id),
+                            "experiment_name": experiment_name,
+                            "last_run_id": last_run_id,
+                            "run_name": run_name
+                        },
+                        "hyperparameters": {
+                            "n_estimators": hyperparameters["n_estimators"],
+                            "max_depth": hyperparameters["max_depth"],
+                            "class_weight": hyperparameters["class_weight"]
+                        },
+                        "data_source": data_path,
+                        "total_samples": total_samples
+                    }
+                    with open(metadata_path, "w") as f:
+                        json.dump(metadata, f, indent=2)
+                    logger.info(f"Full metadata written to {metadata_path}")
+                    
+                    # Git commit for the metadata only (not the model)
+                    try:
+                        # Only force-add metadata file, not the model
+                        subprocess.run(["git", "add", "-f", metadata_path], check=True)
+                        
+                        # Using DVC to track both the model and data files
+                        try:
+                            # Use dvc commit instead of dvc add for model file (already defined in dvc.yaml)
+                            subprocess.run(["dvc", "commit", model_path, "--force"], check=True)
+                            logger.info(f"DVC commit done for model: {model_path}")
+                            
+                            # Check if data file is also in dvc.yaml
+                            if os.path.exists("dvc.yaml"):
+                                with open("dvc.yaml", "r") as f:
+                                    dvc_content = f.read()
+                                
+                                if data_path in dvc_content:
+                                    # Use commit if the file is defined in dvc.yaml
+                                    subprocess.run(["dvc", "commit", data_path, "--force"], check=True)
+                                    logger.info(f"DVC commit done for data: {data_path}")
+                                else:
+                                    # Use add if it's not defined in dvc.yaml
+                                    subprocess.run(["dvc", "add", data_path], check=True)
+                                    logger.info(f"DVC add done for data: {data_path}")
+                            else:
+                                # If no dvc.yaml, use add
+                                subprocess.run(["dvc", "add", data_path], check=True)
+                                logger.info(f"DVC add done for data: {data_path}")
+                        except Exception as e:
+                            logger.error(f"Error during DVC operations: {str(e)}")
+                            logger.error(traceback.format_exc())
+                        
+                        # Create git commit with metadata file
+                        commit_message = f"Best model version: {model_version.version}, accuracy: {current_accuracy:.4f}"
+                        subprocess.run(["git", "commit", "-m", commit_message], check=True)
+                        logger.info(f"Git commit done: {commit_message}")
+                    except Exception as e:
+                        logger.error(f"Error during git commit: {str(e)}")
+                    # Promote to production (log only if best model)
+                    try:
+                        client.transition_model_version_stage(
+                            name=model_name,
+                            version=model_version.version,
+                            stage="Production"
+                        )
+                        logger.info(f"Promoted version {model_version.version} to Production")
+                    except Exception as e:
+                        logger.error(f"Error promoting model to Production: {str(e)}")
+                        logger.error(traceback.format_exc())
                 
             except Exception as e:
                 logger.error(f"Failed to register model in Model Registry: {str(e)}")
                 logger.error(traceback.format_exc())
                 # Continue even if model registration fails
-            
-            # Save the trained model locally
-            model_path = f"{model_dir}/rf_model_{year}.joblib"
-            
-            # Always save the current model
-            joblib.dump(model, model_path)
-            
-            # Only save as best_model if it has better accuracy than previous best
-            if current_accuracy > best_model_accuracy:
-                # Save as best_model file
-                best_model_path = f"{model_dir}/best_model_2023.joblib"
-                joblib.dump(model, best_model_path)
-                logger.info(f"Model saved locally to {model_path} and as best model to {best_model_path}")
-
-                # Génération du fichier de métadonnées complet
-                metadata_path = f"{model_dir}/best_model_2023_metadata.json"
-                try:
-                    # Récupérer le hash du commit git
-                    commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
-                except Exception as e:
-                    commit_hash = None
-                    logger.warning(f"Could not get git commit hash: {e}")
-
-                # Récupérer les infos MLflow
-                experiment_id = run.info.experiment_id
-                experiment_name = experiment_name  # déjà défini plus haut
-                last_run_id = run.info.run_id
-                run_name = run.info.run_name
-
-                # Hyperparamètres utilisés (ceux du meilleur modèle)
-                hyperparameters = best_params.copy()
-                # On s'assure d'avoir les valeurs demandées
-                for k in ["n_estimators", "max_depth", "class_weight"]:
-                    if k not in hyperparameters:
-                        hyperparameters[k] = None
-
-                # Nombre total d'échantillons
-                total_samples = len(X)
-
-                # Création du dictionnaire de métadonnées
-                metadata = {
-                    "model_version": str(model_version.version),
-                    "model_type": model_config.get("type", "RandomForestClassifier"),
-                    "accuracy": float(current_accuracy),
-                    "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "git_info": {
-                        "commit_hash": commit_hash
-                    },
-                    "mlflow_info": {
-                        "experiment_id": str(experiment_id),
-                        "experiment_name": experiment_name,
-                        "last_run_id": last_run_id,
-                        "run_name": run_name
-                    },
-                    "hyperparameters": {
-                        "n_estimators": hyperparameters["n_estimators"],
-                        "max_depth": hyperparameters["max_depth"],
-                        "class_weight": hyperparameters["class_weight"]
-                    },
-                    "data_source": data_path,
-                    "total_samples": total_samples
-                }
-                with open(metadata_path, "w") as f:
-                    json.dump(metadata, f, indent=2)
-                logger.info(f"Full metadata written to {metadata_path}")
-                
-                # Git commit for the metadata only (not the model)
-                try:
-                    # Only force-add metadata file, not the model
-                    subprocess.run(["git", "add", "-f", metadata_path], check=True)
-                    
-                    # Using DVC to track both the model and data files
-                    try:
-                        # Use dvc commit instead of dvc add for model file (already defined in dvc.yaml)
-                        subprocess.run(["dvc", "commit", model_path, "--force"], check=True)
-                        logger.info(f"DVC commit done for model: {model_path}")
-                        
-                        # Check if data file is also in dvc.yaml
-                        if os.path.exists("dvc.yaml"):
-                            with open("dvc.yaml", "r") as f:
-                                dvc_content = f.read()
-                            
-                            if data_path in dvc_content:
-                                # Use commit if the file is defined in dvc.yaml
-                                subprocess.run(["dvc", "commit", data_path, "--force"], check=True)
-                                logger.info(f"DVC commit done for data: {data_path}")
-                            else:
-                                # Use add if it's not defined in dvc.yaml
-                                subprocess.run(["dvc", "add", data_path], check=True)
-                                logger.info(f"DVC add done for data: {data_path}")
-                        else:
-                            # If no dvc.yaml, use add
-                            subprocess.run(["dvc", "add", data_path], check=True)
-                            logger.info(f"DVC add done for data: {data_path}")
-                    except Exception as e:
-                        logger.error(f"Error during DVC operations: {str(e)}")
-                        logger.error(traceback.format_exc())
-                    
-                    # Create git commit with metadata file
-                    commit_message = f"Best model version: {model_version.version}, accuracy: {current_accuracy:.4f}"
-                    subprocess.run(["git", "commit", "-m", commit_message], check=True)
-                    logger.info(f"Git commit done: {commit_message}")
-                except Exception as e:
-                    logger.error(f"Error during git commit: {str(e)}")
-            else:
-                # If a better model already exists, no need to do anything with best_model
-                logger.info(f"Model saved locally to {model_path}")
             
             # Explicitly end the run successfully, even if registration in the registry failed
             mlflow.end_run(status="FINISHED")
