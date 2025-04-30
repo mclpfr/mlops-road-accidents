@@ -1,0 +1,22 @@
+{
+  "model_version": "79",
+  "model_type": "RandomForestClassifier",
+  "accuracy": 0.5367880002586151,
+  "created_at": "2025-04-30 07:32:14",
+  "git_info": {
+    "commit_hash": "9719d5611dbd8be5e57392f5f72865aa9ab60f7a"
+  },
+  "mlflow_info": {
+    "experiment_id": "14",
+    "experiment_name": "traffic-incidents-2023",
+    "last_run_id": "d48be962e774418997a7923dbe391881",
+    "run_name": "bald-steed-362"
+  },
+  "hyperparameters": {
+    "n_estimators": 100,
+    "max_depth": 10,
+    "class_weight": "balanced"
+  },
+  "data_source": "data/processed/prepared_accidents_2023.csv",
+  "total_samples": 154670
+}
