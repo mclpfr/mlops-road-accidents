@@ -171,6 +171,7 @@ def train_model(config_path="config.yaml"):
         # Start an MLflow run without using the context manager to be able to end it explicitly
         active_run = mlflow.start_run()
         run = active_run
+        logger.info(f"Started MLflow run with ID: {run.info.run_id} and name: {run.info.run_name}")
         try:
             logger.info(f"Started MLflow run with ID: {run.info.run_id}")
             
@@ -323,20 +324,62 @@ def train_model(config_path="config.yaml"):
             
             # Only save as best_model if it has better accuracy than previous best
             if current_accuracy > best_model_accuracy:
-                # No longer save best_model file
-                # joblib.dump(model, best_model_path)
-                logger.info(f"Model saved locally to {model_path} (as new best model)")
-                
-                # Creating a metadata file for Git
-                metadata_path = f"{model_dir}/model_metadata.json"
+                # Save as best_model file
+                best_model_path = f"{model_dir}/best_model_2023.joblib"
+                joblib.dump(model, best_model_path)
+                logger.info(f"Model saved locally to {model_path} and as best model to {best_model_path}")
+
+                # Génération du fichier de métadonnées complet
+                metadata_path = f"{model_dir}/best_model_2023_metadata.json"
+                try:
+                    # Récupérer le hash du commit git
+                    commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
+                except Exception as e:
+                    commit_hash = None
+                    logger.warning(f"Could not get git commit hash: {e}")
+
+                # Récupérer les infos MLflow
+                experiment_id = run.info.experiment_id
+                experiment_name = experiment_name  # déjà défini plus haut
+                last_run_id = run.info.run_id
+                run_name = run.info.run_name
+
+                # Hyperparamètres utilisés (ceux du meilleur modèle)
+                hyperparameters = best_params.copy()
+                # On s'assure d'avoir les valeurs demandées
+                for k in ["n_estimators", "max_depth", "class_weight"]:
+                    if k not in hyperparameters:
+                        hyperparameters[k] = None
+
+                # Nombre total d'échantillons
+                total_samples = len(X)
+
+                # Création du dictionnaire de métadonnées
+                metadata = {
+                    "model_version": str(model_version.version),
+                    "model_type": model_config.get("type", "RandomForestClassifier"),
+                    "accuracy": float(current_accuracy),
+                    "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "git_info": {
+                        "commit_hash": commit_hash
+                    },
+                    "mlflow_info": {
+                        "experiment_id": str(experiment_id),
+                        "experiment_name": experiment_name,
+                        "last_run_id": last_run_id,
+                        "run_name": run_name
+                    },
+                    "hyperparameters": {
+                        "n_estimators": hyperparameters["n_estimators"],
+                        "max_depth": hyperparameters["max_depth"],
+                        "class_weight": hyperparameters["class_weight"]
+                    },
+                    "data_source": data_path,
+                    "total_samples": total_samples
+                }
                 with open(metadata_path, "w") as f:
-                    json.dump({
-                        "model_version": model_version.version, 
-                        "accuracy": float(current_accuracy),
-                        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-                        "features": available_features,
-                        "data_source": data_path
-                    }, f, indent=2)
+                    json.dump(metadata, f, indent=2)
+                logger.info(f"Full metadata written to {metadata_path}")
                 
                 # Git commit for the metadata only (not the model)
                 try:
@@ -407,11 +450,19 @@ def train_model(config_path="config.yaml"):
             # If previous model exists, use that
             previous_model_path = f"{model_dir}/rf_model_{year}.joblib"
             
+            # Check if best model exists, if not create a dummy one
+            best_model_path = f"{model_dir}/best_model_2023.joblib"
+            if not os.path.exists(best_model_path):
+                # Create a simple dummy model if needed
+                dummy_model = RandomForestClassifier(n_estimators=10)
+                joblib.dump(dummy_model, best_model_path)
+                logger.info(f"Created fallback best model file due to error")
+            
             # Create a simple dummy model if needed
             dummy_model = RandomForestClassifier(n_estimators=10)
             joblib.dump(dummy_model, previous_model_path)
 
-            logger.info(f"Created fallback model file due to error")
+            logger.info(f"Created fallback model files due to error")
         except:
             logger.error("Could not create fallback model files")
         raise
