@@ -1,0 +1,22 @@
+{
+  "model_version": "102",
+  "model_type": "RandomForestClassifier",
+  "accuracy": 0.5161311178638391,
+  "created_at": "2025-04-30 13:31:23",
+  "git_info": {
+    "commit_hash": "6f2d4661bf58318e258c8033c0102d33a4799cb2"
+  },
+  "mlflow_info": {
+    "experiment_id": "14",
+    "experiment_name": "traffic-incidents-2023",
+    "last_run_id": "1f82ab52794848e6b18cb46f44d9a824",
+    "run_name": "invincible-grub-67"
+  },
+  "hyperparameters": {
+    "n_estimators": null,
+    "max_depth": null,
+    "class_weight": null
+  },
+  "data_source": "data/processed/prepared_accidents_2023.csv",
+  "total_samples": 154670
+}
