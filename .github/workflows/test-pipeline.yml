@@ -76,35 +76,30 @@ jobs:
 
       - name: Build and push extract_data image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/extract_data_service:latest -f src/extract_data/Dockerfile .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/extract_data_service:${{ github.run_number }} -t ${{ secrets.DOCKER_USERNAME }}/extract_data_service:latest -f src/extract_data/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/extract_data_service:${{ github.run_number }}
           docker push ${{ secrets.DOCKER_USERNAME }}/extract_data_service:latest
 
       - name: Build and push prepare_data image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/prepare_data_service:latest -f src/prepare_data/Dockerfile .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/prepare_data_service:${{ github.run_number }} -t ${{ secrets.DOCKER_USERNAME }}/prepare_data_service:latest -f src/prepare_data/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/prepare_data_service:${{ github.run_number }}
           docker push ${{ secrets.DOCKER_USERNAME }}/prepare_data_service:latest
 
       - name: Build and push train_model image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/train_model_service:latest -f src/train_model/Dockerfile .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/train_model_service:${{ github.run_number }} -t ${{ secrets.DOCKER_USERNAME }}/train_model_service:latest -f src/train_model/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/train_model_service:${{ github.run_number }}
           docker push ${{ secrets.DOCKER_USERNAME }}/train_model_service:latest
 
       - name: Build and push postgres image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/postgres_service:latest -f src/postgresql/Dockerfile .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/postgres_service:${{ github.run_number }} -t ${{ secrets.DOCKER_USERNAME }}/postgres_service:latest -f src/postgresql/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/postgres_service:${{ github.run_number }}
           docker push ${{ secrets.DOCKER_USERNAME }}/postgres_service:latest
 
       - name: Build and push data_import image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/data_import_service:latest -f src/data_import/Dockerfile .
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/data_import_service:${{ github.run_number }} -t ${{ secrets.DOCKER_USERNAME }}/data_import_service:latest -f src/data_import/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/data_import_service:${{ github.run_number }}
           docker push ${{ secrets.DOCKER_USERNAME }}/data_import_service:latest
-
-      - name: Build and push auto_dvc image
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/auto_dvc_service:latest -f src/auto_dvc/Dockerfile .
-          docker push ${{ secrets.DOCKER_USERNAME }}/auto_dvc_service:latest
-
-      - name: Build and push retrieve_data image
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/retrieve_data_service:latest -f src/retrieve_data/Dockerfile .
-          docker push ${{ secrets.DOCKER_USERNAME }}/retrieve_data_service:latest
