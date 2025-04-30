@@ -175,41 +175,32 @@ def train_model(config_path="config.yaml"):
         try:
             logger.info(f"Started MLflow run with ID: {run.info.run_id}")
             
-            # Getting hyperparameters from configuration
-            hyperparameters = model_config.get("hyperparameters", {})
-            cv_folds = model_config.get("cv_folds", 5)
-            
-            # Grid search with cross validation
-            logger.info("Starting Grid Search for hyperparameter optimization...")
-            rf_model = RandomForestClassifier(random_state=random_state)
-            grid_search = GridSearchCV(
-                estimator=rf_model,
-                param_grid=hyperparameters,
-                cv=cv_folds,
-                scoring='accuracy',
-                n_jobs=-1,
-                verbose=2
-            )
-            
-            # Training with hyperparameter search
-            logger.info("Training model with hyperparameter optimization...")
-            grid_search.fit(X_train, y_train)
-            
-            # Retrieving the best model
-            model = grid_search.best_estimator_
-            best_params = grid_search.best_params_
+            # Entraînement direct sans grid search ni hyperparamètres multiples
+            rf_params = {}
+            if "hyperparameters" in model_config:
+                # On prend le premier élément de chaque liste si présent
+                for k, v in model_config["hyperparameters"].items():
+                    if isinstance(v, list):
+                        rf_params[k] = v[0]
+                    else:
+                        rf_params[k] = v
+            rf_params["random_state"] = random_state
+            model = RandomForestClassifier(**rf_params)
+            logger.info(f"Training RandomForestClassifier with params: {rf_params}")
+            model.fit(X_train, y_train)
+            best_params = rf_params
             
             # Logging parameters
             params = {
                 "model_type": model_config.get("type", "RandomForestClassifier"),
                 "year": year,
                 "features": json.dumps(available_features),
-                "cv_folds": cv_folds,
+                "cv_folds": model_config.get("cv_folds", 5),
                 "test_size": test_size,
-                **best_params  # Adding the best hyperparameters found
+                **best_params
             }
             mlflow.log_params(params)
-            logger.info(f"Best parameters found: {best_params}")
+            logger.info(f"Parameters used: {best_params}")
             
             # Evaluate the model on the test set
             y_pred = model.predict(X_test)
@@ -300,14 +291,14 @@ def train_model(config_path="config.yaml"):
                 
                 # Save the trained model locally
                 model_path = f"{model_dir}/rf_model_{year}.joblib"
-                
-                # Only save the current model if it is better than the previous best
+                # Always save the model at each run
+                joblib.dump(model, model_path)
+                logger.info(f"Model saved locally to {model_path}")
+                # Only save as best_model file if it is the best
                 if current_accuracy > best_model_accuracy:
-                    joblib.dump(model, model_path)
-                    # Save as best_model file
                     best_model_path = f"{model_dir}/best_model_2023.joblib"
                     joblib.dump(model, best_model_path)
-                    logger.info(f"Model saved locally to {model_path} and as best model to {best_model_path}")
+                    logger.info(f"Model also saved as best model to {best_model_path}")
 
                     # Génération du fichier de métadonnées complet
                     metadata_path = f"{model_dir}/best_model_2023_metadata.json"

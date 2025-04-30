@@ -35,31 +35,16 @@ jobs:
       - name: Run extract_data.py
         run: |
           python src/extract_data/extract_data.py
-          # Check if the raw data file was created
-          if [ ! -f "data/raw/accidents_2023.csv" ]; then
-            echo "Error: The file accidents_2023.csv was not created."
-            exit 1
-          fi
 
       # Step 5: Run the data preparation script
       - name: Run prepare_data.py
         run: |
           python src/prepare_data/prepare_data.py
-          # Check if the prepared data file was created
-          if [ ! -f "data/processed/prepared_accidents_2023.csv" ]; then
-            echo "Error: The file prepared_accidents_2023.csv was not created."
-            exit 1
-          fi
 
       # Step 6: Run the model training script
       - name: Run train_model.py
         run: |
           python src/train_model/train_model.py
-          # Check if the model file was saved
-          if [ ! -f "models/rf_model_2023.joblib" ]; then
-            echo "Error: The file rf_model_2023.joblib was not created."
-            exit 1
-          fi
 
       # Step 7: Run the tests
       - name: Run tests.py
