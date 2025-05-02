@@ -399,10 +399,6 @@ def train_model(config_path="config.yaml"):
             mlflow.end_run(status="FINISHED")
             logger.info("MLflow run marked as FINISHED successfully")
 
-            # Creating end signal file for auto_dvc
-            with open("models/training.lock", "w") as f:
-                f.write("done\n")
-
         except Exception as e:
             # In case of error, end the run with a failure status
             logger.error(f"Error during MLflow run: {str(e)}")

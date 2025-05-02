@@ -103,6 +103,4 @@ docker-compose up --build prepare_data
 # Entraînement du modèle
 docker-compose up --build train_model
 
-# Versionnage DVC
-docker-compose up --build auto_dvc
 ```
