@@ -1,16 +1,16 @@
 {
-  "model_version": "102",
+  "model_version": "133",
   "model_type": "RandomForestClassifier",
-  "accuracy": 0.5161311178638391,
-  "created_at": "2025-04-30 13:31:23",
+  "accuracy": 0.5170804158709951,
+  "created_at": "2025-05-02 11:33:57",
   "git_info": {
-    "commit_hash": "6f2d4661bf58318e258c8033c0102d33a4799cb2"
+    "commit_hash": "c000de9a07092994ef0e81bfd6ee7da6ed0fbc98"
   },
   "mlflow_info": {
     "experiment_id": "14",
     "experiment_name": "traffic-incidents-2023",
-    "last_run_id": "1f82ab52794848e6b18cb46f44d9a824",
-    "run_name": "invincible-grub-67"
+    "last_run_id": "368a2b42cd18497d944232b6db71c5b5",
+    "run_name": "wise-foal-630"
   },
   "hyperparameters": {
     "n_estimators": null,
@@ -18,5 +18,5 @@
     "class_weight": null
   },
   "data_source": "data/processed/prepared_accidents_2023.csv",
-  "total_samples": 154670
+  "total_samples": 23564
 }
