@@ -354,35 +354,23 @@ def train_model(config_path="config.yaml"):
                     
                     # Git commit for the metadata only (not the model)
                     try:
+                        # Configure Git identity for commits if provided in config
+                        if "git" in config and "user" in config["git"]:
+                            git_user = config["git"]["user"]
+                            if "name" in git_user and "email" in git_user:
+                                try:
+                                    subprocess.run(["git", "config", "--global", "user.name", git_user["name"]], check=True)
+                                    subprocess.run(["git", "config", "--global", "user.email", git_user["email"]], check=True)
+                                    logger.info(f"Git configured with user: {git_user['name']} <{git_user['email']}>")
+                                except Exception as e:
+                                    logger.warning(f"Could not configure git user: {e}")
+
                         # Only force-add metadata file, not the model
-                        subprocess.run(["git", "add", "-f", metadata_path], check=True)
-                        
-                        # Using DVC to track both the model and data files
                         try:
-                            # Use dvc commit instead of dvc add for model file (already defined in dvc.yaml)
-                            subprocess.run(["dvc", "commit", model_path, "--force"], check=True)
-                            logger.info(f"DVC commit done for model: {model_path}")
-                            
-                            # Check if data file is also in dvc.yaml
-                            if os.path.exists("dvc.yaml"):
-                                with open("dvc.yaml", "r") as f:
-                                    dvc_content = f.read()
-                                
-                                if data_path in dvc_content:
-                                    # Use commit if the file is defined in dvc.yaml
-                                    subprocess.run(["dvc", "commit", data_path, "--force"], check=True)
-                                    logger.info(f"DVC commit done for data: {data_path}")
-                                else:
-                                    # Use add if it's not defined in dvc.yaml
-                                    subprocess.run(["dvc", "add", data_path], check=True)
-                                    logger.info(f"DVC add done for data: {data_path}")
-                            else:
-                                # If no dvc.yaml, use add
-                                subprocess.run(["dvc", "add", data_path], check=True)
-                                logger.info(f"DVC add done for data: {data_path}")
+                            subprocess.run(["git", "add", "-f", metadata_path], check=True)
+                            logger.info(f"Added metadata file to git: {metadata_path}")
                         except Exception as e:
-                            logger.error(f"Error during DVC operations: {str(e)}")
-                            logger.error(traceback.format_exc())
+                            logger.warning(f"Could not add metadata file to git: {e}")
                         
                         # Create git commit with metadata file
                         commit_message = f"Best model version: {model_version.version}, accuracy: {current_accuracy:.4f}"

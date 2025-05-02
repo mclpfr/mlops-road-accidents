@@ -84,6 +84,8 @@ services:
       - ./data:/app/data
       - ./models:/app/models
       - ./config.yaml:/app/config.yaml
+      - ./.git:/app/.git
+      - ./dvc.yaml:/app/dvc.yaml
     working_dir: /app
     depends_on:
       - prepare_data

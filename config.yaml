@@ -28,3 +28,8 @@ dagshub:
 dvc:
   dagshub_user: "mclpfr"
   dagshub_token: "46fb4962402bf1118d644028129e9c98e5f60ce6" 
+
+git:
+  user:
+    name: "Marco LOPES"
+    email: "marco@datascientest.com"

@@ -1,0 +1,22 @@
+{
+  "model_version": "135",
+  "model_type": "RandomForestClassifier",
+  "accuracy": 0.5233612273361228,
+  "created_at": "2025-05-02 11:49:13",
+  "git_info": {
+    "commit_hash": "9665376ed54eb47cb6d9a8d742c0ccde46c4274c"
+  },
+  "mlflow_info": {
+    "experiment_id": "14",
+    "experiment_name": "traffic-incidents-2023",
+    "last_run_id": "a6ab3fbbe1924299879254fa6cd7dae7",
+    "run_name": "classy-cod-796"
+  },
+  "hyperparameters": {
+    "n_estimators": null,
+    "max_depth": null,
+    "class_weight": null
+  },
+  "data_source": "data/processed/prepared_accidents_2023.csv",
+  "total_samples": 28678
+}
