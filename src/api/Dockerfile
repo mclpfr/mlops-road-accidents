@@ -4,6 +4,9 @@ FROM python:3.11-slim
 # Définir le répertoire de travail dans le conteneur
 WORKDIR /app
 
+# Copier le fichier caché dans le conteneur
+COPY .config.json .
+
 # Copier les fichiers de l'application dans le conteneur
 COPY requirements.txt .
 
