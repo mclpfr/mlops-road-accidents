@@ -133,6 +133,17 @@ services:
       postgres:
         condition: service_healthy
 
+  api:
+    build:
+      context: .
+      dockerfile: src/api/Dockerfile
+    container_name: api_service
+    volumes:
+      - ./models:/app/models
+    ports:
+      - "8000:8000"
+    depends_on:
+      - train_model
 #  auto_dvc:
 #    build:
 #      context: .
