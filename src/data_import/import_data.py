@@ -9,6 +9,7 @@ import time
 import mlflow
 import yaml
 from datetime import datetime
+from tqdm import tqdm
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -47,24 +48,49 @@ def get_postgres_connection(config):
 def import_accidents_data(engine, data_path):
     try:
         logger.info(f"Importing accident data from {data_path}")
-        accidents_df = pd.read_csv(data_path, low_memory=False)
-        
+        # Read the header to get columns
+        with open(data_path, "r", encoding="utf-8") as f:
+            header = f.readline().strip().split(";")
         columns_needed = [
             'Num_Acc', 'jour', 'mois', 'an', 'hrmn', 'lum', 'dep', 'com', 'agg', 'int', 'atm', 'col', 'adr', 'lat', 'long'
         ]
-        
-        available_columns = [col for col in columns_needed if col in accidents_df.columns]
-        
+        available_columns = [col for col in columns_needed if col in header]
         if not available_columns:
             logger.error("No required columns are available in the dataset")
             return
+
+        # Count total number of lines for progress bar
+        total_lines = sum(1 for _ in open(data_path, 'r', encoding='utf-8')) - 1  # -1 for header
+        chunk_size = 10000
+        n_chunks = (total_lines // chunk_size) + 1
         
-        accidents_df = accidents_df[available_columns]
+        # Read and clean the CSV in chunks
+        valid_rows = []
+        total = 0
+        invalid = 0
         
-        accidents_df.to_sql('accidents', engine, if_exists='replace', index=False, 
-                           method='multi', chunksize=10000)
-        
-        logger.info(f"Import successful: {len(accidents_df)} accident records")
+        logger.info("Starting data import with progress bar...")
+        chunks = pd.read_csv(data_path, sep=';', chunksize=chunk_size, low_memory=False, dtype=str, on_bad_lines='skip')
+        with tqdm(total=total_lines, desc="Importing data", unit="rows") as pbar:
+            for chunk in chunks:
+                # Only keep columns needed and drop rows with missing required columns
+                chunk = chunk[available_columns]
+                before = len(chunk)
+                chunk = chunk.dropna(subset=available_columns)
+                after = len(chunk)
+                invalid += (before - after)
+                valid_rows.append(chunk)
+                total += before
+                pbar.update(before)
+                
+        if valid_rows:
+            logger.info("Concatenating valid rows...")
+            accidents_df = pd.concat(valid_rows, ignore_index=True)
+            logger.info("Writing to database...")
+            accidents_df.to_sql('accidents', engine, if_exists='replace', index=False, method='multi', chunksize=10000)
+            logger.info(f"Import successful: {len(accidents_df)} accident records (skipped {invalid} invalid rows)")
+        else:
+            logger.warning("No valid accident data to import.")
     except Exception as e:
         logger.error(f"Error importing accident data: {str(e)}")
 
@@ -83,48 +109,77 @@ def import_model_metrics(engine, config):
         mlflow.set_tracking_uri(tracking_uri)
         client = mlflow.tracking.MlflowClient()
         
-        year = config["data_extraction"]["year"]
-        experiment_name = f"road-accidents-{year}"
-        experiment = mlflow.get_experiment_by_name(experiment_name)
+        # Get the model name
+        model_name = "accident-severity-predictor"
         
-        if not experiment:
-            logger.error(f"MLflow experiment '{experiment_name}' not found")
+        # Search for all versions of the model
+        all_versions = client.search_model_versions(f"name='{model_name}'")
+        
+        # Find the version tagged as best_model
+        best_model_version = None
+        for version in all_versions:
+            if version.tags and "best_model" in version.tags:
+                best_model_version = version
+                break
+        
+        if not best_model_version:
+            logger.warning("No model version found with best_model tag")
             return
             
-        runs = mlflow.search_runs(experiment_ids=[experiment.experiment_id])
+        logger.info(f"Found best model version: {best_model_version.version}")
         
-        if runs.empty:
-            logger.warning(f"No runs found for experiment {experiment_name}")
-            return
-            
-        metrics_data = []
-        for _, run in runs.iterrows():
-            run_id = run["run_id"]
-            run_info = client.get_run(run_id)
-            
-            metrics = run_info.data.metrics
-            metrics_record = {
-                "run_id": run_id,
-                "run_date": datetime.fromtimestamp(run_info.info.start_time/1000.0),
-                "model_name": "accident-severity-predictor",
-                "accuracy": metrics.get("accuracy", 0),
-                "precision_macro_avg": metrics.get("macro avg_precision", 0),
-                "recall_macro_avg": metrics.get("macro avg_recall", 0),
-                "f1_macro_avg": metrics.get("macro avg_f1-score", 0),
-                "model_version": run_info.data.tags.get("mlflow.runName", "unknown"),
-                "year": year
-            }
-            metrics_data.append(metrics_record)
+        # Get the run info for the best model
+        run_info = client.get_run(best_model_version.run_id)
+        metrics = run_info.data.metrics
         
-        if metrics_data:
-            metrics_df = pd.DataFrame(metrics_data)
-            metrics_df.to_sql('model_metrics', engine, if_exists='replace', index=False)
-            logger.info(f"Import successful: {len(metrics_df)} metric records")
-        else:
-            logger.warning("No metrics to import")
+        # Create metrics record
+        metrics_record = {
+            "run_id": best_model_version.run_id,
+            "run_date": datetime.fromtimestamp(run_info.info.start_time/1000.0),
+            "model_name": model_name,
+            "accuracy": metrics.get("accuracy", 0),
+            "precision_macro_avg": metrics.get("macro avg_precision", 0),
+            "recall_macro_avg": metrics.get("macro avg_recall", 0),
+            "f1_macro_avg": metrics.get("macro avg_f1-score", 0),
+            "model_version": best_model_version.version,
+            "year": config["data_extraction"]["year"]
+        }
+        
+        # Create DataFrame and import into PostgreSQL
+        metrics_df = pd.DataFrame([metrics_record])
+        metrics_df.to_sql('model_metrics', engine, if_exists='replace', index=False)
+        logger.info(f"Import successful: Best model metrics imported (version {best_model_version.version})")
+        logger.info(f"Metrics: {metrics_record}")
     
     except Exception as e:
         logger.error(f"Error importing model metrics: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+
+def clean_csv_file(input_path, output_path, expected_columns=None, sep=","):
+    """Clean a CSV file by removing rows with the wrong number of columns."""
+    try:
+        with open(input_path, "r", encoding="utf-8") as infile:
+            lines = infile.readlines()
+        if not lines:
+            logger.error(f"Input file {input_path} is empty.")
+            return False
+        header = lines[0]
+        if expected_columns is None:
+            expected_columns = len(header.strip().split(sep))
+        cleaned_lines = [header]
+        for i, line in enumerate(lines[1:], start=2):
+            if len(line.strip().split(sep)) == expected_columns:
+                cleaned_lines.append(line)
+            else:
+                logger.warning(f"Skipping line {i} in {input_path}: wrong number of columns")
+        with open(output_path, "w", encoding="utf-8") as outfile:
+            outfile.writelines(cleaned_lines)
+        logger.info(f"Cleaned file saved to {output_path} ({len(cleaned_lines)-1} valid rows)")
+        return True
+    except Exception as e:
+        logger.error(f"Error cleaning CSV file: {str(e)}")
+        return False
 
 def main():
     """Main function."""
