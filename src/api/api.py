@@ -36,7 +36,7 @@ class Feature(BaseModel):
         extra = 'allow'
 
 # Charger le modèle entraîné
-model = joblib.load("../models/rf_model_2023.joblib")
+model = joblib.load("../models/best_model_2023.joblib")
 
 # Fonction pour vérifier l'authentification
 def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
