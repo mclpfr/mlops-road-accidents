@@ -64,7 +64,7 @@ python src/train_model/train_model.py
 
 ### Lancement API
 ```bash
-cd src
+cd src/api
 uvicorn api:app --reload
 ```
 
