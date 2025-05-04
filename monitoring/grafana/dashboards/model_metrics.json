@@ -47,7 +47,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "/^model_version$/",
+          "fields": "value",
           "values": false
         },
         "textMode": "auto"
@@ -63,7 +63,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT model_version FROM model_metrics ORDER BY run_date DESC LIMIT 1",
+          "rawSql": "SELECT model_version::text as metric, model_version as value FROM best_model_metrics ORDER BY run_date DESC LIMIT 1",
           "refId": "A"
         }
       ],
@@ -109,7 +109,7 @@
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "/^year$/",
+          "fields": "value",
           "values": false
         },
         "textMode": "auto"
@@ -125,7 +125,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT year FROM model_metrics ORDER BY run_date DESC LIMIT 1",
+          "rawSql": "SELECT year::text as metric, year as value FROM best_model_metrics ORDER BY run_date DESC LIMIT 1",
           "refId": "A"
         }
       ],
@@ -196,7 +196,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT accuracy FROM model_metrics ORDER BY run_date DESC LIMIT 1",
+          "rawSql": "SELECT accuracy FROM best_model_metrics ORDER BY run_date DESC LIMIT 1",
           "refId": "A"
         }
       ],
@@ -267,7 +267,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT precision_macro_avg FROM model_metrics ORDER BY run_date DESC LIMIT 1",
+          "rawSql": "SELECT precision_macro_avg FROM best_model_metrics ORDER BY run_date DESC LIMIT 1",
           "refId": "A"
         }
       ],
@@ -338,7 +338,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT recall_macro_avg FROM model_metrics ORDER BY run_date DESC LIMIT 1",
+          "rawSql": "SELECT recall_macro_avg FROM best_model_metrics ORDER BY run_date DESC LIMIT 1",
           "refId": "A"
         }
       ],
@@ -409,7 +409,7 @@
           "group": [],
           "metricColumn": "none",
           "rawQuery": true,
-          "rawSql": "SELECT f1_macro_avg FROM model_metrics ORDER BY run_date DESC LIMIT 1",
+          "rawSql": "SELECT f1_macro_avg FROM best_model_metrics ORDER BY run_date DESC LIMIT 1",
           "refId": "A"
         }
       ],

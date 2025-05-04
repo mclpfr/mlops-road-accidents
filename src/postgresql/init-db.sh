@@ -25,8 +25,8 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         long DOUBLE PRECISION
     );
     
-    -- Table for model metrics
-    CREATE TABLE model_metrics (
+    -- Table for best model metrics
+    CREATE TABLE best_model_metrics (
         id SERIAL PRIMARY KEY,
         run_id VARCHAR(255),
         run_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
