@@ -140,3 +140,11 @@ async def predict_csv(file_request: UploadFile = File(), current_user: str = Dep
     except Exception as e:
         # Gérer d'autres exceptions possibles
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+# Endpoint pour mettre à jour le modèle
+@app.get("/reload")
+async def reload_model(current_user: str = Depends(get_current_user)):
+    model = joblib.load("../models/best_model_2023.joblib")
+    joblib.dump(model, "best_model_2023.joblib")
+
+    return {"message": "Modèle rechargé avec succès"}
