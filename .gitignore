@@ -9,4 +9,5 @@ data/out/
 data/raw/
 data/processed/
 models/
+!models/best_model_2023_metadata.json
 tmp/

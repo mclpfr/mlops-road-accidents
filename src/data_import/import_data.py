@@ -147,7 +147,7 @@ def import_model_metrics(engine, config):
         
         # Create DataFrame and import into PostgreSQL
         metrics_df = pd.DataFrame([metrics_record])
-        metrics_df.to_sql('model_metrics', engine, if_exists='replace', index=False)
+        metrics_df.to_sql('best_model_metrics', engine, if_exists='replace', index=False)
         logger.info(f"Import successful: Best model metrics imported (version {best_model_version.version})")
         logger.info(f"Metrics: {metrics_record}")
     

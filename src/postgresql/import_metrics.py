@@ -57,7 +57,7 @@ def import_model_metrics(engine, config):
         
         # Get experiments
         year = config["data_extraction"]["year"]
-        experiment_name = f"road-accidents-{year}"
+        experiment_name = f"traffic-incidents-{year}"
         experiment = mlflow.get_experiment_by_name(experiment_name)
         
         if not experiment:
@@ -65,47 +65,49 @@ def import_model_metrics(engine, config):
             return
             
         logger.info(f"Found experiment: {experiment.name} (ID: {experiment.experiment_id})")
-            
-        # Get runs and their metrics
-        runs = mlflow.search_runs(experiment_ids=[experiment.experiment_id])
+
+        # Get the model name
+        model_name = "accident-severity-predictor"
         
-        if runs.empty:
-            logger.warning(f"No runs found for experiment {experiment_name}")
+        # Search for all versions of the model
+        all_versions = client.search_model_versions(f"name='{model_name}'")
+        
+        # Find the version tagged as best_model
+        best_model_version = None
+        for version in all_versions:
+            if version.tags and "best_model" in version.tags:
+                best_model_version = version
+                break
+        
+        if not best_model_version:
+            logger.warning("No model version found with best_model tag")
             return
             
-        logger.info(f"Found {len(runs)} runs for experiment {experiment_name}")
+        logger.info(f"Found best model version: {best_model_version.version}")
+        
+        # Get the run info for the best model
+        run_info = client.get_run(best_model_version.run_id)
+        metrics = run_info.data.metrics
             
-        # Prepare data for import
-        metrics_data = []
-        for _, run in runs.iterrows():
-            run_id = run["run_id"]
-            run_info = client.get_run(run_id)
-            
-            # Extract main metrics
-            metrics = run_info.data.metrics
-            logger.info(f"Run {run_id} metrics: {metrics}")
-            
-            metrics_record = {
-                "run_id": run_id,
-                "run_date": datetime.fromtimestamp(run_info.info.start_time/1000.0),
-                "model_name": "accident-severity-predictor",
-                "accuracy": metrics.get("accuracy", 0),
-                "precision_macro_avg": metrics.get("macro avg_precision", 0),
-                "recall_macro_avg": metrics.get("macro avg_recall", 0),
-                "f1_macro_avg": metrics.get("macro avg_f1-score", 0),
-                "model_version": run_info.data.tags.get("mlflow.runName", "unknown"),
-                "year": year
-            }
-            metrics_data.append(metrics_record)
+        # Create metrics record
+        metrics_record = {
+            "run_id": best_model_version.run_id,
+            "run_date": datetime.fromtimestamp(run_info.info.start_time/1000.0),
+            "model_name": model_name,
+            "accuracy": metrics.get("accuracy", 0),
+            "precision_macro_avg": metrics.get("macro avg_precision", 0),
+            "recall_macro_avg": metrics.get("macro avg_recall", 0),
+            "f1_macro_avg": metrics.get("macro avg_f1-score", 0),
+            "model_version": best_model_version.version,
+            "year": year
+        }
         
         # Create DataFrame and import into PostgreSQL
-        if metrics_data:
-            metrics_df = pd.DataFrame(metrics_data)
-            metrics_df.to_sql('model_metrics', engine, if_exists='replace', index=False)
-            logger.info(f"Import successful: {len(metrics_df)} metric records")
-            # Display the imported data
-            for i, record in enumerate(metrics_data):
-                logger.info(f"Record {i+1}: {record}")
+        if metrics_record:
+            metrics_df = pd.DataFrame([metrics_record])
+            metrics_df.to_sql('best_model_metrics', engine, if_exists='replace', index=False)
+            logger.info(f"Import successful: Best model metrics imported (version {best_model_version.version})")
+            logger.info(f"Metrics: {metrics_record}")
         else:
             logger.warning("No metrics to import")
     
