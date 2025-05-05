@@ -5,6 +5,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": 1,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -430,7 +431,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Model Metrics Dashboard",
+  "title": "Best Model Metrics",
   "version": 1,
   "weekStart": ""
 } 

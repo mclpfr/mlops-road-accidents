@@ -1,0 +1,184 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Nombre total d'accidents",
+      "gridPos": {"x": 0, "y": 0, "w": 24, "h": 4},
+      "datasource": {"type": "postgres", "uid": "PostgreSQL"},
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) as value FROM accidents WHERE CAST(an AS INTEGER) = 2023",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "type": "geomap",
+      "title": "Carte des accidents",
+      "gridPos": {"x": 0, "y": 4, "w": 24, "h": 12},
+      "datasource": {"type": "postgres", "uid": "PostgreSQL"},
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT lat as latitude, long as longitude, lum as severity, CASE WHEN lum = '1' THEN 'Plein jour' WHEN lum = '2' THEN 'Crépuscule ou aube' WHEN lum = '3' THEN 'Nuit sans éclairage' WHEN lum = '4' THEN 'Nuit avec éclairage' WHEN lum = '5' THEN 'Nuit avec éclairage non allumé' END as condition, adr as address FROM accidents WHERE CAST(an AS INTEGER) = 2023 AND lat IS NOT NULL AND long IS NOT NULL AND lat BETWEEN 41 AND 52 AND long BETWEEN -5 AND 10",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "basemap": {
+          "type": "default",
+          "name": "Layer 0",
+          "config": {}
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "config": {
+              "showLegend": true,
+              "style": {
+                "size": 5,
+                "color": {
+                  "field": "condition",
+                  "fixed": null,
+                  "mode": "thresholds",
+                  "thresholds": {
+                    "mode": "categorical",
+                    "steps": [
+                      { "color": "#73BF69", "value": "Plein jour" },
+                      { "color": "#F2CC0C", "value": "Crépuscule ou aube" },
+                      { "color": "#3274D9", "value": "Nuit avec éclairage" },
+                      { "color": "#8F3BB8", "value": "Nuit avec éclairage non allumé" },
+                      { "color": "#1F1F1F", "value": "Nuit sans éclairage" }
+                    ]
+                  }
+                },
+                "opacity": 0.7
+              }
+            }
+          }
+        ],
+        "view": {
+          "id": "france",
+          "lat": 46.227638,
+          "lon": 2.213749,
+          "zoom": 5.5
+        }
+      }
+    },
+    {
+      "type": "piechart",
+      "title": "Répartition par condition de luminosité",
+      "gridPos": {"x": 0, "y": 16, "w": 8, "h": 8},
+      "datasource": {"type": "postgres", "uid": "PostgreSQL"},
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT CASE WHEN lum = '1' THEN 'Plein jour' WHEN lum = '2' THEN 'Crépuscule ou aube' WHEN lum = '3' THEN 'Nuit sans éclairage' WHEN lum = '4' THEN 'Nuit avec éclairage' WHEN lum = '5' THEN 'Nuit avec éclairage non allumé' END as condition, COUNT(*) as count FROM accidents WHERE CAST(an AS INTEGER) = 2023 GROUP BY lum ORDER BY count DESC",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "type": "barchart",
+      "title": "Top 10 départements",
+      "gridPos": {"x": 8, "y": 16, "w": 16, "h": 8},
+      "datasource": {"type": "postgres", "uid": "PostgreSQL"},
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT dep as department, COUNT(*) as accidents FROM accidents WHERE CAST(an AS INTEGER) = 2023 GROUP BY dep ORDER BY accidents DESC LIMIT 10",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "decimals": 0
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["accidents", "2023"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Accidents 2023",
+  "version": 1,
+  "weekStart": ""
+} 
