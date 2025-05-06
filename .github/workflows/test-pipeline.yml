@@ -65,6 +65,12 @@ jobs:
           docker push ${{ secrets.DOCKER_USERNAME }}/extract_data_service:${{ github.run_number }}
           docker push ${{ secrets.DOCKER_USERNAME }}/extract_data_service:latest
 
+      - name: Build and push synthet_data image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/synthet_data_service:${{ github.run_number }} -t ${{ secrets.DOCKER_USERNAME }}/synthet_data_service:latest -f src/synthet_data/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/synthet_data_service:${{ github.run_number }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/synthet_data_service:latest
+
       - name: Build and push prepare_data image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/prepare_data_service:${{ github.run_number }} -t ${{ secrets.DOCKER_USERNAME }}/prepare_data_service:latest -f src/prepare_data/Dockerfile .
