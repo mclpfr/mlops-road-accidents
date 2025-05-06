@@ -2,8 +2,6 @@ import io
 import json
 import pandas as pd
 import joblib
-#import mlflow
-#from mlflow.tracking import MlflowClient
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -37,30 +35,6 @@ class Feature(BaseModel):
     class Config:
         extra = 'allow'
 
-# Configurer MLflow pour pointer vers votre serveur de suivi
-#mlflow.set_tracking_uri("https://dagshub.com/mclpfr/mlops-road-accidents.mlflow")
-
-# Initialiser le client MLflow
-#client = MlflowClient()
-
-# Rechercher le modèle enregistré avec le tag "best_model"
-#registered_models = client.search_registered_models(filter_string="tag.best_model='true'")
-
-# Vérifier si des modèles ont été trouvés
-#if not registered_models:
-#    raise ValueError("Aucun modèle enregistré trouvé avec le tag 'best_model'.")
-
-# Supposons que nous prenons le premier modèle trouvé
-#best_model = registered_models[0]
-
-# Télécharger la dernière version du modèle
-#model_name = best_model.name
-#model_version = best_model.latest_versions[0].version
-#model_uri = f"models:/{model_name}/{model_version}"
-
-# Charger le modèle
-#model = mlflow.pyfunc.load_model(model_uri)
-
 # Charger le modèle entraîné
 model = joblib.load("../models/best_model_2023.joblib")
 
@@ -90,8 +64,6 @@ async def predict_csv(file_request: UploadFile = File(), current_user: str = Dep
         features = [Feature(**record) for record in records]
         if not features:
             raise ValueError("None of the selected features are available in the dataset.")
-
-        #return {"message": "Données validées avec succès", "features": features}
 
         # Select model features
         model_features = [
