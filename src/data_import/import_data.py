@@ -47,7 +47,12 @@ def get_postgres_connection(config):
 def import_accidents_data(engine, data_path):
     try:
         logger.info(f"Importing accident data from {data_path}")
-        accidents_df = pd.read_csv(data_path, low_memory=False)
+        try:
+            accidents_df = pd.read_csv(data_path, low_memory=False, on_bad_lines='skip')
+        except TypeError:
+            # For compatibility with pandas < 1.3.0
+            accidents_df = pd.read_csv(data_path, low_memory=False, error_bad_lines=False)
+        logger.warning("Some malformed lines in the CSV file were ignored during import.")
         
         columns_needed = [
             'Num_Acc', 'jour', 'mois', 'an', 'hrmn', 'lum', 'dep', 'com', 'agg', 'int', 'atm', 'col', 'adr', 'lat', 'long'
