@@ -118,7 +118,7 @@ def import_model_metrics(engine, config):
         
         if metrics_data:
             metrics_df = pd.DataFrame(metrics_data)
-            metrics_df.to_sql('model_metrics', engine, if_exists='replace', index=False)
+            metrics_df.to_sql('best_model_metrics', engine, if_exists='replace', index=False)
             logger.info(f"Import successful: {len(metrics_df)} metric records")
         else:
             logger.warning("No metrics to import")
