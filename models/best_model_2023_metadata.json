@@ -1,16 +1,16 @@
 {
-  "model_version": "1",
+  "model_version": "3",
   "model_type": "RandomForestClassifier",
   "accuracy": 0.5198810370466154,
-  "created_at": "2025-05-09 11:24:58",
+  "created_at": "2025-05-09 11:33:59",
   "git_info": {
-    "commit_hash": "52f5321adc8eb9c625f374bf39d867ca7fcc1f22"
+    "commit_hash": "59c02131e9eed6e898eb1421472c2993a166c3e7"
   },
   "mlflow_info": {
     "experiment_id": "14",
     "experiment_name": "traffic-incidents-2023",
-    "last_run_id": "ee639a98bc1a45f5a67a7b13d68ad63f",
-    "run_name": "entertaining-fly-252"
+    "last_run_id": "1d8b3beb4d244fe59def1e079f25fd6d",
+    "run_name": "adaptable-zebra-655"
   },
   "hyperparameters": {
     "n_estimators": null,
