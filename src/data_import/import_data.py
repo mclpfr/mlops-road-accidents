@@ -13,8 +13,7 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-#def load_config(config_path="/app/config.yaml"):
-def load_config(config_path="config.yaml"):
+def load_config(config_path="/app/config.yaml"):
     try:
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
@@ -176,8 +175,7 @@ def main():
     engine = get_postgres_connection(config)
 
     year = config["data_extraction"]["year"]
-    #data_path = f"/app/data/raw/accidents_{year}.csv"
-    data_path = f"data/raw/accidents_{year}.csv"
+    data_path = f"/app/data/raw/accidents_{year}.csv"
     import_accidents_data(engine, data_path)
 
     import_model_metrics(engine, config)
