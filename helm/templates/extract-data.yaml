@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: extract-data
+spec:
+  template:
+    metadata:
+      labels:
+        app: extract-data
+    spec:
+      containers:
+      - name: extract-data
+        image: "{{ .Values.extractData.image.repository }}:{{ .Values.extractData.image.tag }}"
+        command: ["python", "extract_data.py"]
+        resources:
+          {{- toYaml .Values.extractData.resources | nindent 12 }}
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: config
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+        imagePullSecrets:
+        - name: regcred
+      restartPolicy: Never
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: mlops-data
+      - name: config
+        configMap:
+          name: mlops-config 

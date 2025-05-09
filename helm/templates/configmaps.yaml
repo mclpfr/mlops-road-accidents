@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mlops-config
+data:
+  config.yaml: |
+    data_extraction:
+      year: "{{ .Values.mlopsConfig.data_extraction.year }}"
+      url: "{{ .Values.mlopsConfig.data_extraction.url }}"
+
+    mlflow:
+      enabled: {{ .Values.mlopsConfig.mlflow.enabled }}
+      tracking_uri: "{{ .Values.mlopsConfig.mlflow.tracking_uri }}"
+      username: "{{ .Values.mlopsConfig.mlflow.username }}"
+      password: "{{ .Values.mlopsConfig.mlflow.password }}"
+
+    model:
+      type: "{{ .Values.mlopsConfig.model.type }}"
+      random_state: {{ .Values.mlopsConfig.model.random_state }}
+      test_size: {{ .Values.mlopsConfig.model.test_size }}
+      cv_folds: {{ .Values.mlopsConfig.model.cv_folds }}
+
+    postgresql:
+      host: "{{ .Values.mlopsConfig.postgresql.host }}"
+      port: "{{ .Values.mlopsConfig.postgresql.port }}"
+      user: "{{ .Values.mlopsConfig.postgresql.user }}"
+      password: "{{ .Values.mlopsConfig.postgresql.password }}"
+      database: "{{ .Values.mlopsConfig.postgresql.database }}"
+
+    dagshub:
+      user: "{{ .Values.mlopsConfig.dagshub.user }}"
+      token: "{{ .Values.mlopsConfig.dagshub.token }}"
+
+    dvc:
+      dagshub_user: "{{ .Values.mlopsConfig.dvc.dagshub_user }}"
+      dagshub_token: "{{ .Values.mlopsConfig.dvc.dagshub_token }}"
+
+    git:
+      user:
+        name: "{{ .Values.mlopsConfig.git.user.name }}"
+        email: "{{ .Values.mlopsConfig.git.user.email }}"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning
+data:
+  datasource.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: PostgreSQL
+      type: postgres
+      url: postgres:5432
+      database: {{ .Values.postgres.credentials.database }}
+      user: {{ .Values.postgres.credentials.username }}
+      secureJsonData:
+        password: {{ .Values.postgres.credentials.password }}
+      jsonData:
+        sslmode: "disable"
+        maxOpenConns: 100
+        maxIdleConns: 100
+        connMaxLifetime: 14400
+        postgresVersion: 1500
+        timescaledb: false
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        updateIntervalSeconds: 30
+        options:
+          path: /etc/grafana/provisioning/dashboards

@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: synthet-data
+spec:
+  template:
+    metadata:
+      labels:
+        app: synthet-data
+    spec:
+      containers:
+      - name: synthet-data
+        image: "{{ .Values.synthetData.image.repository }}:{{ .Values.synthetData.image.tag }}"
+        command: ["python", "synthet_data.py"]
+        resources:
+          {{- toYaml .Values.synthetData.resources | nindent 12 }}
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: config
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+        imagePullSecrets:
+        - name: regcred
+      restartPolicy: Never
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: mlops-data
+      - name: config
+        configMap:
+          name: mlops-config 
