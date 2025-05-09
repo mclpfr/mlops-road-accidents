@@ -78,11 +78,10 @@ def download_accident_data(config_path="config.yaml"):
     # Convert 'grav' column to numeric, handling any potential string values
     merged_data['grav'] = pd.to_numeric(merged_data['grav'].astype(str).str.strip('"'), errors='coerce')
 
-    # Limit the dataset to half its original size to optimize performance
+    # Limiter le dataset à 2000 lignes pour accélérer le traitement
     original_size = len(merged_data)
-    half_size = original_size // 2
-    print(f"Limiting the dataset to {half_size} rows (original size: {original_size} rows)")
-    merged_data = merged_data.head(half_size)
+    print(f"Limiting the dataset to 20000 rows (original size: {original_size} rows)")
+    merged_data = merged_data.head(20000)
     
     # Save the merged data to the output directory
     output_path = os.path.join(output_dir, f'accidents_{year}.csv')
