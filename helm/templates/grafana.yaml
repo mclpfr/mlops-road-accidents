@@ -44,7 +44,7 @@ spec:
         - name: grafana-provisioning
           mountPath: /etc/grafana/provisioning/datasources
         - name: grafana-provisioning
-          mountPath: /etc/grafana/provisioning/dashboards.yaml
+          mountPath: /etc/grafana/provisioning/dashboards/dashboards.yaml
           subPath: dashboards.yaml
           readOnly: true
         - name: grafana-dashboard-best-model

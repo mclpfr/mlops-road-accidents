@@ -24,7 +24,7 @@ data:
           "targets": [
             {
               "format": "table",
-              "rawSql": "SELECT run_date as time, model_version as value FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
+              "rawSql": "SELECT model_version::text as metric_value FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
               "refId": "A"
             }
           ],
@@ -53,7 +53,7 @@ data:
             "orientation": "auto",
             "reduceOptions": {
               "calcs": ["lastNotNull"],
-              "fields": "",
+              "fields": "metric_value",
               "values": false
             },
             "textMode": "auto"
@@ -67,7 +67,7 @@ data:
           "targets": [
             {
               "format": "table",
-              "rawSql": "SELECT run_date as time, year as value FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
+              "rawSql": "SELECT year::text as metric_value FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
               "refId": "A"
             }
           ],
@@ -96,7 +96,7 @@ data:
             "orientation": "auto",
             "reduceOptions": {
               "calcs": ["lastNotNull"],
-              "fields": "",
+              "fields": "metric_value",
               "values": false
             },
             "textMode": "auto"
@@ -110,14 +110,14 @@ data:
           "targets": [
             {
               "format": "table",
-              "rawSql": "SELECT run_date as time, accuracy as value FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
+              "rawSql": "SELECT accuracy FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
               "refId": "A"
             }
           ],
           "fieldConfig": {
             "defaults": {
               "unit": "percentunit",
-              "decimals": 4
+              "decimals": 2
             },
             "overrides": []
           }
@@ -130,14 +130,14 @@ data:
           "targets": [
             {
               "format": "table",
-              "rawSql": "SELECT run_date as time, precision_macro_avg as value FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
+              "rawSql": "SELECT precision_macro_avg FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
               "refId": "B"
             }
           ],
           "fieldConfig": {
             "defaults": {
               "unit": "percentunit",
-              "decimals": 4
+              "decimals": 2
             },
             "overrides": []
           }
@@ -150,14 +150,14 @@ data:
           "targets": [
             {
               "format": "table",
-              "rawSql": "SELECT run_date as time, recall_macro_avg as value FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
+              "rawSql": "SELECT recall_macro_avg FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
               "refId": "C"
             }
           ],
           "fieldConfig": {
             "defaults": {
               "unit": "percentunit",
-              "decimals": 4
+              "decimals": 2
             },
             "overrides": []
           }
@@ -170,14 +170,14 @@ data:
           "targets": [
             {
               "format": "table",
-              "rawSql": "SELECT run_date as time, f1_macro_avg as value FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
+              "rawSql": "SELECT f1_macro_avg FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
               "refId": "D"
             }
           ],
           "fieldConfig": {
             "defaults": {
               "unit": "percentunit",
-              "decimals": 4
+              "decimals": 2
             },
             "overrides": []
           }
