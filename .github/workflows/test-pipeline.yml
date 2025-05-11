@@ -15,44 +15,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Clone the repository
       - name: Clone the repository
         uses: actions/checkout@v4
 
-      # Step 2: Set up Python
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      # Step 3: Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install pandas requests beautifulsoup4 pyyaml scikit-learn joblib pytest fastapi uvicorn python-multipart mlflow
 
-      # Step 4: Run the extract data script
       - name: Run extract_data.py
         run: |
           python src/extract_data/extract_data.py
 
-      # Step 5: Run the data preparation script
+      - name: Run synthet_data.py
+        run: |
+          python src/synthet_data/synthet_data.py
+
       - name: Run prepare_data.py
         run: |
           python src/prepare_data/prepare_data.py
 
-      # Step 6: Run the model training script
       - name: Run train_model.py
         run: |
           python src/train_model/train_model.py
 
-      # Step 7: Run the tests
       - name: Run tests.py
         working-directory: ./tests
         run: |
           pytest
 
-      # Step 8: Build and push Docker images for all microservices
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
