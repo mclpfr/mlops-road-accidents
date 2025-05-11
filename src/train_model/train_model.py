@@ -61,6 +61,12 @@ def train_model(config_path="config.yaml"):
         config = load_config(config_path)
         year = config["data_extraction"]["year"]
         logger.info(f"Loaded configuration for year {year}")
+        
+        # Check if the marker file prepared_data.done exists
+        marker_file = "data/processed/prepared_data.done"
+        if not os.path.exists(marker_file):
+            logger.error(f"Error: The marker file {marker_file} does not exist. prepare_data.py must be executed first.")
+            return
 
         # Configure MLflow from config.yaml or environment variables
         mlflow_config = config["mlflow"]
@@ -175,10 +181,10 @@ def train_model(config_path="config.yaml"):
         try:
             logger.info(f"Started MLflow run with ID: {run.info.run_id}")
             
-            # Entraînement direct sans grid search ni hyperparamètres multiples
+            # Direct training without grid search or multiple hyperparameters
             rf_params = {}
             if "hyperparameters" in model_config:
-                # On prend le premier élément de chaque liste si présent
+                # Take the first element of each list if present
                 for k, v in model_config["hyperparameters"].items():
                     if isinstance(v, list):
                         rf_params[k] = v[0]
@@ -300,32 +306,32 @@ def train_model(config_path="config.yaml"):
                     joblib.dump(model, best_model_path)
                     logger.info(f"Model also saved as best model to {best_model_path}")
 
-                    # Génération du fichier de métadonnées complet
+                    # Generation of the complete metadata file
                     metadata_path = f"{model_dir}/best_model_2023_metadata.json"
                     try:
-                        # Récupérer le hash du commit git
+                        # Get the git commit hash
                         commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
                     except Exception as e:
                         commit_hash = None
                         logger.warning(f"Could not get git commit hash: {e}")
 
-                    # Récupérer les infos MLflow
+                    # Get MLflow information
                     experiment_id = run.info.experiment_id
-                    experiment_name = experiment_name  # déjà défini plus haut
+                    experiment_name = experiment_name  # already defined above
                     last_run_id = run.info.run_id
                     run_name = run.info.run_name
 
-                    # Hyperparamètres utilisés (ceux du meilleur modèle)
+                    # Hyperparameters used (those of the best model)
                     hyperparameters = best_params.copy()
-                    # On s'assure d'avoir les valeurs demandées
+                    # Make sure we have the requested values
                     for k in ["n_estimators", "max_depth", "class_weight"]:
                         if k not in hyperparameters:
                             hyperparameters[k] = None
 
-                    # Nombre total d'échantillons
+                    # Total number of samples
                     total_samples = len(X)
 
-                    # Création du dictionnaire de métadonnées
+                    # Creation of the metadata dictionary
                     metadata = {
                         "model_version": str(model_version.version),
                         "model_type": model_config.get("type", "RandomForestClassifier"),
@@ -399,9 +405,10 @@ def train_model(config_path="config.yaml"):
             mlflow.end_run(status="FINISHED")
             logger.info("MLflow run marked as FINISHED successfully")
 
-            # Creating end signal file for auto_dvc
-            with open("models/training.lock", "w") as f:
+            # Creating end signal file to indicate training completion
+            with open("models/train_model.done", "w") as f:
                 f.write("done\n")
+            logger.info("Created marker file: models/train_model.done")
 
         except Exception as e:
             # In case of error, end the run with a failure status
@@ -440,4 +447,20 @@ def train_model(config_path="config.yaml"):
         raise
 
 if __name__ == "__main__":
+    # Wait for the prepared_data.done file if it doesn't exist yet
+    marker_file = "data/processed/prepared_data.done"
+    max_wait_time = 300  # Maximum wait time in seconds (5 minutes)
+    wait_interval = 10   # Check every 10 seconds
+    wait_time = 0
+    
+    while not os.path.exists(marker_file) and wait_time < max_wait_time:
+        logger.info(f"Waiting for {marker_file} to be created... ({wait_time}/{max_wait_time} seconds)")
+        time.sleep(wait_interval)
+        wait_time += wait_interval
+    
+    if not os.path.exists(marker_file):
+        logger.error(f"Error: The marker file {marker_file} was not created within the wait time.")
+        sys.exit(1)
+    
+    # Train the model
     train_model()

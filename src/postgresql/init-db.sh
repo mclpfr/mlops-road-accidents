@@ -2,7 +2,7 @@
 set -e
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    CREATE DATABASE road_accidents;
+    SELECT 'CREATE DATABASE road_accidents' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'road_accidents')\gexec
     
     \c road_accidents;
     
@@ -23,6 +23,21 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         adr VARCHAR(255),
         lat DOUBLE PRECISION,
         long DOUBLE PRECISION
+    );
+    
+    -- Table for best model metrics
+    CREATE TABLE best_model_metrics (
+        id SERIAL PRIMARY KEY,
+        run_id VARCHAR(255),
+        run_date TIMESTAMP,
+        model_name VARCHAR(255),
+        accuracy FLOAT,
+        precision_macro_avg FLOAT,
+        recall_macro_avg FLOAT,
+        f1_macro_avg FLOAT,
+        model_version INT,
+        model_stage VARCHAR(50),
+        year VARCHAR(4)
     );
     
     GRANT ALL PRIVILEGES ON DATABASE road_accidents TO "$POSTGRES_USER";

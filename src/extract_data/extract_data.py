@@ -86,10 +86,19 @@ def download_accident_data(config_path="config.yaml"):
     # Save the merged data to the output directory
     output_path = os.path.join(output_dir, f'accidents_{year}.csv')
     merged_data.to_csv(output_path, sep=';', index=False)
-
-    print(f'Download and merge completed: All CSV files for {year} are stored in "{output_dir}".')
-    with open(os.path.join(output_dir, "extract_data.done"), "w") as f:
-        f.write("done\n")
+    
+    # Vérifier que le fichier a bien été écrit
+    if os.path.exists(output_path):
+        print(f'Download and merge completed: All CSV files for {year} are stored in "{output_dir}".')
+        # Forcer la synchronisation du système de fichiers
+        os.sync() if hasattr(os, 'sync') else None
+        # Créer le fichier marqueur uniquement après confirmation que le fichier de données existe
+        with open(os.path.join(output_dir, "extract_data.done"), "w") as f:
+            f.write("done\n")
+        print(f'Created marker file: {os.path.join(output_dir, "extract_data.done")}')
+    else:
+        print(f'Error: Failed to create output file {output_path}')
+        exit(1)
 
 # Execute the function
 if __name__ == "__main__":

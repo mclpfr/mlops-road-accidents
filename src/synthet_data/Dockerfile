@@ -14,7 +14,7 @@ WORKDIR /app
 
 # Installing dependencies with cache cleanup in a single step
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir pandas numpy && \
+    pip install --no-cache-dir pandas numpy pyyaml && \
     find /usr/local -name '*.pyc' -delete && \
     find /usr/local -name '__pycache__' -delete && \
     apt-get clean && \

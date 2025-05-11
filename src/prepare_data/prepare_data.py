@@ -1,6 +1,8 @@
 import pandas as pd
 import os
 import yaml
+import time
+import sys
 from sklearn.preprocessing import StandardScaler
 
 def load_config(config_path="config.yaml"):
@@ -12,6 +14,12 @@ def prepare_data(config_path="config.yaml"):
     # Load configuration parameters
     config = load_config(config_path)
     year = config["data_extraction"]["year"]
+
+    # Check if the marker file accidents_{year}_synthet.done exists
+    marker_file = f"data/raw/accidents_{year}_synthet.done"
+    if not os.path.exists(marker_file):
+        print(f"Error: The marker file {marker_file} does not exist. synthet_data.py must be executed first.")
+        return
 
     # Define paths for raw and processed data
     synthet_path = os.path.join("data/raw", f"accidents_{year}_synthet.csv")
@@ -60,4 +68,24 @@ def prepare_data(config_path="config.yaml"):
         f.write("done\n")
 
 if __name__ == "__main__":
+    # Load configuration parameters
+    config = load_config()
+    year = config["data_extraction"]["year"]
+    
+    # Wait for the accidents_{year}_synthet.done file if it doesn't exist yet
+    marker_file = f"data/raw/accidents_{year}_synthet.done"
+    max_wait_time = 300  # Maximum wait time in seconds (5 minutes)
+    wait_interval = 10   # Check every 10 seconds
+    wait_time = 0
+    
+    while not os.path.exists(marker_file) and wait_time < max_wait_time:
+        print(f"Waiting for {marker_file} to be created... ({wait_time}/{max_wait_time} seconds)")
+        time.sleep(wait_interval)
+        wait_time += wait_interval
+    
+    if not os.path.exists(marker_file):
+        print(f"Error: The marker file {marker_file} was not created within the wait time.")
+        sys.exit(1)
+    
+    # Prepare the data
     prepare_data()

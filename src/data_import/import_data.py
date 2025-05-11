@@ -111,10 +111,10 @@ def import_model_metrics(engine, config):
         best_model_version = None
         
         try:
-            # Recherche de toutes les versions du modèle
+            # Search for all model versions
             model_versions = client.search_model_versions(f"name='{model_name}'")
             
-            # Recherche de la version taguée "best_model"
+            # Search for the version tagged "best_model"
             for version in model_versions:
                 if version.tags and "best_model" in version.tags:
                     best_model_version = version
@@ -125,7 +125,7 @@ def import_model_metrics(engine, config):
                 logger.warning(f"No version tagged as 'best_model' found for model {model_name}")
                 return
             
-            # Récupération des métriques uniquement pour la meilleure version
+            # Get metrics only for the best version
             run_id = best_model_version.run_id
             model_version = best_model_version.version
             status = best_model_version.current_stage  # e.g. 'Production', 'Staging', etc.
@@ -169,6 +169,21 @@ def import_model_metrics(engine, config):
 
 def main():
     time.sleep(5)
+    
+    # Check if the marker file train_model.done exists
+    marker_file = "/app/models/train_model.done"
+    max_wait_time = 300  # Maximum wait time in seconds (5 minutes)
+    wait_interval = 10   # Check every 10 seconds
+    wait_time = 0
+    
+    while not os.path.exists(marker_file) and wait_time < max_wait_time:
+        logger.info(f"Waiting for {marker_file} to be created... ({wait_time}/{max_wait_time} seconds)")
+        time.sleep(wait_interval)
+        wait_time += wait_interval
+    
+    if not os.path.exists(marker_file):
+        logger.error(f"Error: The marker file {marker_file} was not created within the wait time.")
+        return
 
     config = load_config()
 
@@ -181,6 +196,24 @@ def main():
     import_model_metrics(engine, config)
 
     logger.info("Data import completed successfully")
+    
+    # Clean up all marker files
+    marker_files = [
+        "/app/data/raw/extract_data.done",
+        "/app/data/raw/accidents_{year}_synthet.done".format(year=year),
+        "/app/data/processed/prepared_data.done",
+        "/app/models/train_model.done"
+    ]
+    
+    for marker_file in marker_files:
+        if os.path.exists(marker_file):
+            try:
+                os.remove(marker_file)
+                logger.info(f"Removed marker file: {marker_file}")
+            except Exception as e:
+                logger.warning(f"Failed to remove marker file {marker_file}: {str(e)}")
+    
+    logger.info("All marker files have been cleaned up")
 
 if __name__ == "__main__":
     main()

@@ -25,14 +25,7 @@ services:
       args:
         <<: *user-info
     container_name: synthet_data_service
-    command: >
-      sh -c "
-        while [ ! -f /app/data/raw/accidents_2023.csv ]; do
-          echo 'Waiting for extract_data to finish...';
-          sleep 5;
-        done;
-        python synthet_data.py
-      "
+    command: python synthet_data.py
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml
@@ -47,14 +40,7 @@ services:
       args:
         <<: *user-info
     container_name: prepare_data_service
-    command: >
-      sh -c "
-        while [ ! -f /app/data/raw/extract_data.done ]; do
-          echo 'Waiting for extract_data to finish...';
-          sleep 5;
-        done;
-        python prepare_data.py
-      "
+    command: python prepare_data.py
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml
@@ -72,12 +58,8 @@ services:
     user: root
     command: >
       sh -c "
-        while [ ! -f /app/data/processed/prepared_data.done ]; do
-          echo 'Waiting for prepare_data to finish...';
-          sleep 5;
-        done;
         chown -R appuser:appuser /app/models;
-        rm -f /app/models/training.lock;
+        rm -f /app/models/train_model.done;
         su -c 'python train_model.py' appuser
       "
     volumes:
@@ -98,7 +80,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_DB: road_accidents
     ports:
       - "5432:5432"
     volumes:
@@ -132,60 +114,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
-#  auto_dvc:
-#    build:
-#      context: .
-#      dockerfile: src/auto_dvc/Dockerfile
-#      args:
-#        <<: *user-info
-#    container_name: auto_dvc_service
-#    user: root
-#    command: >
-#      sh -c "
-#        echo 'Waiting for extract_data, prepare_data, and train_model to complete...';
-#        while [ ! -f /app/models/training.lock ]; do
-#          echo 'Waiting for training to complete...';
-#          sleep 5;
-#        done;
-#        chown -R appuser:appuser /app/.dvc;
-#        su -c 'python auto_dvc.py' appuser
-#      "
-#    volumes:
-#      - ./data:/app/data
-#      - ./models:/app/models
-#      - ./.dvc:/app/.dvc
-#      - ./.dvc/config:/app/.dvc/config
-#      - ./.dvcignore:/app/.dvcignore
-#      - ./dvc.yaml:/app/dvc.yaml
-#      - ./config.yaml:/app/config.yaml
-#      - ./src:/app/src
-#      - ./.git:/app/.git
-#    working_dir: /app
-#    depends_on:
-#      - train_model
-#
-#  retrieve_data:
-#    build:
-#      context: .
-#      dockerfile: src/retrieve_data/Dockerfile
-#      args:
-#        <<: *user-info
-#    container_name: retrieve_data_service
-#    user: root
-#    command: >
-#      su -c 'python retrieve_data.py' appuser
-#    volumes:
-#      - ./data:/app/data
-#      - ./models:/app/models
-#      - ./.dvc:/app/.dvc
-#      - ./.dvc/config:/app/.dvc/config
-#      - ./.dvcignore:/app/.dvcignore
-#      - ./dvc.yaml:/app/dvc.yaml
-#      - ./config.yaml:/app/config.yaml
-#      - ./src:/app/src
-#      - ./.git:/app/.git
-#    working_dir: /app
 
 volumes:
   postgres_data:
