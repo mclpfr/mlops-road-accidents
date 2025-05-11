@@ -5,7 +5,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copier le fichier caché dans le conteneur
-COPY .config.json .
+# COPY .config.json .
 
 # Copier les fichiers de l'application dans le conteneur
 COPY requirements.txt .
