@@ -1,16 +1,16 @@
 {
-  "model_version": "3",
+  "model_version": "14",
   "model_type": "RandomForestClassifier",
-  "accuracy": 0.5198810370466154,
-  "created_at": "2025-05-09 11:33:59",
+  "accuracy": 0.516,
+  "created_at": "2025-05-11 07:16:14",
   "git_info": {
-    "commit_hash": "59c02131e9eed6e898eb1421472c2993a166c3e7"
+    "commit_hash": "f27048ef26dfb45ab783531e2f528ffa9ada3502"
   },
   "mlflow_info": {
     "experiment_id": "14",
     "experiment_name": "traffic-incidents-2023",
-    "last_run_id": "1d8b3beb4d244fe59def1e079f25fd6d",
-    "run_name": "adaptable-zebra-655"
+    "last_run_id": "a4cab73d997d4491b5b83baf2d657e3d",
+    "run_name": "bouncy-turtle-466"
   },
   "hyperparameters": {
     "n_estimators": null,
@@ -18,5 +18,5 @@
     "class_weight": null
   },
   "data_source": "data/processed/prepared_accidents_2023.csv",
-  "total_samples": 154670
+  "total_samples": 20000
 }
