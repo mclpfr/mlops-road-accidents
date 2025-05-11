@@ -2,9 +2,9 @@ import io
 import json
 import pandas as pd
 import joblib
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials, OAuth2AuthorizationCodeBearer, OAuth2PasswordRequestForm
+from fastapi.security import HTTPBasic, HTTPBasicCredentials, OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sklearn.metrics import classification_report
@@ -24,14 +24,14 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Charger les informations sensibles depuis le fichier JSON
-with open('.config.json', encoding='utf-8') as f:
-    users = json.load(f)
+# with open('.config.json', encoding='utf-8') as f:
+#     users = json.load(f)
 
 # Modèles Pydantic pour les données
 class Feature(BaseModel):
-    catu: int
-    sexe: int
-    trajet: int
+    # catu: int
+    # sexe: int
+    # trajet: int
     catr: int
     circ: int
     vosp: int
@@ -59,7 +59,7 @@ class UserCreate(BaseModel):
     password: str
 
 # Charger le modèle entraîné
-model = joblib.load("../models/best_model_2023.joblib")
+model = joblib.load("../../models/best_model_2023.joblib")
 
 # Exemple
 fake_users_db = {
@@ -148,12 +148,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 # Endpoint sécurisé
-@app.get("/users/me")
+@app.get("/users/me", response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 # Endpoint pour faire des prédictions
-@app.post("users/predict")
+@app.post("/users/predict")
 async def predict_csv(file_request: UploadFile = File(), current_user: User = Depends(get_current_user)):
     try:
         # Lire le fichier CSV avec pandas
@@ -169,9 +169,9 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
 
         # Select model features
         model_features = [
-            "catu",
-            "sexe",
-            "trajet",
+            # "catu",
+            # "sexe",
+            # "trajet",
             "catr",
             "circ",
             "vosp",
@@ -194,11 +194,11 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
 
         # Sortie des résultats
         df_ypred = pd.DataFrame(y_pred)
-        df_ypred.to_csv("../data/out/y_pred.csv", index=False)
+        df_ypred.to_csv("../../data/out/y_pred.csv", index=False)
 
         report = classification_report(y, y_pred, output_dict=True)
         df_report = pd.DataFrame(report).transpose()
-        df_report.to_csv("../data/out/classification_report.csv")
+        df_report.to_csv("../../data/out/classification_report.csv")
 
         return {"user": current_user, "message": "Prédiction effectuée avec succès"}
 
@@ -216,9 +216,9 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 # Endpoint pour mettre à jour le modèle
-@app.get("users/reload")
+@app.get("/users/reload")
 async def reload_model(current_user: User = Depends(get_current_user)):
-    model = joblib.load("../models/best_model_2023.joblib")
+    model = joblib.load("../../models/best_model_2023.joblib")
     joblib.dump(model, "best_model_2023.joblib")
 
     return {"message": "Modèle rechargé avec succès"}
