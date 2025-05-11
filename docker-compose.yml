@@ -133,6 +133,17 @@ services:
       postgres:
         condition: service_healthy
 
+  save_best_model:
+    build:
+      context: .
+      dockerfile: src/save_best_model/Dockerfile
+    container_name: save_best_model_service
+    command: python save_best_model.py
+    volumes:
+      - ./models:/app/models
+      - ./config.yaml:/app/config.yaml
+    working_dir: /app
+
   api:
     build:
       context: .
@@ -144,6 +155,7 @@ services:
       - "8000:8000"
     depends_on:
       - train_model
+      - save_best_model
 #  auto_dvc:
 #    build:
 #      context: .
