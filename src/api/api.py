@@ -222,3 +222,7 @@ async def reload_model(current_user: User = Depends(get_current_user)):
     joblib.dump(model, "best_model_2023.joblib")
 
     return {"message": "Modèle rechargé avec succès"}
+
+# Lancer l'application avec Uvicorn
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
