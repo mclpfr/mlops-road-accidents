@@ -9,7 +9,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sklearn.metrics import classification_report
 from pydantic import BaseModel, ValidationError
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Initialiser l'application FastAPI
 app = FastAPI()
@@ -49,14 +49,14 @@ class Feature(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
-    
+
 class User(BaseModel):
     username: str
     hashed_password: str
-    
-class UserCreate(BaseModel):
-    username: str
-    password: str
+
+# class UserCreate(BaseModel):
+#     username: str
+#     password: str
 
 # Charger le modèle entraîné
 model = joblib.load("../../models/best_model_2023.joblib")
@@ -100,9 +100,9 @@ def authenticate_user(fake_db, username: str, password: str):
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -153,7 +153,7 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 # Endpoint pour faire des prédictions
-@app.post("/users/predict")
+@app.post("/protected/predict")
 async def predict_csv(file_request: UploadFile = File(), current_user: User = Depends(get_current_user)):
     try:
         # Lire le fichier CSV avec pandas
@@ -216,7 +216,7 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 # Endpoint pour mettre à jour le modèle
-@app.get("/users/reload")
+@app.get("/protected/reload")
 async def reload_model(current_user: User = Depends(get_current_user)):
     model = joblib.load("../../models/best_model_2023.joblib")
     joblib.dump(model, "best_model_2023.joblib")
