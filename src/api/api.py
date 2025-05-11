@@ -59,7 +59,8 @@ class User(BaseModel):
 #     password: str
 
 # Charger le modèle entraîné
-model = joblib.load("../../models/best_model_2023.joblib")
+model_dir = "models"
+model = joblib.load(f"{model_dir}/best_model_2023.joblib")
 
 # Exemple
 fake_users_db = {
@@ -218,7 +219,7 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
 # Endpoint pour mettre à jour le modèle
 @app.get("/protected/reload")
 async def reload_model(current_user: User = Depends(get_current_user)):
-    model = joblib.load("../../models/best_model_2023.joblib")
+    model = joblib.load(f"{model_dir}/best_model_2023.joblib")
     joblib.dump(model, "best_model_2023.joblib")
 
     return {"message": "Modèle rechargé avec succès"}
