@@ -171,7 +171,7 @@ def main():
     time.sleep(5)
     
     # Check if the marker file train_model.done exists
-    marker_file = "/app/models/train_model.done"
+    marker_file = "models/train_model.done"
     max_wait_time = 300  # Maximum wait time in seconds (5 minutes)
     wait_interval = 10   # Check every 10 seconds
     wait_time = 0
