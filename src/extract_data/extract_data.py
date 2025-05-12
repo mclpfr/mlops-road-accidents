@@ -78,7 +78,7 @@ def download_accident_data(config_path="config.yaml"):
     # Convert 'grav' column to numeric, handling any potential string values
     merged_data['grav'] = pd.to_numeric(merged_data['grav'].astype(str).str.strip('"'), errors='coerce')
 
-    # Limiter le dataset à 2000 lignes pour accélérer le traitement
+    # Limit dataset to 2000 lines 
     original_size = len(merged_data)
     print(f"Limiting the dataset to 20000 rows (original size: {original_size} rows)")
     merged_data = merged_data.head(20000)
@@ -87,12 +87,12 @@ def download_accident_data(config_path="config.yaml"):
     output_path = os.path.join(output_dir, f'accidents_{year}.csv')
     merged_data.to_csv(output_path, sep=';', index=False)
     
-    # Vérifier que le fichier a bien été écrit
+    # Check that the file has been properly written
     if os.path.exists(output_path):
         print(f'Download and merge completed: All CSV files for {year} are stored in "{output_dir}".')
-        # Forcer la synchronisation du système de fichiers
+        # Force filesystem synchronization
         os.sync() if hasattr(os, 'sync') else None
-        # Créer le fichier marqueur uniquement après confirmation que le fichier de données existe
+        # Create the marker file only after confirming that the data file exists
         with open(os.path.join(output_dir, "extract_data.done"), "w") as f:
             f.write("done\n")
         print(f'Created marker file: {os.path.join(output_dir, "extract_data.done")}')
