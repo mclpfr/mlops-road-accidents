@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-import
+spec:
+  template:
+    metadata:
+      labels:
+        app: data-import
+    spec:
+      containers:
+      - name: data-import
+        image: "{{ .Values.dataImport.image.repository }}:{{ .Values.dataImport.image.tag }}"
+        command: ["python", "import_data.py"]
+        env:
+        - name: POSTGRES_HOST
+          value: postgres
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          value: {{ .Values.postgres.credentials.username }}
+        - name: POSTGRES_PASSWORD
+          value: {{ .Values.postgres.credentials.password }}
+        - name: POSTGRES_DB
+          value: {{ .Values.postgres.credentials.database }}
+        resources:
+          {{- toYaml .Values.dataImport.resources | nindent 12 }}
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: config
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+        - name: models
+          mountPath: /app/models
+        imagePullSecrets:
+        - name: regcred
+      restartPolicy: Never
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: mlops-data
+      - name: config
+        configMap:
+          name: mlops-config
+      - name: models
+        persistentVolumeClaim:
+          claimName: models-data 

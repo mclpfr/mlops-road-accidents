@@ -1,0 +1,186 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-best-model
+  labels:
+    grafana_dashboard: "1"
+data:
+  best_model_dashboard.json: |
+    {
+      "id": null,
+      "uid": "best-model-dashboard",
+      "title": "Best Model Metrics",
+      "tags": ["model", "metrics"],
+      "timezone": "browser",
+      "schemaVersion": 36,
+      "version": 1,
+      "refresh": "5s",
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Model Version",
+          "gridPos": {"x": 0, "y": 0, "w": 3, "h": 4},
+          "datasource": "PostgreSQL",
+          "targets": [
+            {
+              "format": "table",
+              "rawSql": "SELECT model_version::text as metric_value FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "blue",
+                    "value": null
+                  }
+                ]
+              },
+              "noValue": "N/A"
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "metric_value",
+              "values": false
+            },
+            "textMode": "auto"
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Year",
+          "gridPos": {"x": 3, "y": 0, "w": 3, "h": 4},
+          "datasource": "PostgreSQL",
+          "targets": [
+            {
+              "format": "table",
+              "rawSql": "SELECT year::text as metric_value FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "noValue": "N/A"
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": ["lastNotNull"],
+              "fields": "metric_value",
+              "values": false
+            },
+            "textMode": "auto"
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Accuracy",
+          "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+          "datasource": "PostgreSQL",
+          "targets": [
+            {
+              "format": "table",
+              "rawSql": "SELECT accuracy FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "decimals": 2
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Precision (Macro Avg)",
+          "gridPos": {"x": 0, "y": 4, "w": 6, "h": 4},
+          "datasource": "PostgreSQL",
+          "targets": [
+            {
+              "format": "table",
+              "rawSql": "SELECT precision_macro_avg FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "decimals": 2
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "Recall (Macro Avg)",
+          "gridPos": {"x": 6, "y": 4, "w": 6, "h": 4},
+          "datasource": "PostgreSQL",
+          "targets": [
+            {
+              "format": "table",
+              "rawSql": "SELECT recall_macro_avg FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
+              "refId": "C"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "decimals": 2
+            },
+            "overrides": []
+          }
+        },
+        {
+          "type": "stat",
+          "title": "F1 Score (Macro Avg)",
+          "gridPos": {"x": 0, "y": 8, "w": 12, "h": 4},
+          "datasource": "PostgreSQL",
+          "targets": [
+            {
+              "format": "table",
+              "rawSql": "SELECT f1_macro_avg FROM best_model_metrics ORDER BY accuracy DESC LIMIT 1;",
+              "refId": "D"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "decimals": 2
+            },
+            "overrides": []
+          }
+        }
+      ]
+    }

@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-data-volume
+spec:
+  containers:
+  - name: debug
+    image: ubuntu:22.04
+    command: ["sleep", "3600"]
+    volumeMounts:
+    - name: data
+      mountPath: /app/data
+    - name: models
+      mountPath: /app/models
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: mlops-data
+  - name: models
+    persistentVolumeClaim:
+      claimName: models-data
+  restartPolicy: Never
