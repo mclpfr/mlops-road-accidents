@@ -89,8 +89,8 @@ jobs:
           docker push ${{ secrets.DOCKER_USERNAME }}/postgres_service:${{ github.run_number }}
           docker push ${{ secrets.DOCKER_USERNAME }}/postgres_service:latest
 
-      - name: Build and push data_import image
+      - name: Build and push import_data image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/data_import_service:${{ github.run_number }} -t ${{ secrets.DOCKER_USERNAME }}/data_import_service:latest -f src/data_import/Dockerfile .
-          docker push ${{ secrets.DOCKER_USERNAME }}/data_import_service:${{ github.run_number }}
-          docker push ${{ secrets.DOCKER_USERNAME }}/data_import_service:latest
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/import_data_service:${{ github.run_number }} -t ${{ secrets.DOCKER_USERNAME }}/import_data_service:latest -f src/import_data/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/import_data_service:${{ github.run_number }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/import_data_service:latest
