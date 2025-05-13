@@ -1,16 +1,16 @@
 {
-  "model_version": "14",
+  "model_version": "48",
   "model_type": "RandomForestClassifier",
-  "accuracy": 0.516,
-  "created_at": "2025-05-11 07:16:14",
+  "accuracy": 0.8405,
+  "created_at": "2025-05-13 12:08:45",
   "git_info": {
-    "commit_hash": "f27048ef26dfb45ab783531e2f528ffa9ada3502"
+    "commit_hash": "a1c3eecfade5c9564c7d48ae8b30fed77ff05c17"
   },
   "mlflow_info": {
     "experiment_id": "14",
     "experiment_name": "traffic-incidents-2023",
-    "last_run_id": "a4cab73d997d4491b5b83baf2d657e3d",
-    "run_name": "bouncy-turtle-466"
+    "last_run_id": "42d2aba8f02f4b44a1fca05eb56565af",
+    "run_name": "stylish-hound-579"
   },
   "hyperparameters": {
     "n_estimators": null,
