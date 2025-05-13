@@ -4,9 +4,11 @@ env/
 __pycache__/
 *.csv
 config.json
+config.yaml
 config_perso.yaml
 data/out/
 data/raw/
 data/processed/
 models/
 tmp/
+airflow/logs/
