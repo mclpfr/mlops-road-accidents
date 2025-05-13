@@ -1,16 +1,16 @@
 {
-  "model_version": "50",
+  "model_version": "55",
   "model_type": "RandomForestClassifier",
-  "accuracy": 0.8515,
-  "created_at": "2025-05-13 12:18:17",
+  "accuracy": 0.852,
+  "created_at": "2025-05-13 12:48:08",
   "git_info": {
-    "commit_hash": "ea3508a898ed53122866b63607d193ea785c84d5"
+    "commit_hash": "6920f1d048e77206a2920e6d347b5a52f4ba19dc"
   },
   "mlflow_info": {
     "experiment_id": "14",
     "experiment_name": "traffic-incidents-2023",
-    "last_run_id": "56149f20875f42609454986ded8b94dc",
-    "run_name": "worried-ape-711"
+    "last_run_id": "742cfa9633b14fa0aaf4177583ca7e10",
+    "run_name": "kindly-shrike-940"
   },
   "hyperparameters": {
     "n_estimators": null,
