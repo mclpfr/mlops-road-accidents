@@ -1,22 +1,38 @@
 {
-  "model_version": "55",
+  "model_name_registry": "accident-severity-predictor",
+  "model_version": "84",
   "model_type": "RandomForestClassifier",
-  "accuracy": 0.852,
-  "created_at": "2025-05-13 12:48:08",
+  "accuracy": 0.84825,
+  "created_at": "2025-05-14 09:05:30 UTC",
   "git_info": {
-    "commit_hash": "6920f1d048e77206a2920e6d347b5a52f4ba19dc"
+    "commit_hash": "53cf8cc8248e6364494c2242b6b2ca3e96a1762e"
   },
   "mlflow_info": {
     "experiment_id": "14",
     "experiment_name": "traffic-incidents-2023",
-    "last_run_id": "742cfa9633b14fa0aaf4177583ca7e10",
-    "run_name": "kindly-shrike-940"
+    "run_id": "6d8a3b5108ee4f2dad96a49473745380",
+    "run_name": "run_rf_2023_20250514-090503",
+    "model_uri": "runs:/6d8a3b5108ee4f2dad96a49473745380/random_forest_model"
   },
-  "hyperparameters": {
-    "n_estimators": null,
-    "max_depth": null,
-    "class_weight": null
+  "hyperparameters_used": {
+    "random_state": 42
   },
-  "data_source": "data/processed/prepared_accidents_2023.csv",
-  "total_samples": 20000
+  "data_source_processed": "data/processed/prepared_accidents_2023.csv",
+  "data_source_raw": "data/raw/accidents_2023_synthet.csv",
+  "total_samples_in_X": 20000,
+  "features_definition": [
+    "catu",
+    "sexe",
+    "trajet",
+    "catr",
+    "circ",
+    "vosp",
+    "prof",
+    "plan",
+    "surf",
+    "situ",
+    "lum",
+    "atm",
+    "col"
+  ]
 }
