@@ -92,8 +92,6 @@ train_model = DockerOperator(
     dag=dag,
 )
 
-# Task 5 (save_best_model) has been removed
-
 # Task 6: Data import
 # Add a task to start PostgreSQL if needed
 start_postgres = BashOperator(
