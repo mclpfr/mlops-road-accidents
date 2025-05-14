@@ -1,18 +1,18 @@
 {
   "model_name_registry": "accident-severity-predictor",
-  "model_version": "84",
+  "model_version": "85",
   "model_type": "RandomForestClassifier",
   "accuracy": 0.84825,
-  "created_at": "2025-05-14 09:05:30 UTC",
+  "created_at": "2025-05-14 09:10:34 UTC",
   "git_info": {
-    "commit_hash": "53cf8cc8248e6364494c2242b6b2ca3e96a1762e"
+    "commit_hash": "a70c7a11098a9073deaaa6db2e8b576b1d64e2c3"
   },
   "mlflow_info": {
     "experiment_id": "14",
     "experiment_name": "traffic-incidents-2023",
-    "run_id": "6d8a3b5108ee4f2dad96a49473745380",
-    "run_name": "run_rf_2023_20250514-090503",
-    "model_uri": "runs:/6d8a3b5108ee4f2dad96a49473745380/random_forest_model"
+    "run_id": "9b19deddc86847f8a5d57563a2d313d9",
+    "run_name": "run_rf_2023_20250514-091008",
+    "model_uri": "runs:/9b19deddc86847f8a5d57563a2d313d9/random_forest_model"
   },
   "hyperparameters_used": {
     "random_state": 42
