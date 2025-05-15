@@ -347,8 +347,14 @@ def train_model(config_path="config.yaml"):
                             logger.info(f"Git commit with message: '{commit_message}'")
                             subprocess.run(["git", "commit", "-m", commit_message], check=True, capture_output=True, text=True)
                             logger.info("Git commit successful.")
-                            # Optional: git push if configured
-                            # subprocess.run(["git", "push"], check=True) 
+                            
+                            # Push changes to the remote repository
+                            try:
+                                logger.info("Pushing changes to remote repository...")
+                                subprocess.run(["git", "push"], check=True, capture_output=True, text=True)
+                                logger.info("Successfully pushed changes to remote repository.")
+                            except subprocess.CalledProcessError as e:
+                                logger.error(f"Git push failed: {e}\nStdout: {e.stdout}\nStderr: {e.stderr}")
                         except subprocess.CalledProcessError as e:
                             logger.error(f"Git commit failed: {e}\nStdout: {e.stdout}\nStderr: {e.stderr}")
                     else:
