@@ -92,12 +92,13 @@ services:
       - MLFLOW_TRACKING_PASSWORD=${MLFLOW_TRACKING_PASSWORD}
     volumes:
       - ./data:/app/data
+      - ./models:/app/models
       - ./config.yaml:/app/config.yaml
       - ./src/import_data/wait-for-postgres.sh:/app/wait-for-postgres.sh
     working_dir: /app
     depends_on:
-      - prepare_data
-      - postgres
+      postgres:
+        condition: service_healthy
 
   train_model:
     build:
@@ -121,7 +122,7 @@ services:
       - ./dvc.yaml:/app/dvc.yaml
     working_dir: /app
     depends_on:
-      - import_data
+      - prepare_data
 
   postgres:
     build:
@@ -142,29 +143,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    depends_on:
-      train_model:
-        condition: service_started
+    # Pas de dépendance à train_model pour éviter la boucle circulaire
 
-  import_data:
-    build:
-      context: .
-      dockerfile: src/import_data/Dockerfile
-    container_name: import_data_service
-    command: sh -c "/app/wait-for-postgres.sh postgres 5432 python3 /app/import_data.py"
-    volumes:
-      - ./data:/app/data
-      - ./config.yaml:/app/config.yaml
-      - ./models:/app/models
-    environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: road_accidents
-    depends_on:
-      postgres:
-        condition: service_healthy
+
 
   save_best_model:
     build:
