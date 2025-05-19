@@ -12,6 +12,11 @@ spec:
       - name: train-model
         image: "{{ .Values.trainModel.image.repository }}:{{ .Values.trainModel.image.tag }}"
         command: ["python", "train_model.py"]
+        env:
+        - name: MLFLOW_TRACKING_USERNAME
+          value: "{{ .Values.mlopsConfig.mlflow.username }}"
+        - name: MLFLOW_TRACKING_PASSWORD
+          value: "{{ .Values.mlopsConfig.mlflow.password }}"
         resources:
           {{- toYaml .Values.trainModel.resources | nindent 12 }}
         volumeMounts:

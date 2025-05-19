@@ -1,0 +1,82 @@
+# Configuration minimale pour un cluster avec ressources limitées
+
+# Désactiver les composants non essentiels
+flowers:
+  enabled: false
+
+triggerer:
+  enabled: false
+
+statsd:
+  enabled: false
+
+# Configuration des ressources pour chaque composant
+webserver:
+  resources:
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+  startupProbe:
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    failureThreshold: 10
+    timeoutSeconds: 10
+  livenessProbe:
+    initialDelaySeconds: 120
+    periodSeconds: 30
+    failureThreshold: 5
+    timeoutSeconds: 10
+  readinessProbe:
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    failureThreshold: 5
+    timeoutSeconds: 10
+
+scheduler:
+  resources:
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+
+worker:
+  replicas: 1
+  resources:
+    limits:
+      cpu: "1"
+      memory: "2Gi"
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+
+redis:
+  resources:
+    limits:
+      cpu: "200m"
+      memory: "400Mi"
+    requests:
+      cpu: "100m"
+      memory: "200Mi"
+
+postgresql:
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+    requests:
+      cpu: "200m"
+      memory: "512Mi"
+
+# Désactiver les exemples de DAGs
+env:
+  - name: AIRFLOW__CORE__LOAD_EXAMPLES
+    value: "false"
+  - name: AIRFLOW__SCHEDULER__PARSING_PROCESSES
+    value: "1"
+  - name: AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL
+    value: "60"

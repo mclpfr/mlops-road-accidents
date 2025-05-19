@@ -1,3 +1,4 @@
+{{- if and (hasKey .Values "postgres") (hasKey .Values.postgres "enabled") .Values.postgres.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -49,3 +50,4 @@ spec:
       resources:
         requests:
           storage: {{ .Values.persistence.postgres.size }} 
+{{- end }}

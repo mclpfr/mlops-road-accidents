@@ -51,10 +51,10 @@ data:
     - name: PostgreSQL
       type: postgres
       url: postgres:5432
-      database: {{ .Values.postgres.credentials.database }}
-      user: {{ .Values.postgres.credentials.username }}
+      database: {{ .Values.mlopsConfig.postgresql.database }}
+      user: {{ .Values.mlopsConfig.postgresql.user }}
       secureJsonData:
-        password: {{ .Values.postgres.credentials.password }}
+        password: {{ .Values.mlopsConfig.postgresql.password }}
       jsonData:
         sslmode: "disable"
         maxOpenConns: 100
