@@ -1,0 +1,213 @@
+{
+  "uid": "api_monitoring_dashboard_v2",
+  "title": "API Monitoring Dashboard (v2)",
+  "description": "Monitoring API health, latency, error rates, throughput, and system resources based on provided metrics.",
+  "tags": ["api", "monitoring"],
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "editable": true,
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "API Uptime",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "up{job=\"api\"}",
+          "legendFormat": "API Health"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {"text": "Down", "color": "red"},
+                "1": {"text": "Up", "color": "green"}
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "red", "value": 0.5},
+              {"color": "green", "value": 1}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+    },
+    {
+      "id": 2,
+      "title": "Request Rate (RPS)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job=\"api\"}[1m])) by (job)",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "reqps"}
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+    },
+    {
+      "id": 3,
+      "title": "P95 Latency (ms)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"api\"}[5m])) by (le, job))",
+          "legendFormat": "P95 Latency {{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "ms"}
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+    },
+    {
+      "id": 4,
+      "title": "Average Response Time (ms)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(http_response_time_sum{job=\"api\"}[1m])) by (job) / sum(rate(http_response_time_count{job=\"api\"}[1m])) by (job)",
+          "legendFormat": "Avg Response Time {{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "ms"}
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+    },
+    {
+      "id": 5,
+      "title": "5xx Error Rate (RPS)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job=\"api\", status=\"5xx\"}[1m])) by (job)",
+          "legendFormat": "5xx Errors {{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "ops"}
+      },
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 12}
+    },
+    {
+      "id": 6,
+      "title": "HTTP Status Codes (RPS)",
+      "type": "barchart",
+      "targets": [
+        {
+          "expr": "sum by (status) (rate(http_requests_total{job=\"api\"}[1m]))",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "reqps"}
+      },
+      "gridPos": {"h": 8, "w": 10, "x": 6, "y": 12}
+    },
+    {
+      "id": 7,
+      "title": "Error Rate (%)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "(sum(rate(http_requests_total{job=\"api\", status=\"5xx\"}[1m])) by (job) / sum(rate(http_requests_total{job=\"api\"}[1m])) by (job)) * 100",
+          "legendFormat": "Error Rate (%) {{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "percent"}
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 12}
+    },
+    {
+      "id": 8,
+      "title": "Average Request Payload Size (bytes)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "avg_request_payload_bytes{job=\"api\"}",
+          "legendFormat": "Avg Payload Size {{job}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "bytes"}
+      },
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 20}
+    },
+    {
+      "id": 9,
+      "title": "Active Connections",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "nginx_connections_active{job=\"api\"}",
+          "legendFormat": "Active Connections {{job}}"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 6, "x": 6, "y": 20}
+    },
+    {
+      "id": 10,
+      "title": "API CPU Usage (%)",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total{name=\"api_service\"}[1m])) by (name) * 100",
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "red", "value": 0.5},
+              {"color": "green", "value": 1}
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 20}
+    },
+    {
+      "id": 11,
+      "title": "API Memory Usage (MB)",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name=\"api_service\"}",
+          "legendFormat": "{{name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "bytes"}
+      },
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 20}
+    }
+  ]
+}

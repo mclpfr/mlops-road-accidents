@@ -8,7 +8,7 @@ WORKDIR /app
 # COPY .config.json .
 
 # Copier les fichiers de l'application dans le conteneur
-COPY requirements.txt .
+COPY src/api/requirements.txt .
 
 # Configuration des limites de mémoire et d'optimisation
 ENV OPENBLAS_NUM_THREADS=1

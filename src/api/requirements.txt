@@ -1,0 +1,11 @@
+fastapi==0.115.12
+uvicorn==0.34.0
+prometheus-fastapi-instrumentator==7.0.0
+joblib==1.4.2
+pandas==2.2.3
+passlib==1.7.4
+bcrypt==4.0.1
+PyJWT==2.10.1
+python-jose==3.4.0
+python-multipart==0.0.20
+scikit-learn==1.6.1

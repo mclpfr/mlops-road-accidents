@@ -10,9 +10,14 @@ from passlib.context import CryptContext
 from sklearn.metrics import classification_report
 from pydantic import BaseModel, ValidationError
 from datetime import datetime, timedelta, timezone
+from prometheus_fastapi_instrumentator import Instrumentator
 
 # Initialiser l'application FastAPI
 app = FastAPI()
+
+# Instrument the app with default metrics
+Instrumentator().instrument(app).expose(app)
+
 security = HTTPBasic()
 
 # Configuration de la sécurité

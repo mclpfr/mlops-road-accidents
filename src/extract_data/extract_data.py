@@ -80,8 +80,8 @@ def download_accident_data(config_path="config.yaml"):
 
     # Limit dataset to 2000 lines 
     original_size = len(merged_data)
-    print(f"Limiting the dataset to 20000 rows (original size: {original_size} rows)")
-    merged_data = merged_data.head(20000)
+    print(f"Limiting the dataset to 150000 rows (original size: {original_size} rows)")
+    merged_data = merged_data.head(150000)
     
     # Save the merged data to the output directory
     output_path = os.path.join(output_dir, f'accidents_{year}.csv')
