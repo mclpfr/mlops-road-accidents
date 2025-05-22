@@ -132,12 +132,13 @@ services:
     working_dir: /app
 
   api:
+    container_name: api_service
     build:
       context: .
       dockerfile: src/api/Dockerfile
-    container_name: api_service
     volumes:
       - ./models:/app/models
+      - ./data:/app/data
     ports:
       - "8000:8000"
     depends_on:
@@ -160,6 +161,25 @@ services:
     depends_on:
       - api
 
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki_service
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail_service
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
   grafana:
     image: grafana/grafana:latest
     container_name: grafana_service
@@ -170,12 +190,13 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
-      - ./monitoring/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
       - ./monitoring/grafana/provisioning/dashboards/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
       - ./monitoring/grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json
       - grafana_data:/var/lib/grafana
     depends_on:
       - postgres
+      - loki
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.2

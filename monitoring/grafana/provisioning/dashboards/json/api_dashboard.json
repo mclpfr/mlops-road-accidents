@@ -183,9 +183,9 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "red", "value": null},
-              {"color": "red", "value": 0.5},
-              {"color": "green", "value": 1}
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 70 },
+              { "color": "red", "value": 90 }
             ]
           },
           "unit": "percent"
@@ -199,15 +199,59 @@
       "type": "gauge",
       "targets": [
         {
-          "expr": "container_memory_usage_bytes{name=\"api_service\"}",
+          "expr": "container_memory_usage_bytes{name=\"api_service\"} / (1024*1024)",
           "legendFormat": "{{name}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
-        "defaults": {"unit": "bytes"}
+        "defaults": {
+          "stat": "lastNotNull",
+          "unit": "Mo",
+          "decimals": 0,
+          "min": 0,
+          "max": 1024,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 700 },
+              { "color": "red", "value": 900 }
+            ]
+          }
+        }
       },
       "gridPos": {"h": 8, "w": 6, "x": 18, "y": 20}
+    },
+    {
+      "id": 12,
+      "title": "API Logs",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "Loki"
+      },
+      "targets": [
+        {
+          "expr": "{container=\"api_service\"}",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "Loki"
+          }
+        }
+      ],
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28},
+      "options": {
+        "showTime": true,
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "wrapLogMessage": false,
+        "sortOrder": "Descending"
+      }
     }
   ]
 }

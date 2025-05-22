@@ -15,8 +15,17 @@ datasources:
       connMaxLifetime: 14400
       postgresVersion: 1000
       timescaledb: false
+
   - name: Prometheus
     type: prometheus
-    url: http://prometheus_service:9090
     access: proxy
+    url: http://prometheus_service:9090
     isDefault: true
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      maxLines: 1000
+    uid: 'Loki'
