@@ -105,4 +105,7 @@ docker-compose up --build train_model
 
 # Versionnage DVC
 docker-compose up --build auto_dvc
+
+# Lancement API
+docker-compose up --build api
 ```
