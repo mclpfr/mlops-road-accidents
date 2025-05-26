@@ -23,16 +23,13 @@ def prepare_data(config_path="config.yaml"):
 
     # Define paths for raw and processed data
     synthet_path = os.path.join("data/raw", f"accidents_{year}_synthet.csv")
-    varied_path = os.path.join("data/raw", f"accidents_{year}_varied.csv")
     raw_path = os.path.join("data/raw", f"accidents_{year}.csv")
     processed_dir = "data/processed"
     os.makedirs(processed_dir, exist_ok=True)
 
-    # Use the synthetic file if it exists, otherwise the varied file, otherwise the original file
+    # Use the synthetic file if it exists, otherwise the original file
     if os.path.exists(synthet_path):
         data = pd.read_csv(synthet_path, low_memory=False, sep=';')
-    elif os.path.exists(varied_path):
-        data = pd.read_csv(varied_path, low_memory=False, sep=';')
     else:
         data = pd.read_csv(raw_path, low_memory=False, sep=';')
 
@@ -49,7 +46,13 @@ def prepare_data(config_path="config.yaml"):
         data = data.dropna(subset=['grav'])
 
     # Convert gravity to binary classification (0: not severe, 1: severe)
-    data['grav'] = data['grav'].apply(lambda x: 1 if x in [3, 4] else 0)
+    # Gravity categories:
+    # 1 – Indemne (unharmed)
+    # 2 – Tué (killed)
+    # 3 – Blessé hospitalisé (hospitalized injured)
+    # 4 – Blessé léger (slightly injured)
+    # Group 1 and 4 as not severe (0), group 2 and 3 as severe (1)
+    data['grav'] = data['grav'].apply(lambda x: 1 if x in [2, 3] else 0)
 
     # Select numerical columns for normalization (excluding 'grav' and non-numerical columns)
     numerical_columns = data.select_dtypes(include=['float64', 'int64']).columns

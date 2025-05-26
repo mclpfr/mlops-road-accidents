@@ -1,12 +1,10 @@
 FROM python:3.10-slim-buster
 
-# Arguments pour UID et GID
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
 WORKDIR /app
 
-# Configuration de la limite de mémoire
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONMEM=256m
 
@@ -20,10 +18,10 @@ RUN mkdir -p /app/data /app/models && \
     useradd -u ${USER_ID} -g appuser -s /bin/bash -m appuser && \
     chown -R appuser:appuser /app /app/data /app/models
 
-COPY src/data_import/wait-for-postgres.sh .
+COPY src/import_data/wait-for-postgres.sh .
 RUN chmod +x wait-for-postgres.sh
 
-COPY src/data_import/import_data.py .
+COPY src/import_data/import_data.py .
 COPY config.yaml .
 
 USER appuser

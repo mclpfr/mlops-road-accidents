@@ -2,23 +2,37 @@ stages:
   extract:
     cmd: python src/extract_data/extract_data.py
     deps:
-    - src/extract_data/extract_data.py
-    - config.yaml
+      - src/extract_data/extract_data.py
+      - config.yaml
     outs:
-    - data/raw/accidents_2023.csv
+      - data/raw/accidents_2023.csv
+
+  synthet:
+    cmd: python src/synthet_data/synthet_data.py
+    deps:
+      - data/raw/accidents_2023.csv
+      - src/synthet_data/synthet_data.py
+      - config.yaml
+    outs:
+      - data/raw/accidents_2023_synthet.csv
+
   prepare:
     cmd: python src/prepare_data/prepare_data.py
     deps:
-    - data/raw/accidents_2023.csv
-    - src/prepare_data/prepare_data.py
-    - config.yaml
+      - data/raw/accidents_2023.csv
+      - data/raw/accidents_2023_synthet.csv
+      - src/prepare_data/prepare_data.py
+      - config.yaml
     outs:
-    - data/processed/prepared_accidents_2023.csv
-  models:
+      - data/processed/prepared_accidents_2023.csv
+
+  train:
     cmd: python src/train_model/train_model.py
     deps:
-    - data/processed/prepared_accidents_2023.csv
-    - src/train_model/train_model.py
-    - config.yaml
+      - data/processed/prepared_accidents_2023.csv
+      - src/train_model/train_model.py
+      - config.yaml
     outs:
-    - models/rf_model_2023.joblib
+      - models/rf_model_2023.joblib
+    # Note: Les fichiers suivants sont générés uniquement si le modèle est le meilleur
+    # et ne sont pas listés ici pour éviter les erreurs de build

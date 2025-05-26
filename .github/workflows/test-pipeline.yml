@@ -28,6 +28,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas requests beautifulsoup4 pyyaml scikit-learn joblib pytest fastapi uvicorn python-multipart mlflow
 
+      - name: Recreate config.yaml from secret
+        run: |
+          echo "${{ secrets.CONFIG_YAML }}" > config.yaml
+
       - name: Run extract_data.py
         run: |
           python src/extract_data/extract_data.py
@@ -85,8 +89,8 @@ jobs:
           docker push ${{ secrets.DOCKER_USERNAME }}/postgres_service:${{ github.run_number }}
           docker push ${{ secrets.DOCKER_USERNAME }}/postgres_service:latest
 
-      - name: Build and push data_import image
+      - name: Build and push import_data image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/data_import_service:${{ github.run_number }} -t ${{ secrets.DOCKER_USERNAME }}/data_import_service:latest -f src/data_import/Dockerfile .
-          docker push ${{ secrets.DOCKER_USERNAME }}/data_import_service:${{ github.run_number }}
-          docker push ${{ secrets.DOCKER_USERNAME }}/data_import_service:latest
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/import_data_service:${{ github.run_number }} -t ${{ secrets.DOCKER_USERNAME }}/import_data_service:latest -f src/import_data/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/import_data_service:${{ github.run_number }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/import_data_service:latest

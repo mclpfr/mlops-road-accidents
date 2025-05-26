@@ -1,7 +1,7 @@
 import pandas as pd
 import joblib
 import yaml
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
 import os
@@ -9,25 +9,24 @@ import mlflow
 import mlflow.sklearn
 import json
 import logging
-import random
 import time
 import traceback
 import subprocess
+import sys
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def load_config(config_path="config.yaml"):
+    """Loads configuration from a YAML file or environment variables."""
     try:
-        # Load the configuration file
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
             logger.info(f"Configuration loaded from {config_path}")
             return config
     except FileNotFoundError:
-        logger.warning(f"Config file {config_path} not found, using environment variables")
-        # Fallback to environment variables
+        logger.warning(f"Config file {config_path} not found, using environment variables as fallback.")
         config = {
             "data_extraction": {
                 "year": os.getenv("DATA_YEAR", "2023"),
@@ -50,417 +49,402 @@ def load_config(config_path="config.yaml"):
                 },
                 "random_state": 42,
                 "test_size": 0.2,
-                "cv_folds": 5
+                "cv_folds": 5 # Not actively used in the direct training flow
+            },
+            "git": { # Added a section for Git configuration if needed
+                "user": {
+                    "name": os.getenv("GIT_USER_NAME"),
+                    "email": os.getenv("GIT_USER_EMAIL")
+                }
             }
         }
+        if not config["mlflow"]["tracking_uri"]:
+            logger.error("MLFLOW_TRACKING_URI must be set in environment variables if config.yaml is not found.")
+            # sys.exit(1) # Uncomment to stop if URI is not set
         return config
 
 def train_model(config_path="config.yaml"):
+    """Main function to train the model."""
+    run_id = "N/A" # Initialize run_id for potential use in error messages
+    current_accuracy = 0.0 # Initialize for potential use in error messages
+
     try:
-        # Load configuration parameters
         config = load_config(config_path)
         year = config["data_extraction"]["year"]
-        logger.info(f"Loaded configuration for year {year}")
+        logger.info(f"Configuration loaded for year {year}")
         
-        # Check if the marker file prepared_data.done exists
         marker_file = "data/processed/prepared_data.done"
         if not os.path.exists(marker_file):
-            logger.error(f"Error: The marker file {marker_file} does not exist. prepare_data.py must be executed first.")
+            logger.error(f"Error: Marker file {marker_file} does not exist. prepare_data.py must be run first.")
             return
 
-        # Configure MLflow from config.yaml or environment variables
         mlflow_config = config["mlflow"]
         tracking_uri = mlflow_config["tracking_uri"]
         if not tracking_uri:
-            raise ValueError("MLflow tracking URI not found in config or environment variables")
+            raise ValueError("MLflow tracking URI not found in config or environment variables.")
             
         logger.info(f"Setting MLflow tracking URI to: {tracking_uri}")
         mlflow.set_tracking_uri(tracking_uri)
         
-        # Configure authentication
-        os.environ["MLFLOW_TRACKING_USERNAME"] = mlflow_config["username"]
-        os.environ["MLFLOW_TRACKING_PASSWORD"] = mlflow_config["password"]
-        logger.info("MLflow authentication configured")
+        if mlflow_config.get("username") and mlflow_config.get("password"):
+            os.environ["MLFLOW_TRACKING_USERNAME"] = mlflow_config["username"]
+            os.environ["MLFLOW_TRACKING_PASSWORD"] = mlflow_config["password"]
+            logger.info("MLflow authentication configured.")
+        else:
+            logger.info("No MLflow authentication configured (username/password not provided).")
 
-        # Test MLflow connection
-        try:
-            client = mlflow.tracking.MlflowClient()
-            logger.info("Successfully connected to MLflow server")
+        client = mlflow.tracking.MlflowClient()
+        logger.info("Successfully connected to MLflow server.")
             
-            # Check existing models
-            try:
-                registered_models = client.search_registered_models()
-                model_names = [model.name for model in registered_models]
-                logger.info(f"Existing registered models: {model_names}")
-                
-                for model_name in model_names:
-                    all_versions = client.search_model_versions(f"name='{model_name}'")
-                    logger.info(f"Model {model_name} has {len(all_versions)} versions")
-                    # Log only the latest version with best model tag
-                    best_versions = [v for v in all_versions if v.tags and "best_model" in v.tags]
-                    if best_versions:
-                        best_version = best_versions[0]
-                        logger.info(f"  Latest best version: {best_version.version}, Stage: {best_version.current_stage}")
-                        logger.info(f"  Tags: {best_version.tags}")
-            except Exception as e:
-                logger.error(f"Error checking existing models: {str(e)}")
-                
-        except Exception as e:
-            logger.error(f"Failed to connect to MLflow server: {str(e)}")
-            raise
+        experiment_name = f"traffic-incidents-{year}" # Dynamic experiment name with year
+        experiment = client.get_experiment_by_name(experiment_name)
+        if experiment is None:
+            logger.info(f"Creating new experiment: {experiment_name}")
+            mlflow.create_experiment(experiment_name)
+        elif experiment.lifecycle_stage == "deleted":
+            logger.info(f"Experiment {experiment_name} exists but is deleted, permanently deleting it.")
+            client.delete_experiment(experiment.experiment_id)
+            logger.info(f"Re-creating experiment: {experiment_name}") # Changed log message
+            mlflow.create_experiment(experiment_name)
+        else:
+            logger.info(f"Using existing experiment: {experiment_name}")
+        mlflow.set_experiment(experiment_name)
+        logger.info(f"Experiment set to: {experiment_name}")
 
-        # Create experiment with a fixed name
-        experiment_name = "traffic-incidents-2023"
-        try:
-            # Check if the experiment already exists
-            experiment = mlflow.get_experiment_by_name(experiment_name)
-            if experiment is not None:
-                # If the experiment is marked as deleted, permanently delete it
-                if experiment.lifecycle_stage == "deleted":
-                    logger.info(f"Experiment {experiment_name} exists but is deleted, permanently deleting it")
-                    client.delete_experiment(experiment.experiment_id)
-                else:
-                    # Use the existing experiment
-                    logger.info(f"Using existing experiment: {experiment_name}")
-                    mlflow.set_experiment(experiment_name)
-                    logger.info(f"Set experiment to: {experiment_name}")
-            else:
-                # Create a new experiment
-                logger.info(f"Creating new experiment: {experiment_name}")
-                mlflow.create_experiment(experiment_name)
-                mlflow.set_experiment(experiment_name)
-                logger.info(f"Created and set experiment to: {experiment_name}")
-        except Exception as e:
-            logger.error(f"Failed to set up experiment: {str(e)}")
-            raise
-
-        # Define paths for processed data and model storage
         data_path = f"data/processed/prepared_accidents_{year}.csv"
         model_dir = "models"
         os.makedirs(model_dir, exist_ok=True)
 
-        # Load the prepared data
         logger.info(f"Loading data from {data_path}")
+        if not os.path.exists(data_path):
+            logger.error(f"Data file {data_path} not found.")
+            raise FileNotFoundError(f"Data file {data_path} not found.")
         data = pd.read_csv(data_path, low_memory=False)
 
-        # Select relevant features
         features = ["catu", "sexe", "trajet", "catr", "circ", "vosp", "prof", "plan", "surf", "situ", "lum", "atm", "col"]
         target = "grav"
-
-        # Ensure all selected features exist in the dataset
         available_features = [col for col in features if col in data.columns]
         if not available_features:
             raise ValueError("None of the selected features are available in the dataset.")
         logger.info(f"Using features: {available_features}")
 
-        # Prepare features (X) and target (y)
         X = pd.get_dummies(data[available_features], drop_first=True)
         y = data[target]
         
         if y.isna().any():
-            logger.info(f"Found {y.isna().sum()} NaN values in target variable. Dropping these rows.")
+            logger.info(f"{y.isna().sum()} NaN values found in target variable. Dropping corresponding rows.")
             mask = ~y.isna()
             X = X[mask]
             y = y[mask]
-            logger.info(f"After removing NaN values: {len(X)} samples remaining")
+            logger.info(f"After removing NaNs: {len(X)} samples remaining.")
 
-        # Use a fixed value for reproducibility
-        logger.info(f"Random seed used for this run: 42")
-
-        # Split the data into training and testing sets
         model_config = config.get("model", {})
         test_size = model_config.get("test_size", 0.2)
         random_state = model_config.get("random_state", 42)
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
-        logger.info(f"Data split into training ({len(X_train)} samples) and testing ({len(X_test)} samples) sets")
+        logger.info(f"Data split into training ({len(X_train)} samples) and testing ({len(X_test)} samples) sets.")
 
-        # Start an MLflow run without using the context manager to be able to end it explicitly
-        active_run = mlflow.start_run()
-        run = active_run
-        logger.info(f"Started MLflow run with ID: {run.info.run_id} and name: {run.info.run_name}")
-        try:
-            logger.info(f"Started MLflow run with ID: {run.info.run_id}")
+        with mlflow.start_run(run_name=f"run_rf_{year}_{time.strftime('%Y%m%d-%H%M%S')}") as run:
+            run_id = run.info.run_id
+            logger.info(f"MLflow run started with ID: {run_id} and name: {run.info.run_name}")
             
-            # Direct training without grid search or multiple hyperparameters
             rf_params = {}
             if "hyperparameters" in model_config:
-                # Take the first element of each list if present
-                for k, v in model_config["hyperparameters"].items():
-                    if isinstance(v, list):
-                        rf_params[k] = v[0]
-                    else:
-                        rf_params[k] = v
-            rf_params["random_state"] = random_state
-            model = RandomForestClassifier(**rf_params)
-            logger.info(f"Training RandomForestClassifier with params: {rf_params}")
-            model.fit(X_train, y_train)
-            best_params = rf_params
+                for k, v_list in model_config["hyperparameters"].items():
+                    if isinstance(v_list, list) and v_list:
+                        rf_params[k] = v_list[0] # Takes the first element
+                    elif not isinstance(v_list, list):
+                         rf_params[k] = v_list # If not a list, takes the direct value
+                    # else: ignore if empty list or other cases
+            rf_params["random_state"] = random_state # Ensures model reproducibility
             
-            # Logging parameters
-            params = {
+            model = RandomForestClassifier(**rf_params)
+            logger.info(f"Training RandomForestClassifier with parameters: {rf_params}")
+            model.fit(X_train, y_train)
+            
+            params_to_log = {
                 "model_type": model_config.get("type", "RandomForestClassifier"),
                 "year": year,
-                "features": json.dumps(available_features),
-                "cv_folds": model_config.get("cv_folds", 5),
+                "features_used": json.dumps(available_features), # Actual features used
                 "test_size": test_size,
-                **best_params
+                "random_state_split": random_state, # Seed for train_test_split
+                **rf_params # Model hyperparameters
             }
-            mlflow.log_params(params)
-            logger.info(f"Parameters used: {best_params}")
+            mlflow.log_params(params_to_log)
+            logger.info(f"Parameters logged to MLflow: {params_to_log}")
             
-            # Evaluate the model on the test set
             y_pred = model.predict(X_test)
-            report = classification_report(y_test, y_pred, output_dict=True)
-            logger.info("Model evaluation completed")
+            report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
+            logger.info("Model evaluation completed.")
             
-            # Log metrics
             current_accuracy = report["accuracy"]
             mlflow.log_metric("accuracy", current_accuracy)
-            for label in report:
-                if isinstance(report[label], dict):
-                    for metric, value in report[label].items():
-                        mlflow.log_metric(f"{label}_{metric}", value)
-            logger.info("Logged model metrics")
+            for label, metrics_dict in report.items():
+                if isinstance(metrics_dict, dict):
+                    for metric_name, value in metrics_dict.items():
+                        mlflow.log_metric(f"{label}_{metric_name}", value)
+            logger.info(f"'accuracy' metric logged: {current_accuracy:.4f}")
             
-            # Log model in MLflow
-            mlflow.sklearn.log_model(model, "random_forest_model")
+            mlflow.sklearn.log_model(model, "random_forest_model") # Artifact name within the run
             
-            # Use a fixed model name to increment versions
-            model_name = "accident-severity-predictor"
+            # Static model name in MLflow Model Registry as requested
+            model_name_registry = "accident-severity-predictor"
+            model_uri = f"runs:/{run_id}/random_forest_model"
+            
             try:
-                model_uri = f"runs:/{run.info.run_id}/random_forest_model"
-                model_version = mlflow.register_model(
-                    model_uri,
-                    model_name
-                )
-                logger.info(f"Model registered in MLflow Model Registry with name: {model_name}")
-                logger.info(f"Current model version: {model_version.version}, accuracy = {current_accuracy}")
+                registered_model_version = mlflow.register_model(model_uri, model_name_registry)
+                logger.info(f"Model registered in MLflow Model Registry as: {model_name_registry}, version: {registered_model_version.version}")
                 
-                # Add the best_model tag
-                try:
-                    # First, check if there's an existing model tagged as best_model
-                    best_model_version = None
-                    best_model_accuracy = 0.0
-                    
-                    # Get all versions of the model
-                    all_versions = client.search_model_versions(f"name='{model_name}'")
-                    logger.info(f"Found {len(all_versions)} total versions for model {model_name}")
-                    
-                    # Find the version tagged as best_model
-                    for version in all_versions:
-                        if version.tags and "best_model" in version.tags:
-                            try:
-                                version_accuracy = float(version.tags["best_model"])
-                                logger.info(f"Found model version {version.version} with best_model tag and accuracy {version_accuracy}")
-                                if version_accuracy > best_model_accuracy:
-                                    best_model_accuracy = version_accuracy
-                                    best_model_version = version.version
-                            except ValueError:
-                                logger.warning(f"Invalid accuracy value in best_model tag: {version.tags['best_model']}")
-                    
-                    if best_model_version is not None:
-                        logger.info(f"Current best model is version {best_model_version} with accuracy {best_model_accuracy}")
-                    else:
-                        logger.info("No existing model found with best_model tag")
-                    
-                    # Only tag the current model as best_model if it's better than previous best
-                    if current_accuracy > best_model_accuracy:
-                        # If we found a previous best model, remove its tag
-                        if best_model_version is not None:
-                            try:
-                                client.delete_model_version_tag(
-                                    name=model_name,
-                                    version=best_model_version,
-                                    key="best_model"
-                                )
-                                logger.info(f"Removed best_model tag from version {best_model_version}")
-                            except Exception as e:
-                                logger.error(f"Error removing best_model tag from version {best_model_version}: {str(e)}")
-                        
-                        # Tag the new model as best_model
+                best_model_accuracy = 0.0
+                best_model_version_num = None # Stores the version number (string)
+                
+                # Search for versions of THIS specific model_name_registry
+                for mv in client.search_model_versions(f"name='{model_name_registry}'"):
+                    if mv.tags and "best_model" in mv.tags:
                         try:
-                            client.set_model_version_tag(
-                                name=model_name,
-                                version=model_version.version,
-                                key="best_model",
-                                value=str(current_accuracy)
-                            )
-                            logger.info(f"Tagged model version {model_version.version} as best_model with accuracy: {current_accuracy} (improved from {best_model_accuracy})")
-                        except Exception as e:
-                            logger.error(f"Error setting best_model tag for version {model_version.version}: {str(e)}")
-                    else:
-                        logger.info(f"Current model accuracy ({current_accuracy}) is not better than existing best model ({best_model_accuracy}), keeping existing best_model tag")
-                except Exception as e:
-                    logger.error(f"Error processing best_model tags: {str(e)}")
-                    logger.error(traceback.format_exc())
-                    # Continue even if tagging fails
-                
-                # Save the trained model locally
-                model_path = f"{model_dir}/rf_model_{year}.joblib"
-                # Always save the model at each run
-                joblib.dump(model, model_path)
-                logger.info(f"Model saved locally to {model_path}")
-                # Only save as best_model file if it is the best
-                if current_accuracy > best_model_accuracy:
-                    best_model_path = f"{model_dir}/best_model_2023.joblib"
-                    joblib.dump(model, best_model_path)
-                    logger.info(f"Model also saved as best model to {best_model_path}")
+                            tag_accuracy = float(mv.tags["best_model"])
+                            if tag_accuracy > best_model_accuracy:
+                                best_model_accuracy = tag_accuracy
+                                best_model_version_num = mv.version
+                        except ValueError:
+                            logger.warning(f"Invalid 'best_model' tag value for version {mv.version}: {mv.tags['best_model']}")
 
-                    # Generation of the complete metadata file
-                    metadata_path = f"{model_dir}/best_model_2023_metadata.json"
+                logger.info(f"Previous best model accuracy ({model_name_registry}, version {best_model_version_num}): {best_model_accuracy:.4f}")
+                logger.info(f"Current model accuracy ({model_name_registry}, version {registered_model_version.version}): {current_accuracy:.4f}")
+
+                best_model_filename_base = "best_model_2023" # Fixed base name for .joblib and .json files
+                
+                if current_accuracy > best_model_accuracy:
+                    logger.info(f"Current model (acc: {current_accuracy:.4f}) is better than the previous best (acc: {best_model_accuracy:.4f}). Promoting...")
+                    
+                    if best_model_version_num:
+                        try:
+                            # Remove tag from the old best model version
+                            client.delete_model_version_tag(name=model_name_registry, version=best_model_version_num, key="best_model")
+                            logger.info(f"'best_model' tag removed from version {best_model_version_num} of model {model_name_registry}.")
+                        except Exception as e:
+                            logger.error(f"Error removing 'best_model' tag from version {best_model_version_num}: {e}")
+                    
+                    # Set tag for the new best model version
+                    client.set_model_version_tag(name=model_name_registry, version=registered_model_version.version, key="best_model", value=str(current_accuracy))
+                    logger.info(f"'best_model={current_accuracy:.4f}' tag added to version {registered_model_version.version} of model {model_name_registry}.")
+                    
+                    best_model_path = os.path.join(model_dir, f"{best_model_filename_base}.joblib")
+                    joblib.dump(model, best_model_path)
+                    logger.info(f"Model saved locally as best model: {best_model_path}")
+
+                    metadata_path = os.path.join(model_dir, f"{best_model_filename_base}_metadata.json")
+                    commit_hash = "N/A"
                     try:
-                        # Get the git commit hash
                         commit_hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode("utf-8").strip()
                     except Exception as e:
-                        commit_hash = None
-                        logger.warning(f"Could not get git commit hash: {e}")
+                        logger.warning(f"Could not get Git commit hash: {e}")
 
-                    # Get MLflow information
-                    experiment_id = run.info.experiment_id
-                    experiment_name = experiment_name  # already defined above
-                    last_run_id = run.info.run_id
-                    run_name = run.info.run_name
-
-                    # Hyperparameters used (those of the best model)
-                    hyperparameters = best_params.copy()
-                    # Make sure we have the requested values
-                    for k in ["n_estimators", "max_depth", "class_weight"]:
-                        if k not in hyperparameters:
-                            hyperparameters[k] = None
-
-                    # Total number of samples
-                    total_samples = len(X)
-
-                    # Creation of the metadata dictionary
                     metadata = {
-                        "model_version": str(model_version.version),
+                        "model_name_registry": model_name_registry, # Static name
+                        "model_version": registered_model_version.version,
                         "model_type": model_config.get("type", "RandomForestClassifier"),
                         "accuracy": float(current_accuracy),
-                        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-                        "git_info": {
-                            "commit_hash": commit_hash
-                        },
+                        "created_at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+                        "git_info": {"commit_hash": commit_hash},
                         "mlflow_info": {
-                            "experiment_id": str(experiment_id),
-                            "experiment_name": experiment_name,
-                            "last_run_id": last_run_id,
-                            "run_name": run_name
+                            "experiment_id": run.info.experiment_id,
+                            "experiment_name": client.get_experiment(run.info.experiment_id).name,
+                            "run_id": run_id,
+                            "run_name": run.info.run_name,
+                            "model_uri": model_uri
                         },
-                        "hyperparameters": {
-                            "n_estimators": hyperparameters["n_estimators"],
-                            "max_depth": hyperparameters["max_depth"],
-                            "class_weight": hyperparameters["class_weight"]
-                        },
-                        "data_source": data_path,
-                        "total_samples": total_samples
+                        "hyperparameters_used": rf_params,
+                        "data_source_processed": data_path, # Processed data used for this model
+                        "data_source_raw": f"data/raw/accidents_{year}_synthet.csv", # Corresponding raw data
+                        "total_samples_in_X": len(X),
+                        "features_definition": features # Initial list of desired features
                     }
                     with open(metadata_path, "w") as f:
                         json.dump(metadata, f, indent=2)
                     logger.info(f"Full metadata written to {metadata_path}")
-                    
-                    # Git commit for the metadata only (not the model)
-                    try:
-                        # Configure Git identity for commits if provided in config
-                        if "git" in config and "user" in config["git"]:
-                            git_user = config["git"]["user"]
-                            if "name" in git_user and "email" in git_user:
-                                try:
-                                    subprocess.run(["git", "config", "--global", "user.name", git_user["name"]], check=True)
-                                    subprocess.run(["git", "config", "--global", "user.email", git_user["email"]], check=True)
-                                    logger.info(f"Git configured with user: {git_user['name']} <{git_user['email']}>")
-                                except Exception as e:
-                                    logger.warning(f"Could not configure git user: {e}")
 
-                        # Only force-add metadata file, not the model
-                        try:
-                            subprocess.run(["git", "add", "-f", metadata_path], check=True)
-                            logger.info(f"Added metadata file to git: {metadata_path}")
-                        except Exception as e:
-                            logger.warning(f"Could not add metadata file to git: {e}")
+                    # --- DVC Integration ---
+                    logger.info("Starting DVC versioning for the new best model...")
+                    dvc_files_to_add = [
+                        data_path, # e.g., data/processed/prepared_accidents_2023.csv
+                        best_model_path  # models/best_model_2023.joblib
+                    ]
+                    
+                    raw_data_file_for_dvc = f"data/raw/accidents_{year}_synthet.csv" # Raw data file for the current year
+                    # User specifically requested "data/raw/accidents_2023_synthet.csv" to be versioned.
+                    # We will add this specific file if it exists.
+                    # If the current year is not 2023, we might also want to version the current year's raw data.
+                    
+                    requested_raw_data_file = "data/raw/accidents_2023_synthet.csv"
+                    if os.path.exists(requested_raw_data_file):
+                        dvc_files_to_add.append(requested_raw_data_file)
+                        logger.info(f"Found and will attempt to DVC add requested raw data: {requested_raw_data_file}")
+                    else:
+                        logger.warning(f"Requested raw data file for DVC not found: {requested_raw_data_file}. It will not be added to DVC.")
+
+                    # Optionally, add the current year's raw data if different and exists
+                    if year != "2023" and os.path.exists(raw_data_file_for_dvc) and raw_data_file_for_dvc not in dvc_files_to_add:
+                        dvc_files_to_add.append(raw_data_file_for_dvc)
+                        logger.info(f"Also attempting to DVC add current year's raw data: {raw_data_file_for_dvc}")
+                    elif year != "2023" and not os.path.exists(raw_data_file_for_dvc):
+                         logger.warning(f"Current year's raw data file ({raw_data_file_for_dvc}) not found, not adding to DVC.")
+
+
+                    git_add_paths = []
+                    for f_path in dvc_files_to_add:
+                        if os.path.exists(f_path):
+                            try:
+                                logger.info(f"DVC add/commit: {f_path}")
+                                # Use 'dvc commit --force' for files that are already outputs of DVC stages
+                                # This will update the DVC cache without changing the pipeline definition
+                                result = subprocess.run(["dvc", "commit", "--force", f_path], 
+                                                     capture_output=True, text=True)
+                                if result.returncode == 0:
+                                    logger.info(f"Successfully committed {f_path} to DVC cache")
+                                else:
+                                    # If commit fails, try with add as fallback
+                                    logger.info(f"File {f_path} not in DVC pipeline, trying dvc add...")
+                                    result = subprocess.run(["dvc", "add", f_path], 
+                                                         capture_output=True, text=True)
+                                    if result.returncode == 0:
+                                        git_add_paths.append(f"{f_path}.dvc") # Add the .dvc file for Git
+                                    else:
+                                        logger.error(f"Failed to add/commit {f_path} to DVC: {result.stderr}")
+                            except subprocess.CalledProcessError as e:
+                                logger.error(f"Failed to process {f_path} with DVC: {e}\nStdout: {e.stdout}\nStderr: {e.stderr}")
+                            except FileNotFoundError:
+                                logger.error("DVC command not found. Ensure DVC is installed and in PATH.")
+                                break # Stop DVC process if command is not found
+                        else:
+                            logger.warning(f"File {f_path} not found, skipped for 'dvc add'.")
+                    
+                    # --- Git Integration (continued) ---
+                    if git_add_paths: # If .dvc files were created/updated
+                        git_add_paths.append(metadata_path) # The metadata file itself
+                        if os.path.exists(".gitignore"): git_add_paths.append(".gitignore")
+                        if os.path.exists("dvc.yaml"): git_add_paths.append("dvc.yaml") # As requested
+
+                        git_config = config.get("git", {})
+                        if git_config.get("user", {}).get("name") and git_config.get("user", {}).get("email"):
+                            try:
+                                subprocess.run(["git", "config", "user.name", git_config["user"]["name"]], check=True)
+                                subprocess.run(["git", "config", "user.email", git_config["user"]["email"]], check=True)
+                                logger.info(f"Git identity configured: {git_config['user']['name']} <{git_config['user']['email']}>")
+                            except Exception as e:
+                                logger.warning(f"Could not configure Git user: {e}")
                         
-                        # Create git commit with metadata file
-                        commit_message = f"Best model version: {model_version.version}, accuracy: {current_accuracy:.4f}"
-                        subprocess.run(["git", "commit", "-m", commit_message], check=True)
-                        logger.info(f"Git commit done: {commit_message}")
-                    except Exception as e:
-                        logger.error(f"Error during git commit: {str(e)}")
-                    # Promote to production (log only if best model)
+                        for f_to_git_add in git_add_paths:
+                            try:
+                                logger.info(f"Git add: {f_to_git_add}")
+                                # Using -f to force add if necessary (e.g., .gitignore modified by dvc, or dvc.yaml)
+                                subprocess.run(["git", "add", "-f", f_to_git_add], check=True, capture_output=True, text=True)
+                            except subprocess.CalledProcessError as e:
+                                logger.error(f"Failed 'git add -f {f_to_git_add}': {e}\nStdout: {e.stdout}\nStderr: {e.stderr}")
+                        
+                        try:
+                            commit_message = f"Promote best model v{registered_model_version.version} (acc: {current_accuracy:.4f}); Update DVC data/model" # English
+                            logger.info(f"Git commit with message: '{commit_message}'")
+                            subprocess.run(["git", "commit", "-m", commit_message], check=True, capture_output=True, text=True)
+                            logger.info("Git commit successful.")
+                            
+                            # Push changes to the remote repository
+                            try:
+                                logger.info("Pushing changes to remote repository...")
+                                subprocess.run(["git", "push"], check=True, capture_output=True, text=True)
+                                logger.info("Successfully pushed changes to remote repository.")
+                            except subprocess.CalledProcessError as e:
+                                logger.error(f"Git push failed: {e}\nStdout: {e.stdout}\nStderr: {e.stderr}")
+                        except subprocess.CalledProcessError as e:
+                            logger.error(f"Git commit failed: {e}\nStdout: {e.stdout}\nStderr: {e.stderr}")
+                    else:
+                        logger.warning("No .dvc files to add to Git. Git commit for DVC changes was skipped.")
+
                     try:
                         client.transition_model_version_stage(
-                            name=model_name,
-                            version=model_version.version,
+                            name=model_name_registry,
+                            version=registered_model_version.version,
                             stage="Production"
                         )
-                        logger.info(f"Promoted version {model_version.version} to Production")
+                        logger.info(f"Version {registered_model_version.version} of model {model_name_registry} promoted to 'Production'.")
                     except Exception as e:
-                        logger.error(f"Error promoting model to Production: {str(e)}")
-                        logger.error(traceback.format_exc())
-                
+                        logger.error(f"Error promoting model to 'Production': {e}\n{traceback.format_exc()}")
+                else:
+                    logger.info(f"Current model (acc: {current_accuracy:.4f}) is not better than previous best model (acc: {best_model_accuracy:.4f}). No promotion.")
+
             except Exception as e:
-                logger.error(f"Failed to register model in Model Registry: {str(e)}")
-                logger.error(traceback.format_exc())
-                # Continue even if model registration fails
+                logger.error(f"Failed to register model in Model Registry: {e}\n{traceback.format_exc()}")
             
-            # Explicitly end the run successfully, even if registration in the registry failed
-            mlflow.end_run(status="FINISHED")
-            logger.info("MLflow run marked as FINISHED successfully")
+            # Systematically save the current run's model locally (not necessarily the best)
+            current_run_model_path = os.path.join(model_dir, f"rf_model_{year}.joblib")
+            joblib.dump(model, current_run_model_path)
+            logger.info(f"Current run's model saved locally: {current_run_model_path}")
 
-            # Creating end signal file to indicate training completion
-            with open("models/train_model.done", "w") as f:
-                f.write("done\n")
-            logger.info("Created marker file: models/train_model.done")
+            mlflow.log_artifact(current_run_model_path) # Also log this model as an artifact
+            
+            # MLflow run end is handled by the `with` statement
 
-        except Exception as e:
-            # In case of error, end the run with a failure status
-            logger.error(f"Error during MLflow run: {str(e)}")
-            logger.error(traceback.format_exc())
-            mlflow.end_run(status="FAILED")
-            raise
+        # Create training completion marker file
+        with open(os.path.join(model_dir, "train_model.done"), "w") as f:
+            f.write(f"done at {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}\nrun_id: {run_id}\naccuracy: {current_accuracy:.4f}")
+        logger.info("Marker file created: models/train_model.done")
+
+    except FileNotFoundError as e: # Specifically handle file not found errors earlier
+        logger.error(f"File not found error: {e}")
+        logger.error(traceback.format_exc())
+        create_fallback_models(config.get("data_extraction", {}).get("year", "2023") if 'config' in locals() else "2023")
 
     except Exception as e:
-        logger.error(f"An error occurred during model training: {str(e)}")
+        logger.error(f"An error occurred during model training: {e}")
         logger.error(traceback.format_exc())
-        # Even if there's an error, try to save a dummy model to allow the pipeline to continue
-        try:
-            model_dir = "models"
-            os.makedirs(model_dir, exist_ok=True)
-            year = config["data_extraction"]["year"] if 'config' in locals() else "2023"
-            
-            # If previous model exists, use that
-            previous_model_path = f"{model_dir}/rf_model_{year}.joblib"
-            
-            # Check if best model exists, if not create a dummy one
-            best_model_path = f"{model_dir}/best_model_2023.joblib"
-            if not os.path.exists(best_model_path):
-                # Create a simple dummy model if needed
-                dummy_model = RandomForestClassifier(n_estimators=10)
-                joblib.dump(dummy_model, best_model_path)
-                logger.info(f"Created fallback best model file due to error")
-            
-            # Create a simple dummy model if needed
-            dummy_model = RandomForestClassifier(n_estimators=10)
-            joblib.dump(dummy_model, previous_model_path)
+        if 'run_id' in locals() and run_id != "N/A" and mlflow.active_run() and mlflow.active_run().info.run_id == run_id:
+             mlflow.end_run(status="FAILED")
+             logger.info(f"MLflow run {run_id} marked as FAILED.")
+        create_fallback_models(config.get("data_extraction", {}).get("year", "2023") if 'config' in locals() else "2023")
+        raise # Propagate the exception to indicate script failure
 
-            logger.info(f"Created fallback model files due to error")
-        except:
-            logger.error("Could not create fallback model files")
-        raise
+def create_fallback_models(year_str="2023"):
+    """Creates fallback model files in case of a major error."""
+    try:
+        model_dir = "models"
+        os.makedirs(model_dir, exist_ok=True)
+        
+        best_model_path = os.path.join(model_dir, "best_model_2023.joblib") # Fixed name as requested
+        if not os.path.exists(best_model_path):
+            dummy_model = RandomForestClassifier(n_estimators=10, random_state=42)
+            joblib.dump(dummy_model, best_model_path)
+            logger.info(f"Fallback model file (best_model_2023.joblib) created due to an error.")
+
+    except Exception as fallback_exc:
+        logger.error(f"Could not create fallback model files: {fallback_exc}")
+
 
 if __name__ == "__main__":
-    # Wait for the prepared_data.done file if it doesn't exist yet
-    marker_file = "data/processed/prepared_data.done"
-    max_wait_time = 300  # Maximum wait time in seconds (5 minutes)
-    wait_interval = 10   # Check every 10 seconds
-    wait_time = 0
+    config_file_path = "config.yaml" 
     
-    while not os.path.exists(marker_file) and wait_time < max_wait_time:
-        logger.info(f"Waiting for {marker_file} to be created... ({wait_time}/{max_wait_time} seconds)")
-        time.sleep(wait_interval)
-        wait_time += wait_interval
-    
-    if not os.path.exists(marker_file):
-        logger.error(f"Error: The marker file {marker_file} was not created within the wait time.")
+    try:
+        temp_config_for_marker = load_config(config_file_path)
+    except Exception as e:
+        logger.error(f"Failed to load configuration for marker check: {e}")
         sys.exit(1)
+
+    # The marker file name does not depend on the year in the original script
+    data_prepared_marker_file = "data/processed/prepared_data.done" 
     
-    # Train the model
-    train_model()
+    max_wait_time = 300  # seconds
+    wait_interval = 10   # seconds
+    waited_time = 0
+    
+    logger.info(f"Waiting for marker file: {data_prepared_marker_file}")
+    while not os.path.exists(data_prepared_marker_file) and waited_time < max_wait_time:
+        logger.info(f"Waiting for {data_prepared_marker_file}... ({waited_time}/{max_wait_time}s)")
+        time.sleep(wait_interval)
+        waited_time += wait_interval
+    
+    if not os.path.exists(data_prepared_marker_file):
+        logger.error(f"Error: Marker file {data_prepared_marker_file} was not created within the timeout period.")
+        sys.exit(1) # Exit script if data is not ready
+    
+    logger.info(f"Marker file {data_prepared_marker_file} found. Starting model training.")
+    train_model(config_path=config_file_path)
+

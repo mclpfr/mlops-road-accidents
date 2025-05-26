@@ -28,7 +28,7 @@ def load_config(config_path="/app/config.yaml"):
                 "password": os.getenv("MLFLOW_TRACKING_PASSWORD", "")
             },
             "postgresql": {
-                "host": os.getenv("POSTGRES_HOST", "postgres"),
+                "host": os.getenv("POSTGRES_HOST", "localhost"),
                 "port": os.getenv("POSTGRES_PORT", "5432"),
                 "user": os.getenv("POSTGRES_USER", "postgres"),
                 "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
@@ -171,7 +171,7 @@ def main():
     time.sleep(5)
     
     # Check if the marker file train_model.done exists
-    marker_file = "/app/models/train_model.done"
+    marker_file = "models/train_model.done"
     max_wait_time = 300  # Maximum wait time in seconds (5 minutes)
     wait_interval = 10   # Check every 10 seconds
     wait_time = 0
