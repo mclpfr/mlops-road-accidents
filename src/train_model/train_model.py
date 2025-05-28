@@ -138,6 +138,12 @@ def train_model(config_path="config.yaml"):
             y = y[mask]
             logger.info(f"After removing NaNs: {len(X)} samples remaining.")
 
+        # Save the model's expected columns (after get_dummies)
+        model_columns_path = os.path.join(model_dir, f"model_columns_{year}.json")
+        with open(model_columns_path, 'w') as f:
+            json.dump(X.columns.tolist(), f, indent=4)
+        logger.info(f"Model's expected input columns saved to {model_columns_path}")
+
         model_config = config.get("model", {})
         test_size = model_config.get("test_size", 0.2)
         random_state = model_config.get("random_state", 42)
@@ -187,6 +193,11 @@ def train_model(config_path="config.yaml"):
             
             mlflow.sklearn.log_model(model, "random_forest_model") # Artifact name within the run
             
+            # Save the model directly to the models directory for the API
+            model_save_path = os.path.join(model_dir, f"best_model_{year}.joblib")
+            joblib.dump(model, model_save_path)
+            logger.info(f"Model also saved directly to {model_save_path}")
+
             # Static model name in MLflow Model Registry as requested
             model_name_registry = "accident-severity-predictor"
             model_uri = f"runs:/{run_id}/random_forest_model"
@@ -447,4 +458,3 @@ if __name__ == "__main__":
     
     logger.info(f"Marker file {data_prepared_marker_file} found. Starting model training.")
     train_model(config_path=config_file_path)
-

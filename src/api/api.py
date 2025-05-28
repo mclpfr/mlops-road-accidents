@@ -2,6 +2,7 @@ import io
 import json
 import pandas as pd
 import joblib
+import uvicorn
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials, OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -29,19 +30,20 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Modèles Pydantic pour les données
 class Feature(BaseModel):
-    # catu: int
-    # sexe: int
-    # trajet: int
-    catr: int
-    circ: int
-    vosp: int
-    prof: int
-    plan: int
-    surf: int
-    situ: int
-    lum: int
-    atm: int
-    col: int
+    # Colonnes exactes attendues par le modèle
+    catu: float
+    sexe: float
+    trajet: float
+    catr: float
+    circ: float
+    vosp: float
+    prof: float
+    plan: float
+    surf: float
+    situ: float
+    lum: float
+    atm: float
+    col: float
 
     class Config:
         extra = 'allow'
@@ -58,9 +60,31 @@ class User(BaseModel):
 #     username: str
 #     password: str
 
-# Charger le modèle entraîné
+# Charger le modèle entraîné et le scaler
 model_dir = "models"
 model = joblib.load(f"{model_dir}/best_model_2023.joblib")
+print(f"--- TYPE DU MODÈLE CHARGÉ ---")
+print(type(model))
+print(f"--- PARAMÈTRES DU MODÈLE CHARGÉ (get_params) ---")
+try:
+    print(model.get_params(deep=False))
+except AttributeError:
+    print("Le modèle n'a pas de méthode get_params.")
+print(f"--- FIN INFOS MODÈLE ---")
+
+# Charger le scaler pour normaliser les données
+try:
+    scaler = joblib.load("data/processed/scaler_model_features_2023.joblib")
+    with open("data/processed/numerical_columns_scaled_2023.json", 'r') as f:
+        columns_to_scale = json.load(f)
+    print(f"--- COLUMNS_TO_SCALE AU DÉMARRAGE DE L'API ---")
+    print(columns_to_scale)
+    print(f"--- FIN COLUMNS_TO_SCALE AU DÉMARRAGE ---")
+    print("Scaler et colonnes à normaliser chargés avec succès")
+except FileNotFoundError:
+    print(f"Erreur lors du chargement du scaler: FileNotFoundError")
+    scaler = None
+    columns_to_scale = []
 
 # Exemple
 fake_users_db = {
@@ -157,9 +181,12 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
 @app.post("/protected/predict")
 async def predict_csv(file_request: UploadFile = File(), current_user: User = Depends(get_current_user)):
     try:
+        print("\n--- Début du traitement predict_csv ---")
         # Lire le fichier CSV avec pandas
         contents = await file_request.read()
         df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+        print(f"CSV chargé. Nombre de lignes: {len(df)}")
+        print(f"Colonnes initiales du CSV: {df.columns.tolist()}")
 
         records = df.to_dict(orient='records')
 
@@ -168,52 +195,103 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
         if not features:
             raise ValueError("None of the selected features are available in the dataset.")
 
-        # Select model features
-        model_features = [
-            # "catu",
-            # "sexe",
-            # "trajet",
-            "catr",
-            "circ",
-            "vosp",
-            "prof",
-            "plan",
-            "surf",
-            "situ",
-            "lum",
-            "atm",
-            "col"
-            ]
-        target = "grav"
+        # Colonnes attendues par le modèle
+        model_features = ["catu", "sexe", "trajet", "catr", "circ", "vosp", "prof", "plan", "surf", "situ", "lum", "atm", "col"]
+        
+        df_for_prediction = df[model_features].copy()
+        print(f"\n--- df_for_prediction avant transformations ---")
+        print(f"Colonnes df_for_prediction: {df_for_prediction.columns.tolist()}")
+        # print(df_for_prediction.info())
+        # print(df_for_prediction.head())
 
-        # Prepare features (X) and target (y)
-        X = pd.get_dummies(df[model_features], drop_first=True)
-        y = df[target].apply(lambda x: 0 if x in [3, 4] else 1)  # 0: grave, 1: not grave
+        # Transformation binaire de 'atm' avant la normalisation
+        conditions_advers_atm = [2.0, 3.0, 4.0, 5.0, 6.0, 9.0]
+        if 'atm' in df_for_prediction.columns:
+            print("Binarisation de 'atm'...")
+            df_for_prediction['atm'] = df_for_prediction['atm'].apply(lambda x: 1.0 if x in conditions_advers_atm else 0.0)
+            print(f"'atm' après binarisation (premières 5 lignes):\n{df_for_prediction['atm'].head().to_string()}")
+            print(f"dtype de 'atm' après binarisation: {df_for_prediction['atm'].dtype}")
+        
+        if scaler is not None and columns_to_scale:
+            print("\nNormalisation des données...")
+            cols_to_normalize = [col for col in columns_to_scale if col in df_for_prediction.columns]
+            if cols_to_normalize:
+                print(f"Colonnes à normaliser: {cols_to_normalize}")
+                df_for_prediction[cols_to_normalize] = scaler.transform(df_for_prediction[cols_to_normalize])
+                print(f"Données normalisées pour les colonnes: {cols_to_normalize}")
+            else:
+                print("Aucune colonne à normaliser trouvée ou applicable.")
+        # print(f"df_for_prediction après normalisation (premières 5 lignes):\n{df_for_prediction.head().to_string()}")
+        
+        # Prepare features (X) pour la prédiction
+        cols_to_encode = ['catu', 'sexe', 'trajet']
+        actual_cols_to_encode = [col for col in cols_to_encode if col in df_for_prediction.columns]
+        print(f"\n--- Préparation pour get_dummies ---")
+        print(f"Colonnes avant get_dummies: {df_for_prediction.columns.tolist()}")
+        print(f"Colonnes à encoder (actual_cols_to_encode): {actual_cols_to_encode}")
+        
+        X_processed = pd.get_dummies(df_for_prediction, columns=actual_cols_to_encode, drop_first=True, dtype=float)
+        print(f"\n--- X_processed après get_dummies ---")
+        print(f"Colonnes X_processed: {X_processed.columns.tolist()}")
+        # print(X_processed.info())
+        # print(X_processed.head().to_string())
+
+        # S'assurer que toutes les features attendues par le modèle sont présentes et dans le bon ordre
+        try:
+            model_expected_features = model.feature_names_in_.tolist()
+            print(f"\n--- Alignement avec model.feature_names_in_ ---")
+            print(f"model.feature_names_in_: {model_expected_features}")
+        except AttributeError:
+            print("Erreur: model.feature_names_in_ n'est pas disponible. Vérifier le modèle.")
+            raise HTTPException(status_code=500, detail="Attribut feature_names_in_ manquant sur le modèle.")
+
+        for col_name in model_expected_features:
+            if col_name not in X_processed.columns:
+                print(f"Ajout de la colonne manquante '{col_name}' à X_processed avec des zéros.")
+                X_processed[col_name] = 0.0
+        
+        print(f"Colonnes X_processed après ajout des manquantes: {X_processed.columns.tolist()}")
+        
+        X_final = X_processed[model_expected_features]
+        print(f"\n--- X_final avant prédiction ---")
+        print(f"Colonnes X_final: {X_final.columns.tolist()}")
+        # print(X_final.info())
+        # print(X_final.head().to_string())
 
         # Faire les prédictions avec le modèle
-        y_pred = model.predict(X)
+        print("Appel de model.predict(X_final)...")
+        y_pred_raw = model.predict(X_final)
+        print("Prédictions brutes obtenues.")
+        
+        y_pred = y_pred_raw
 
-        # Sortie des résultats
-        df_ypred = pd.DataFrame(y_pred)
-        df_ypred.to_csv("../../data/out/y_pred.csv", index=False)
+        result_df = df.copy()
+        result_df['prediction_grav'] = y_pred
+        result_df['prediction_label'] = ['grave' if x == 1 else 'non_grave' for x in y_pred]
+        
+        result_df.to_csv("data/api_out/predictions.csv", index=False)
+        print("Résultats enregistrés dans predictions.csv")
+        print("--- Fin du traitement predict_csv ---")
 
-        report = classification_report(y, y_pred, output_dict=True)
-        df_report = pd.DataFrame(report).transpose()
-        df_report.to_csv("../../data/out/classification_report.csv")
-
-        return {"user": current_user, "message": "Prédiction effectuée avec succès"}
-
-        # Classification report
-        #return JSONResponse({"classification report": classification_report(y, y_pred)})
-        #return {"classification report": classification_report(y, y_pred, output_dict=True)}
+        return {
+            "user": current_user.username, 
+            "message": "Prédiction effectuée avec succès",
+            "predictions": y_pred.tolist(),
+            "predictions_labels": ["grave" if x == 1 else "non_grave" for x in y_pred],
+            "nb_predictions_grav_1": int(sum(y_pred == 1)),
+            "nb_predictions_grav_0": int(sum(y_pred == 0))
+        }
 
     except ImportError as e:
+        print(f"ImportError: {str(e)}")
         return JSONResponse({'error': str(e)}, status_code=500)
     except ValidationError as e:
-        # Retourner une erreur si la validation échoue
+        print(f"ValidationError: {e.errors()}")
         raise HTTPException(status_code=422, detail=e.errors()) from e
     except Exception as e:
-        # Gérer d'autres exceptions possibles
+        import traceback
+        print(f"Exception générale: {str(e)}")
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 # Endpoint pour mettre à jour le modèle

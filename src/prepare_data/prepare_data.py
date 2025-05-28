@@ -4,6 +4,8 @@ import yaml
 import time
 import sys
 from sklearn.preprocessing import StandardScaler
+import joblib
+import json
 
 def load_config(config_path="config.yaml"):
     # Load the configuration file
@@ -37,33 +39,85 @@ def prepare_data(config_path="config.yaml"):
     if 'adr' in data.columns:
         data = data.drop('adr', axis=1)
 
+    # --- Ajout pour victim_age ---
+    # Assumant que 'an' (année accident) et 'an_nais' (année naissance) sont présentes.
+    if 'an' in data.columns and 'an_nais' in data.columns:
+        data['an'] = pd.to_numeric(data['an'], errors='coerce')
+        data['an_nais'] = pd.to_numeric(data['an_nais'], errors='coerce')
+        data['victim_age'] = data['an'] - data['an_nais']
+        data['victim_age'] = data['victim_age'].clip(0, 100) # Gestion simple des outliers pour l'âge (0-100 ans)
+        print("Feature 'victim_age' created and outliers handled.")
+    else:
+        print("Warning: Columns 'an' or 'an_nais' not found. 'victim_age' not created.")
+
+    # --- Ajout pour atm ---
+    if 'atm' in data.columns:
+        data['atm'] = pd.to_numeric(data['atm'], errors='coerce')
+        dico_atm = {
+            1: 0,  # Normal
+            2: 1,  # Pluie légère
+            3: 1,  # Pluie forte
+            4: 1,  # Neige - grêle
+            5: 1,  # Brouillard - fumée
+            6: 1,  # Vent fort - tempête
+            7: 1,  # Temps éblouissant
+            8: 0,  # Temps couvert
+            9: 0,  # Autre
+            -1: 0  # Non renseigné (considéré comme Normal par défaut)
+        }
+        data['atm'] = data['atm'].replace(dico_atm)
+        print("Feature 'atm' transformed to binary (0: Normal, 1: Risqué).")
+    else:
+        print("Warning: Column 'atm' not found. Transformation not applied.")
+
     # Handle missing values by filling with the mode of each column
+    # Ceci imputera les NaN créés par to_numeric si 'an', 'an_nais', 'atm' n'étaient pas numériques
+    # ou les NaN de victim_age si 'an' ou 'an_nais' étaient NaN.
     data.fillna(data.mode().iloc[0], inplace=True)
 
-    # Specifically ensure that 'grav' has no NaN values
+    # Specifically ensure that 'grav' has no NaN values (devrait être déjà géré par fillna ci-dessus)
     if 'grav' in data.columns and data['grav'].isna().any():
-        # Remove rows with 'grav' = NaN 
         data = data.dropna(subset=['grav'])
+    
+    # --- Modification de la transformation de 'grav' ---
+    if 'grav' in data.columns:
+        # Convertir en numérique, remplacer les erreurs de conversion par -1 (pour mapper à non-grave)
+        data['grav'] = pd.to_numeric(data['grav'], errors='coerce').fillna(-1).astype(int)
+        # Binarisation : 1 pour grave (valeurs originales 2, 3), 0 pour non-grave (valeurs originales 1, 4, -1)
+        data['grav'] = data['grav'].apply(lambda x: 1 if x in [2, 3] else 0)
+        print("Feature 'grav' transformed to binary (0: non-severe, 1: severe).")
+    else:
+        print("Warning: Column 'grav' not found. Transformation not applied.")
 
-    # Convert gravity to binary classification (0: not severe, 1: severe)
-    # Gravity categories:
-    # 1 – Indemne (unharmed)
-    # 2 – Tué (killed)
-    # 3 – Blessé hospitalisé (hospitalized injured)
-    # 4 – Blessé léger (slightly injured)
-    # Group 1 and 4 as not severe (0), group 2 and 3 as severe (1)
-    data['grav'] = data['grav'].apply(lambda x: 1 if x in [2, 3] else 0)
-
-    # Select numerical columns for normalization (excluding 'grav' and non-numerical columns)
+    # Select numerical columns for normalization
+    # Exclure 'grav' (cible) et 'atm' (maintenant binaire) de la normalisation
     numerical_columns = data.select_dtypes(include=['float64', 'int64']).columns
-    numerical_columns = [col for col in numerical_columns if col != 'grav']  # Exclude target
+    # Assurer que 'victim_age' est dans numerical_columns si elle a été créée et est numérique
+    if 'victim_age' in data.columns and pd.api.types.is_numeric_dtype(data['victim_age']):
+        if 'victim_age' not in numerical_columns:
+             # Normalement select_dtypes devrait l'inclure si elle est float64 ou int64.
+             # Cette ligne est une sécurité au cas où elle serait d'un autre type numérique non inclus par défaut.
+             pass # Elle devrait déjà y être.
+    
+    columns_to_exclude_from_scaling = ['grav']
+    if 'atm' in data.columns: # Exclure atm si elle existe et a été transformée
+        columns_to_exclude_from_scaling.append('atm')
 
-    if numerical_columns:
-        # Normalize numerical features using StandardScaler
+    numerical_columns_to_scale = [col for col in numerical_columns if col not in columns_to_exclude_from_scaling]
+
+    if numerical_columns_to_scale:
         scaler = StandardScaler()
-        data[numerical_columns] = scaler.fit_transform(data[numerical_columns])
+        data[numerical_columns_to_scale] = scaler.fit_transform(data[numerical_columns_to_scale])
 
-    # Save the prepared data to the processed directory
+        scaler_path = os.path.join(processed_dir, f"scaler_{year}.joblib")
+        joblib.dump(scaler, scaler_path)
+        print(f"Scaler saved to {scaler_path}")
+
+        numerical_columns_scaled_path = os.path.join(processed_dir, f"numerical_columns_scaled_{year}.json")
+        with open(numerical_columns_scaled_path, 'w') as f:
+            json.dump(numerical_columns_to_scale, f)
+        print(f"List of scaled numerical columns saved to {numerical_columns_scaled_path}")
+
     output_path = os.path.join(processed_dir, f"prepared_accidents_{year}.csv")
     data.to_csv(output_path, index=False)
     print(f"Prepared data saved to {output_path}")
