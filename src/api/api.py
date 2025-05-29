@@ -4,11 +4,11 @@ import pandas as pd
 import joblib
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials, OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.security import HTTPBasic, OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sklearn.metrics import classification_report
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ValidationError, Field
 from datetime import datetime, timedelta, timezone
 
 # Initialiser l'application FastAPI
@@ -16,8 +16,8 @@ app = FastAPI()
 security = HTTPBasic()
 
 # Configuration de la sécurité
-SECRET_KEY = "key"
-ALGORITHM = "HS256"
+JWT_SECRET_KEY = "key"
+JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Context de hachage des mots de passe
@@ -59,7 +59,7 @@ class User(BaseModel):
 #     password: str
 
 # Charger le modèle entraîné
-model_dir = "models"
+model_dir = "./models"
 model = joblib.load(f"{model_dir}/best_model_2023.joblib")
 
 # Exemple
@@ -105,7 +105,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return encoded_jwt
 
 # Endpoint pour vérifier l'API
@@ -137,7 +137,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
