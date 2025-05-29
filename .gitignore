@@ -4,7 +4,7 @@ env/
 __pycache__/
 
 config.json
-config.yaml
+#config.yaml
 config_perso.yaml
 
 data/raw/
@@ -31,4 +31,4 @@ models/
 
 tmp/
 airflow/logs/
-*.csv
+#*.csv
