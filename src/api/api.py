@@ -39,19 +39,19 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Modèles Pydantic pour les données
 class Feature(BaseModel):
-    catu: int
-    sexe: int
-    trajet: int
-    catr: int
-    circ: int
-    vosp: int
-    prof: int
-    plan: int
-    surf: int
-    situ: int
-    lum: int
-    atm: int
-    col: int
+    catu: int = Field(ge=1, le=3)
+    sexe: int = Field(ge=1, le=2)
+    trajet: int = Field(ge=0, le=9)
+    catr: int = Field(ge=1, le=9)
+    circ: int = Field(ge=1, le=4)
+    vosp: int = Field(ge=0, le=3)
+    prof: int = Field(ge=1, le=4)
+    plan: int = Field(ge=1, le=4)
+    surf: int = Field(ge=1, le=9)
+    situ: int = Field(ge=0, le=8)
+    lum: int = Field(ge=1, le=5)
+    atm: int = Field(ge=1, le=9)
+    col: int = Field(ge=1, le=7)
 
     class Config:
         extra = 'allow'
@@ -322,10 +322,13 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
 # Endpoint pour mettre à jour le modèle
 @app.get("/protected/reload")
 async def reload_model(current_user: User = Depends(get_current_user)):
-    model_use = find_best_model(config_path="../../config.yaml")
-    #joblib.dump(model, "best_model_2023.joblib")
-
-    return {"message": "Modèle rechargé avec succès"}
+    global model_use
+    model_up, model_version_up = find_best_model(config_path="../../config.yaml")
+    if model_version_up > model_version_use:
+        model_use = model_up
+        return {"message": "Modèle rechargé avec succès"}
+    else:
+        return {"message": "Pas de nouvelle modèle à charger"}
 
 # Lancer l'application avec Uvicorn
 if __name__ == "__main__":
