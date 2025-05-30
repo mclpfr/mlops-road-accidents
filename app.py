@@ -55,13 +55,13 @@ FEATURE_DEFINITIONS = {
         "option_labels": {1: "Conducteur", 2: "Passager", 3: "Piéton", 4: "Autre (roller, trottinette...)"},
         "default": 1, 
         "type": "selectbox", 
-        "help": "1: Conducteur, 2: Passager, 3: Piéton"
+        "help": "1: Conducteur, 2: Passager, 3: Piéton, 4: Autre (roller, trottinette...)"
     },
     "sexe": {
         "label": "Sexe", 
         "options": [1, 2], 
         "option_labels": {1: "Masculin", 2: "Féminin"},
-        "default": 1, 
+        "default": 2, 
         "type": "selectbox", 
         "help": "1: Masculin, 2: Féminin"
     },
@@ -69,7 +69,7 @@ FEATURE_DEFINITIONS = {
         "label": "Motif du déplacement", 
         "options": [0, 1, 2, 3, 4, 5, 9], 
         "option_labels": {0: "Non renseigné", 1: "Domicile-travail", 2: "Domicile-école", 3: "Courses/Achats", 4: "Utilisation professionnelle", 5: "Promenade/Loisirs", 9: "Autre"},
-        "default": 1, 
+        "default": 9, 
         "type": "selectbox", 
         "help": "0: Non renseigné, 1: Domicile-travail, 2: Domicile-école, 3: Courses, 4: Professionnel, 5: Loisirs, 9: Autre"
     },
@@ -79,7 +79,7 @@ FEATURE_DEFINITIONS = {
         "option_labels": {1: "Autoroute", 2: "Route nationale", 3: "Route Départementale", 4: "Voie Communale", 5: "Hors réseau public", 6: "Parc de stationnement ouvert à la circulation publique", 7: "Routes de métropole d'outre-mer", 9: "Autre"},
         "default": 3, 
         "type": "selectbox", 
-        "help": "e.g., 1: Autoroute, 3: Route Départementale"
+        "help": "1: Autoroute, 2: Route nationale, 3: Route Départementale, 4: Voie Communale, 5: Hors réseau public, 6: Parc de stationnement ouvert à la circulation publique, 7: Routes de métropole d'outre-mer, 9: Autre"
     },
     "circ": {
         "label": "Régime de circulation", 
@@ -87,15 +87,15 @@ FEATURE_DEFINITIONS = {
         "option_labels": {-1: "Non renseigné", 1: "A sens unique", 2: "Bidirectionnelle", 3: "A chaussées séparées", 4: "Avec voies d'affectation variable"},
         "default": 2, 
         "type": "selectbox", 
-        "help": "e.g., 1: A sens unique, 2: Bidirectionnelle"
+        "help": "-1: Non renseigné, 1: A sens unique, 2: Bidirectionnelle, 3: A chaussées séparées, 4: Avec voies d'affectation variable"
     },
     "vosp": {
         "label": "Voie réservée", 
         "options": [-1, 0, 1, 2, 3], 
-        "option_labels": {-1: "Non renseigné", 0: "Sans objet", 1: "Piste cyclable", 2: "Voie réservée véhicules lents", 3: "Voie réservée bus"},
-        "default": 0, 
+        "option_labels": {-1: "Non renseigné", 0: "Sans objet", 1: "Piste cyclable", 2: "Bande cyclable", 3: "Voie réservée"},
+        "default": 2, 
         "type": "selectbox", 
-        "help": "0: Sans objet, 1: Piste cyclable"
+        "help": "-1: Non renseigné, 0: Sans objet, 1: Piste cyclable, 2: Bande cyclable, 3: Voie réservée"
     },
     "prof": {
         "label": "Profil en long (pente)", 
@@ -103,7 +103,7 @@ FEATURE_DEFINITIONS = {
         "option_labels": {-1: "Non renseigné", 1: "Plat", 2: "Pente", 3: "Sommet de côte", 4: "Bas de côte"},
         "default": 1, 
         "type": "selectbox", 
-        "help": "1: Plat, 2: Pente"
+        "help": "-1: Non renseigné, 1: Plat, 2: Pente, 3: Sommet de côte, 4: Bas de côte"
     },
     "plan": {
         "label": "Tracé en plan (virage)", 
@@ -111,15 +111,15 @@ FEATURE_DEFINITIONS = {
         "option_labels": {-1: "Non renseigné", 1: "Partie rectiligne", 2: "En courbe à gauche", 3: "En courbe à droite", 4: 'En "S"'},
         "default": 1, 
         "type": "selectbox", 
-        "help": "1: Rectiligne, 2: Courbe à gauche"
+        "help": "-1: Non renseigné, 1: Partie rectiligne, 2: En courbe à gauche, 3: En courbe à droite, 4: En \"S\""
     },
     "surf": {
         "label": "État de la surface", 
         "options": [-1, 1, 2, 3, 4, 5, 6, 7, 8, 9], 
         "option_labels": {-1: "Non renseigné", 1: "Normale", 2: "Mouillée", 3: "Flaques", 4: "Inondée", 5: "Enneigée", 6: "Boue", 7: "Verglacée", 8: "Corps gras - huile", 9: "Autre"},
-        "default": 1, 
+        "default": 2, 
         "type": "selectbox", 
-        "help": "1: Normale, 2: Mouillée, 3: Verglacée"
+        "help": "-1: Non renseigné, 1: Normale, 2: Mouillée, 3: Flaques, 4: Inondée, 5: Enneigée, 6: Boue, 7: Verglacée, 8: Corps gras - huile, 9: Autre"
     },
     "situ": {
         "label": "Situation de l'accident", 
@@ -127,31 +127,31 @@ FEATURE_DEFINITIONS = {
         "option_labels": {-1: "Non renseigné", 0: "Aucun", 1: "Sur chaussée", 2: "Sur bande d'arrêt d'urgence", 3: "Sur accotement", 4: "Sur trottoir", 5: "Sur piste cyclable", 6: "Sur autre voie spéciale", 8: "Intersection"},
         "default": 1, 
         "type": "selectbox", 
-        "help": "1: Sur chaussée, 2: Sur bande d'arrêt d'urgence"
+        "help": "-1: Non renseigné, 0: Aucun, 1: Sur chaussée, 2: Sur bande d'arrêt d'urgence, 3: Sur accotement, 4: Sur trottoir, 5: Sur piste cyclable, 6: Sur autre voie spéciale, 8: Intersection"
     },
     "lum": {
         "label": "Conditions d'éclairage", 
         "options": [1, 2, 3, 4, 5], 
         "option_labels": {1: "Plein jour", 2: "Crépuscule ou aube", 3: "Nuit sans éclairage public", 4: "Nuit avec éclairage public non allumé", 5: "Nuit avec éclairage public allumé"},
-        "default": 1, 
+        "default": 5, 
         "type": "selectbox", 
-        "help": "1: Plein jour, 2: Crépuscule/aube, 3: Nuit sans éclairage public"
+        "help": "1: Plein jour, 2: Crépuscule ou aube, 3: Nuit sans éclairage public, 4: Nuit avec éclairage public non allumé, 5: Nuit avec éclairage public allumé"
     },
     "atm": {
         "label": "Conditions atmosphériques", 
         "options": [-1, 1, 2, 3, 4, 5, 6, 7, 8, 9], 
         "option_labels": {-1: "Non renseigné", 1: "Normale", 2: "Pluie légère", 3: "Pluie forte", 4: "Neige - grêle", 5: "Brouillard - fumée", 6: "Vent fort - tempête", 7: "Temps éblouissant", 8: "Temps couvert", 9: "Autre"},
-        "default": 1, 
+        "default": 3, 
         "type": "selectbox", 
-        "help": "1: Normale, 2: Pluie légère, 8: Brouillard"
+        "help": "-1: Non renseigné, 1: Normale, 2: Pluie légère, 3: Pluie forte, 4: Neige - grêle, 5: Brouillard - fumée, 6: Vent fort - tempête, 7: Temps éblouissant, 8: Temps couvert, 9: Autre"
     },
     "col": {
         "label": "Type de collision", 
         "options": [-1, 1, 2, 3, 4, 5, 6, 7], 
         "option_labels": {-1: "Non renseigné", 1: "Deux véhicules - frontale", 2: "Deux véhicules - par l'arrière", 3: "Deux véhicules - par le coté", 4: "Trois véhicules et plus - en chaîne", 5: "Trois véhicules et plus - collisions multiples", 6: "Autre collision", 7: "Sans collision"},
-        "default": 1, 
+        "default": 6, 
         "type": "selectbox", 
-        "help": "1: Deux véhicules - frontale, 2: Deux véhicules - par l'arrière"
+        "help": "-1: Non renseigné, 1: Deux véhicules - frontale, 2: Deux véhicules - par l'arrière, 3: Deux véhicules - par le coté, 4: Trois véhicules et plus - en chaîne, 5: Trois véhicules et plus - collisions multiples, 6: Autre collision, 7: Sans collision"
     }
 }
 GRAV_MAPPING = {1: "Indemne", 2: "Tué", 3: "Blessé hospitalisé", 4: "Blessé léger"} 
