@@ -1,5 +1,5 @@
 outs:
-- md5: 52b2db48f3f7dac95b3d391dd9cb3148
-  size: 221488297
+- md5: 890a921a985d3de738429fa3dc6c9a96
+  size: 215282377
   hash: md5
   path: best_model_2023.joblib
