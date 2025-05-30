@@ -2,9 +2,11 @@ import streamlit as st
 import pandas as pd
 import requests
 import psycopg2
+from sqlalchemy import create_engine
 import os
 import time
 import json # For sending data to API
+import plotly.express as px
 
 # --- Configuration ---
 # These should ideally be configurable, e.g., via environment variables or a config section in Streamlit
@@ -163,6 +165,21 @@ MODEL_PREDICTION_LABEL_MAPPING = {
     1: "Grave"       # Sortie du modèle pour un accident grave
 }
 
+def fetch_accidents_data():
+    """Fetches all data from the 'accidents' table using SQLAlchemy."""
+    try:
+        # Construct the database URL for SQLAlchemy: postgresql://user:password@host:port/dbname
+        db_url = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+        engine = create_engine(db_url)
+        query = "SELECT * FROM accidents;"
+        # Pandas read_sql_query with an SQLAlchemy engine handles connection management
+        df = pd.read_sql_query(query, engine)
+        return df
+    except Exception as error: # Catch a broader exception for SQLAlchemy related issues
+        st.error(f"Erreur lors de la récupération des données des accidents avec SQLAlchemy : {error}")
+        return pd.DataFrame()
+
+
 def fetch_best_model_metrics():
     conn = None
     try:
@@ -246,7 +263,7 @@ def predict_live(feature_inputs):
         return None
 
 st.set_page_config(page_title="Démo MLOps Accidents", layout="wide")
-st.title("🚗 Démo MLOps - Analyse des Accidents de la Route")
+st.title("Démo MLOps - Analyse des Accidents de la Route 2023")
 st.markdown("Bienvenue sur l'application de démonstration du projet MLOps.")
 
 # --- Authentication UI ---
@@ -266,20 +283,25 @@ else:
 
 # Le reste de l'application ne s'affiche que si l'utilisateur est connecté
 if st.session_state.token:
-    st.header("📊 Statut du Pipeline")
-    cols_pipeline = st.columns(len(MARKER_FILES))
-    for idx, (step_name, marker_file) in enumerate(MARKER_FILES.items()):
-        with cols_pipeline[idx]:
-            st.subheader(step_name)
-            status = check_pipeline_step_status(marker_file)
-            st.write(status)
-            if status == "✅ Terminé" and os.path.exists(marker_file):
-                try:
-                    timestamp = os.path.getmtime(marker_file)
-                    st.caption(f"Terminé le: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(timestamp))}")
-                except Exception: st.caption("Timestamp indisponible")
+    st.header("Liste des Accidents")
+    accidents_df = fetch_accidents_data()
+    if not accidents_df.empty:
+        st.dataframe(accidents_df)
 
-    st.header("🏆 Performance du Meilleur Modèle")
+        # Ajouter un diagramme circulaire pour la gravité des accidents
+        if 'grav' in accidents_df.columns:
+            gravity_counts = accidents_df['grav'].value_counts().reset_index()
+            gravity_counts.columns = ['grav', 'count']
+            fig = px.pie(gravity_counts, values='count', names='grav', 
+                         title='Répartition des Accidents par Gravité',
+                         color_discrete_sequence=px.colors.sequential.RdBu)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("La colonne 'grav' est introuvable pour générer le graphique de gravité.")
+    else:
+        st.warning("Aucune donnée d'accident trouvée ou erreur lors du chargement.")
+
+    st.header("Performance du Meilleur Modèle")
     metrics = fetch_best_model_metrics()
     if metrics:
         st.markdown("Métriques du modèle 'best_model' (depuis PostgreSQL via MLflow):")
@@ -330,7 +352,7 @@ if st.session_state.token:
     else:
         st.warning("Aucune métrique de modèle récupérée.")
 
-    st.header("🔮 Prédictions en Direct")
+    st.header("Prédictions en Direct")
     with st.form("prediction_form"):
         st.subheader("Caractéristiques de l'accident:")
         input_features = {}
@@ -379,15 +401,7 @@ if st.session_state.token:
                 st.caption("Réponse brute API:"); st.json(prediction_result)
 
     st.sidebar.header("À Propos")
-    st.sidebar.info("Application Streamlit pour le projet MLOps Accidents. Générée par Cascade.")
-    st.sidebar.header("Configuration (Variables d'Env.)")
-    st.sidebar.markdown(f"""
-    - `DB_HOST`: `{DB_HOST}`
-    - `DB_PORT`: `{DB_PORT}`
-    - `DB_NAME`: `{DB_NAME}`
-    - `DB_USER`: `{DB_USER}`
-    - `API_ENDPOINT_PREDICT`: `{API_ENDPOINT_PREDICT}`
-    - `API_ENDPOINT_TOKEN`: `{API_ENDPOINT_TOKEN}`
-    """)
+    st.sidebar.info("Application Streamlit pour le projet MLOps Accidents 2023 de fin de formation DataScientest.")
+
 else: # Message si non connecté
     st.info("Veuillez vous connecter pour accéder au contenu de l'application.")

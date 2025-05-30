@@ -54,7 +54,7 @@ def import_accidents_data(engine, data_path):
 
         # Required columns for accident data
         columns_needed = [
-            'Num_Acc', 'jour', 'mois', 'an', 'hrmn', 'lum', 'dep', 'com', 'agg', 'int', 'atm', 'col', 'adr', 'lat', 'long'
+            'Num_Acc', 'jour', 'mois', 'an', 'hrmn', 'lum', 'dep', 'com', 'agg', 'int', 'atm', 'col', 'adr', 'lat', 'long', 'grav'
         ]
 
         # Filter only available columns

@@ -22,7 +22,8 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         col INT,
         adr VARCHAR(255),
         lat DOUBLE PRECISION,
-        long DOUBLE PRECISION
+        long DOUBLE PRECISION,
+        grav TEXT
     );
     
     -- Table for best model metrics
