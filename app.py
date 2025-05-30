@@ -8,8 +8,6 @@ import time
 import json # For sending data to API
 import plotly.express as px
 
-# --- Configuration ---
-# These should ideally be configurable, e.g., via environment variables or a config section in Streamlit
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5432")
 DB_NAME = os.getenv("DB_NAME", "road_accidents")
@@ -18,13 +16,11 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "postgres")
 API_ENDPOINT_PREDICT = os.getenv("API_ENDPOINT_PREDICT", "http://localhost:8000/protected/predict")
 API_ENDPOINT_TOKEN = os.getenv("API_ENDPOINT_TOKEN", "http://localhost:8000/token")
 
-# --- Session State Initialization ---
 if 'token' not in st.session_state:
     st.session_state.token = None
 if 'username' not in st.session_state:
     st.session_state.username = None
 
-# --- Helper Functions ---
 def check_pipeline_step_status(marker_file_path):
     """Checks if a marker file exists, indicating a pipeline step is complete."""
     if os.path.exists(marker_file_path):
@@ -50,7 +46,6 @@ MARKER_FILES = {
     "Synthétisation des données": f"data/interim/accidents_{YEAR}_synthet.done",
     "Préparation des données": "data/processed/prepared_data.done",
     "Entraînement du modèle": "models/train_model.done",
-    # "Importation des données/métriques": "import_data.done" # Add if import_data.py creates its own marker
 }
 
 FEATURE_DEFINITIONS = {
@@ -159,23 +154,21 @@ FEATURE_DEFINITIONS = {
         "help": "1: Deux véhicules - frontale, 2: Deux véhicules - par l'arrière"
     }
 }
-GRAV_MAPPING = {1: "Indemne", 2: "Blessé léger", 3: "Blessé hospitalisé", 4: "Tué"}
+GRAV_MAPPING = {1: "Indemne", 2: "Tué", 3: "Blessé hospitalisé", 4: "Blessé léger"} 
 MODEL_PREDICTION_LABEL_MAPPING = {
-    0: "Pas Grave",  # Sortie du modèle pour un accident non grave
-    1: "Grave"       # Sortie du modèle pour un accident grave
+    0: "Pas Grave",  
+    1: "Grave"      
 }
 
 def fetch_accidents_data():
     """Fetches all data from the 'accidents' table using SQLAlchemy."""
     try:
-        # Construct the database URL for SQLAlchemy: postgresql://user:password@host:port/dbname
         db_url = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
         engine = create_engine(db_url)
         query = "SELECT * FROM accidents;"
-        # Pandas read_sql_query with an SQLAlchemy engine handles connection management
         df = pd.read_sql_query(query, engine)
         return df
-    except Exception as error: # Catch a broader exception for SQLAlchemy related issues
+    except Exception as error: 
         st.error(f"Erreur lors de la récupération des données des accidents avec SQLAlchemy : {error}")
         return pd.DataFrame()
 
@@ -185,7 +178,6 @@ def fetch_best_model_metrics():
     try:
         conn = psycopg2.connect(host=DB_HOST, port=DB_PORT, dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD)
         cur = conn.cursor()
-        # Select individual metric columns and order by run_date
         cur.execute("""
             SELECT 
                 run_id, run_date, model_name, accuracy, 
@@ -198,7 +190,6 @@ def fetch_best_model_metrics():
         if row:
             colnames = [desc[0] for desc in cur.description]
             metrics_dict = dict(zip(colnames, row))
-            # Convert run_date to string if it's a datetime object, as JSON would have done
             if 'run_date' in metrics_dict and hasattr(metrics_dict['run_date'], 'isoformat'):
                 metrics_dict['run_date'] = metrics_dict['run_date'].isoformat()
             return metrics_dict
@@ -245,7 +236,6 @@ def predict_live(feature_inputs):
     payload = {
         "features": [feature_inputs] # L'API attend une liste de dictionnaires de features
     }
-    # Convertir le payload en DataFrame puis en CSV
     df_payload = pd.DataFrame(feature_inputs, index=[0]) # Crée un DataFrame avec une seule ligne
     csv_payload = df_payload.to_csv(index=False)
 
@@ -253,7 +243,7 @@ def predict_live(feature_inputs):
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
     try:
         response = requests.post(API_ENDPOINT_PREDICT, files=files, headers=headers, timeout=10) # timeout de 10s
-        response.raise_for_status()  # Lève une exception pour les codes d'erreur HTTP
+        response.raise_for_status() 
         return response.json()
     except requests.exceptions.RequestException as e:
         st.error(f"Erreur API de prédiction : {e}")
@@ -266,7 +256,6 @@ st.set_page_config(page_title="Démo MLOps Accidents", layout="wide")
 st.title("Démo MLOps - Analyse des Accidents de la Route 2023")
 st.markdown("Bienvenue sur l'application de démonstration du projet MLOps.")
 
-# --- Authentication UI ---
 if st.session_state.token is None:
     st.sidebar.subheader("Connexion")
     with st.sidebar.form("login_form"):
@@ -279,25 +268,70 @@ else:
     st.sidebar.subheader(f"Connecté en tant que: {st.session_state.username}")
     if st.sidebar.button("Se déconnecter"):
         logout_user()
-        st.rerun() # Remplacer experimental_rerun par rerun
+        st.rerun() 
 
-# Le reste de l'application ne s'affiche que si l'utilisateur est connecté
 if st.session_state.token:
     st.header("Liste des Accidents")
     accidents_df = fetch_accidents_data()
     if not accidents_df.empty:
+        st.metric(label="Nombre total d'accidents enregistrés", value=len(accidents_df))
         st.dataframe(accidents_df)
 
-        # Ajouter un diagramme circulaire pour la gravité des accidents
         if 'grav' in accidents_df.columns:
-            gravity_counts = accidents_df['grav'].value_counts().reset_index()
-            gravity_counts.columns = ['grav', 'count']
-            fig = px.pie(gravity_counts, values='count', names='grav', 
-                         title='Répartition des Accidents par Gravité',
-                         color_discrete_sequence=px.colors.sequential.RdBu)
-            st.plotly_chart(fig, use_container_width=True)
+            accidents_df_copy_grav = accidents_df.copy() # Créer une copie pour éviter SettingWithCopyWarning
+
+            def map_gravity_to_api_format(grav_value):
+                if grav_value in [1, 2]: # Indemne (1), Tué (2)
+                    return 0 # Pas Grave
+                elif grav_value in [3, 4]: # Blessé hospitalisé (3), Blessé léger (4)
+                    return 1 # Grave
+                return None # Pour les valeurs inattendues
+
+            accidents_df_copy_grav['grav_api'] = accidents_df_copy_grav['grav'].apply(map_gravity_to_api_format)
+            accidents_df_copy_grav.dropna(subset=['grav_api'], inplace=True)
+            accidents_df_copy_grav['grav_api'] = accidents_df_copy_grav['grav_api'].astype(int)
+
+            gravity_api_counts = accidents_df_copy_grav['grav_api'].value_counts().reset_index()
+            gravity_api_counts.columns = ['grav_api_code', 'count']
+            
+            gravity_api_counts['label'] = gravity_api_counts['grav_api_code'].map(MODEL_PREDICTION_LABEL_MAPPING)
+            
+            fig_grav_api = px.pie(gravity_api_counts, values='count', names='label', color='label',
+                                  title='Répartition des Accidents par Gravité (Regroupée)',
+                                  color_discrete_map={'Pas Grave': '#2ca02c', 'Grave': '#d62728'}) # Vert pour Pas Grave, Rouge pour Grave
+            st.plotly_chart(fig_grav_api, use_container_width=True)
         else:
             st.warning("La colonne 'grav' est introuvable pour générer le graphique de gravité.")
+
+        if 'dep' in accidents_df.columns:
+            accidents_df_copy = accidents_df.copy()
+            accidents_df_copy['dep_str'] = accidents_df_copy['dep'].astype(str)
+            
+            def filter_metropolitan_deps(dep_code_str):
+                if dep_code_str in ['2A', '2B']:
+                    return True
+                try:
+                    return int(dep_code_str) <= 96
+                except ValueError:
+                    return False
+
+            is_metropolitan = accidents_df_copy['dep_str'].apply(filter_metropolitan_deps)
+            accidents_df_filtered = accidents_df_copy[is_metropolitan]
+            
+            if not accidents_df_filtered.empty:
+                department_counts = accidents_df_filtered['dep_str'].value_counts().reset_index()
+                department_counts.columns = ['dep', 'count'] # Renommer les colonnes pour Plotly
+                
+                fig_dep = px.bar(department_counts, x='dep', y='count',\
+                                 title="Nombre d'Accidents par Département (Métropole et Corse)",\
+                                 labels={'dep': 'Département', 'count': "Nombre d'accidents"},\
+                                 text_auto=True) # Afficher les valeurs sur les barres
+                fig_dep.update_xaxes(categoryorder='total descending') 
+                st.plotly_chart(fig_dep, use_container_width=True)
+            else:
+                st.info("Aucun accident trouvé pour les départements métropolitains et la Corse (codes <= 96, ou 2A/2B).")
+        else:
+            st.warning("La colonne 'dep' est introuvable pour générer l'histogramme par département.")
     else:
         st.warning("Aucune donnée d'accident trouvée ou erreur lors du chargement.")
 
@@ -329,10 +363,8 @@ if st.session_state.token:
 
             if metrics_for_table:
                 try:
-                    # Convertir toutes les valeurs en chaînes de caractères pour la colonne 'Valeur'
                     items_for_df = [(str(k), str(v)) for k, v in metrics_for_table.items()]
                     metrics_df = pd.DataFrame(items_for_df, columns=['Métrique', 'Valeur'])
-                    # Forcer les types de colonnes pour compatibilité Arrow
                     if not metrics_df.empty:
                         metrics_df['Métrique'] = metrics_df['Métrique'].astype(str)
                         metrics_df['Valeur'] = metrics_df['Valeur'].astype(str)
@@ -346,7 +378,6 @@ if st.session_state.token:
                 st.caption("Métriques complexes supplémentaires (non affichables dans le tableau simple) :")
                 st.json(remaining_complex_metrics)
         
-            # Si 'metrics' était vrai mais après filtrage tout est vide (très improbable)
             if not metrics_for_table and not remaining_complex_metrics:
                 st.write("Aucune métrique brute à afficher en tableau (après filtrage).")
     else:
@@ -359,7 +390,6 @@ if st.session_state.token:
         cols_features = st.columns(3)
         for i, (feature_name, feature_info) in enumerate(FEATURE_DEFINITIONS.items()):
             with cols_features[i % 3]:
-                # Fonction pour formater l'affichage des options dans le selectbox
                 def format_options(option_value):
                     if "option_labels" in feature_info and option_value in feature_info["option_labels"]:
                         return feature_info["option_labels"][option_value]
@@ -369,7 +399,7 @@ if st.session_state.token:
                     label=feature_info["label"],
                     options=feature_info["options"],
                     index=feature_info["options"].index(feature_info["default"]) if feature_info["default"] in feature_info["options"] else 0,
-                    format_func=format_options, # Utilisation de la fonction de formatage
+                    format_func=format_options,
                     help=feature_info.get("help", "")
                 )
         submitted = st.form_submit_button("Prédire la Gravité")
@@ -378,20 +408,17 @@ if st.session_state.token:
         prediction_result = predict_live(input_features)
         if prediction_result:
             st.subheader("Résultat de la Prédiction:")
-            # L'API retourne maintenant une liste de prédictions sous la clé "predictions"
             pred_list = prediction_result.get("predictions") 
 
             if pred_list is not None and isinstance(pred_list, list) and len(pred_list) > 0:
-                pred_val = pred_list[0] # Prendre la première prédiction de la liste
+                pred_val = pred_list[0] 
                 try:
-                    pred_int = int(pred_val) # Devrait être 0 ou 1
+                    pred_int = int(pred_val) 
                     pred_label = MODEL_PREDICTION_LABEL_MAPPING.get(pred_int, "Prédiction Inconnue")
                     
-                    # Adapter la couleur en fonction de la prédiction du modèle
-                    # Par exemple: rouge pour 'Grave', vert pour 'Pas Grave'
                     color_map_model = {
-                        0: "success", # Pas Grave
-                        1: "error"    # Grave
+                        0: "success", 
+                        1: "error"    
                     }
                     getattr(st, color_map_model.get(pred_int, "info"))(f"Prédiction du modèle: **{pred_label}** (Code: {pred_int})")
                 except ValueError: st.error(f"Prédiction reçue ({pred_val}) non valide.")
@@ -403,5 +430,5 @@ if st.session_state.token:
     st.sidebar.header("À Propos")
     st.sidebar.info("Application Streamlit pour le projet MLOps Accidents 2023 de fin de formation DataScientest.")
 
-else: # Message si non connecté
+else: 
     st.info("Veuillez vous connecter pour accéder au contenu de l'application.")
