@@ -188,7 +188,6 @@ services:
       - "8000:8000"
     depends_on:
       - train_model
-      - save_best_model
 
   grafana:
     image: grafana/grafana:latest

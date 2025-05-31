@@ -1,5 +1,5 @@
 # Utiliser une image de base officielle de Python
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 # Définir le répertoire de travail dans le conteneur
 WORKDIR /app
@@ -18,6 +18,11 @@ ENV PYTHONMEM=256m
 
 # Installer les dépendances Python
 RUN pip install --no-cache-dir -r requirements.txt
+
+RUN mkdir -p /app/data /app/data/out
+
+# Copier le fichier de configuration
+COPY config.yaml .
 
 # Copier le reste de l'application
 COPY src/api/api.py .
