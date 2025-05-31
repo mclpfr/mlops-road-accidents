@@ -1,5 +1,4 @@
 import os
-import pytest
 
 def test_check_accidents_csv():
     filename = 'data/raw/accidents_2023.csv'
