@@ -4,7 +4,6 @@ import yaml
 # import json
 import pandas as pd
 # import joblib
-import uvicorn
 import warnings
 import logging
 import mlflow
@@ -138,7 +137,7 @@ def load_config(config_path="config.yaml"):
         return config
 
 # Télécharger le meilleur modèle localement
-def find_best_model(config_path="../../config.yaml"):
+def find_best_model(config_path="config.yaml"):
     try:
         # Load configuration parameters
         config = load_config(config_path)
@@ -227,7 +226,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return encoded_jwt
 
 # Chargement du modèle
-model_use, model_version_use = find_best_model(config_path="../../config.yaml")
+model_use, model_version_use = find_best_model(config_path="config.yaml")
 # model_use = find_best_model(config_path="../../config.yaml")
 
 # Endpoint pour vérifier l'API
@@ -358,11 +357,11 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
 
         # Sortie des résultats
         df_ypred = pd.DataFrame(y_pred)
-        df_ypred.to_csv("../../data/out/y_pred.csv", index=False)
+        df_ypred.to_csv("data/out/y_pred.csv", index=False)
 
         report = classification_report(y, y_pred, output_dict=True)
         df_report = pd.DataFrame(report).transpose()
-        df_report.to_csv("../../data/out/classification_report.csv")
+        df_report.to_csv("data/out/classification_report.csv")
 
         return {"user": current_user, "message": f"Prédiction effectuée avec succès avec le modèle version {model_version_use}"}
 
@@ -379,7 +378,7 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
 @app.get("/protected/reload")
 async def reload_model(current_user: User = Depends(get_current_user)):
     global model_use
-    model_up, model_version_up = find_best_model(config_path="../../config.yaml")
+    model_up, model_version_up = find_best_model(config_path="config.yaml")
     if model_version_up > model_version_use:
         model_use = model_up
         return {"message": "Mise à jour d'un nouveau modèle effectué."}
@@ -388,4 +387,5 @@ async def reload_model(current_user: User = Depends(get_current_user)):
 
 # Lancer l'application avec Uvicorn
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
