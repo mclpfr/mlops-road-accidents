@@ -1,9 +1,10 @@
+""" API """
+
 import os
 import io
 import yaml
 # import json
 import pandas as pd
-# import joblib
 import warnings
 import logging
 import mlflow
@@ -72,9 +73,6 @@ class InputData(BaseModel):
     atm: int = 1
     col: int = 1
 
-    # class Config:
-    #     extra = 'allow'
-
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -82,14 +80,6 @@ class Token(BaseModel):
 class User(BaseModel):
     username: str
     hashed_password: str
-
-# class UserCreate(BaseModel):
-#     username: str
-#     password: str
-
-# Charger le modèle entraîné
-#model_dir = "../../models"
-#model = joblib.load(f"{model_dir}/best_model_2023.joblib")
 
 # Exemple
 fake_users_db = {
@@ -227,7 +217,6 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 
 # Chargement du modèle
 model_use, model_version_use = find_best_model(config_path="config.yaml")
-# model_use = find_best_model(config_path="../../config.yaml")
 
 # Endpoint pour vérifier l'API
 @app.get("/")
@@ -276,7 +265,7 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
 
 # Endpoint pour faire des prédictions
 @app.post("/protected/predict")
-async def predict(data: InputData, current_user: User = Depends(get_current_user)) -> dict:
+async def predict(data: InputData, current_user: User = Depends(get_current_user)):
     try:
         # Données en entrée
         df = pd.DataFrame([data.model_dump()])
@@ -307,7 +296,7 @@ async def predict(data: InputData, current_user: User = Depends(get_current_user
         y_pred = model_use.predict(X)
 
         # Sortie des résultats
-        return {"prediction": y_pred.tolist()}
+        return {"user": current_user, "prediction": y_pred.tolist()}
 
     except ValidationError as e:
         # Retourner une erreur si la validation échoue
@@ -381,9 +370,9 @@ async def reload_model(current_user: User = Depends(get_current_user)):
     model_up, model_version_up = find_best_model(config_path="config.yaml")
     if model_version_up > model_version_use:
         model_use = model_up
-        return {"message": "Mise à jour d'un nouveau modèle effectué."}
+        return {"user": current_user, "message": "Mise à jour d'un nouveau modèle effectué."}
     else:
-        return {"message": "Il n'y a pas de mise à jour d'un nouveau modèle."}
+        return {"user": current_user, "message": "Il n'y a pas de mise à jour d'un nouveau modèle."}
 
 # Lancer l'application avec Uvicorn
 if __name__ == "__main__":
