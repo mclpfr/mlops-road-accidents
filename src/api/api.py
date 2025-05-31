@@ -1,9 +1,9 @@
 import os
 import io
 import yaml
-import json
+# import json
 import pandas as pd
-import joblib
+# import joblib
 import uvicorn
 import warnings
 import logging
@@ -39,6 +39,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Modèles Pydantic pour les données
 class Feature(BaseModel):
+    grav: int = Field(ge=1, le=4)
     catu: int = Field(ge=1, le=3)
     sexe: int = Field(ge=1, le=2)
     trajet: int = Field(ge=0, le=9)
@@ -55,6 +56,25 @@ class Feature(BaseModel):
 
     class Config:
         extra = 'allow'
+
+class InputData(BaseModel):
+    grav: int = 1
+    catu: int = 1
+    sexe: int = 1
+    trajet: int = 1
+    catr: int = 1
+    circ: int = 1
+    vosp: int = 1
+    prof: int = 1
+    plan: int = 1
+    surf: int = 1
+    situ: int = 1
+    lum: int = 1
+    atm: int = 1
+    col: int = 1
+
+    # class Config:
+    #     extra = 'allow'
 
 class Token(BaseModel):
     access_token: str
@@ -251,26 +271,18 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 # Endpoint sécurisé
-@app.get("/users/me", response_model=User)
+@app.get("/protected/me", response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
 # Endpoint pour faire des prédictions
 @app.post("/protected/predict")
-async def predict_csv(file_request: UploadFile = File(), current_user: User = Depends(get_current_user)):
+async def predict(data: InputData, current_user: User = Depends(get_current_user)) -> dict:
     try:
-        # Lire le fichier CSV avec pandas
-        contents = await file_request.read()
-        df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+        # Données en entrée
+        df = pd.DataFrame([data.model_dump()])
 
-        records = df.to_dict(orient='records')
-
-        # Valider chaque enregistrement avec le modèle Pydantic
-        features = [Feature(**record) for record in records]
-        if not features:
-            raise ValueError("None of the selected features are available in the dataset.")
-
-        # Select model features
+        # Sélection model features
         model_features = [
             "catu",
             "sexe",
@@ -288,12 +300,60 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
             ]
         target = "grav"
 
-        # Prepare features (X) and target (y)
+        # Préparation features (X) et target (y)
+        X = pd.get_dummies(df[model_features])
+        y = df[target].apply(lambda x: 0 if x in [3, 4] else 1)  # 0: grave, 1: not grave
+
+        # Prédictions avec le modèle
+        y_pred = model_use.predict(X)
+
+        # Sortie des résultats
+        return {"prediction": y_pred.tolist()}
+
+    except ValidationError as e:
+        # Retourner une erreur si la validation échoue
+        raise HTTPException(status_code=422, detail=e.errors()) from e
+    except Exception as e:
+        # Gérer d'autres exceptions possibles
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+@app.post("/protected/predict_csv")
+async def predict_csv(file_request: UploadFile = File(), current_user: User = Depends(get_current_user)):
+    try:
+        # Lire le fichier CSV avec pandas
+        contents = await file_request.read()
+        df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+
+        records = df.to_dict(orient='records')
+
+        # Validation de chaque enregistrement avec le modèle Pydantic
+        features = [Feature(**record) for record in records]
+        if not features:
+            raise ValueError("None of the selected features are available in the dataset.")
+
+        # Sélection model features
+        model_features = [
+            "catu",
+            "sexe",
+            "trajet",
+            "catr",
+            "circ",
+            "vosp",
+            "prof",
+            "plan",
+            "surf",
+            "situ",
+            "lum",
+            "atm",
+            "col"
+            ]
+        target = "grav"
+
+        # Préparation features (X) et target (y)
         X = pd.get_dummies(df[model_features], drop_first=True)
         y = df[target].apply(lambda x: 0 if x in [3, 4] else 1)  # 0: grave, 1: not grave
 
-        # Faire les prédictions avec le modèle
-        #find_best_model(config_path="config.yaml")
+        # Prédictions avec le modèle
         y_pred = model_use.predict(X)
 
         # Sortie des résultats
@@ -304,11 +364,7 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
         df_report = pd.DataFrame(report).transpose()
         df_report.to_csv("../../data/out/classification_report.csv")
 
-        return {"user": current_user, "message": "Prédiction effectuée avec succès avec le modèle version {model_version_use}"}
-
-        # Classification report
-        #return JSONResponse({"classification report": classification_report(y, y_pred)})
-        #return {"classification report": classification_report(y, y_pred, output_dict=True)}
+        return {"user": current_user, "message": f"Prédiction effectuée avec succès avec le modèle version {model_version_use}"}
 
     except ImportError as e:
         return JSONResponse({'error': str(e)}, status_code=500)
@@ -326,9 +382,9 @@ async def reload_model(current_user: User = Depends(get_current_user)):
     model_up, model_version_up = find_best_model(config_path="../../config.yaml")
     if model_version_up > model_version_use:
         model_use = model_up
-        return {"message": "Modèle rechargé avec succès"}
+        return {"message": "Mise à jour d'un nouveau modèle effectué."}
     else:
-        return {"message": "Pas de nouvelle modèle à charger"}
+        return {"message": "Il n'y a pas de mise à jour d'un nouveau modèle."}
 
 # Lancer l'application avec Uvicorn
 if __name__ == "__main__":
