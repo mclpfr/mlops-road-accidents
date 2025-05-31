@@ -64,14 +64,12 @@ python src/train_model/train_model.py
 
 ### Lancement API
 ```bash
-cd src/api
-uvicorn api:app --reload
+python src/api/api.py
 ```
 
 ### Lancement de tests unitaires
 ```bash
-cd tests
-pytest tests.py
+pytest tests/
 ```
 
 ## Docker Compose
