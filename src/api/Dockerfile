@@ -19,6 +19,11 @@ ENV PYTHONMEM=256m
 # Installer les dépendances Python
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN mkdir -p /app/data /app/data/out
+
+# Copier le fichier de configuration
+COPY config.yaml .
+
 # Copier le reste de l'application
 COPY src/api/api.py .
 
