@@ -42,36 +42,36 @@ class Feature(BaseModel):
     grav: int = Field(ge=1, le=4)
     catu: int = Field(ge=1, le=3)
     sexe: int = Field(ge=1, le=2)
-    trajet: int = Field(ge=0, le=9)
-    catr: int = Field(ge=1, le=9)
-    circ: int = Field(ge=1, le=4)
-    vosp: int = Field(ge=0, le=3)
-    prof: int = Field(ge=1, le=4)
-    plan: int = Field(ge=1, le=4)
-    surf: int = Field(ge=1, le=9)
-    situ: int = Field(ge=0, le=8)
+    trajet: list[int] = Field([-1, 0, 1, 2, 3, 4, 5, 9])
+    catr: list[int] = Field([1, 2, 3, 4, 5, 6, 7, 9])
+    circ: list[int] = Field([-1, 1, 2, 3, 4])
+    vosp: int = Field(ge=-1, le=3)
+    prof: list[int] = Field([-1, 1, 2, 3, 4])
+    plan: list[int] = Field([-1, 1, 2, 3, 4])
+    surf: list[int] = Field([-1, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    situ: list[int] = Field([-1, 0, 1, 2, 3, 4, 5, 6, 8])
     lum: int = Field(ge=1, le=5)
-    atm: int = Field(ge=1, le=9)
-    col: int = Field(ge=1, le=7)
+    atm: list[int] = Field([-1, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    col: list[int] = Field([-1, 1, 2, 3, 4, 5, 6, 7])
 
     class Config:
         extra = 'allow'
 
 class InputData(BaseModel):
-    grav: int = 1
-    catu: int = 1
-    sexe: int = 1
-    trajet: int = 1
-    catr: int = 1
-    circ: int = 1
-    vosp: int = 1
-    prof: int = 1
-    plan: int = 1
-    surf: int = 1
-    situ: int = 1
-    lum: int = 1
-    atm: int = 1
-    col: int = 1
+    grav: int = Field(ge=1, le=4, default=1)
+    catu: int = Field(ge=1, le=3, default=1)
+    sexe: int = Field(ge=1, le=2, default=1)
+    trajet: list[int] = Field([-1, 0, 1, 2, 3, 4, 5, 9], default=1)
+    catr: list[int] = Field([1, 2, 3, 4, 5, 6, 7, 9], default=1)
+    circ: list[int] = Field([-1, 1, 2, 3, 4], default=1)
+    vosp: int = Field(ge=-1, le=3, default=1)
+    prof: list[int] = Field([-1, 1, 2, 3, 4], default=1)
+    plan: list[int] = Field([-1, 1, 2, 3, 4], default=1)
+    surf: list[int] = Field([-1, 1, 2, 3, 4, 5, 6, 7, 8, 9], default=1)
+    situ: list[int] = Field([-1, 0, 1, 2, 3, 4, 5, 6, 8], default=1)
+    lum: int = Field(ge=1, le=5, default=1)
+    atm: list[int] = Field([-1, 1, 2, 3, 4, 5, 6, 7, 8, 9], default=1)
+    col: list[int] = Field([-1, 1, 2, 3, 4, 5, 6, 7], default=1)
 
 class Token(BaseModel):
     access_token: str
