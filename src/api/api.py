@@ -2,11 +2,13 @@
 
 import os
 import io
+import warnings
+import logging
+from datetime import datetime, timedelta, timezone
+from typing import Literal
 import yaml
 # import json
 import pandas as pd
-import warnings
-import logging
 import mlflow
 import mlflow.sklearn
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, status
@@ -17,7 +19,6 @@ from passlib.context import CryptContext
 from sklearn.metrics import classification_report
 from sklearn.exceptions import UndefinedMetricWarning
 from pydantic import BaseModel, ValidationError, Field
-from datetime import datetime, timedelta, timezone
 
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
@@ -42,17 +43,17 @@ class Feature(BaseModel):
     grav: int = Field(ge=1, le=4)
     catu: int = Field(ge=1, le=3)
     sexe: int = Field(ge=1, le=2)
-    trajet: list[int] = Field([-1, 0, 1, 2, 3, 4, 5, 9])
-    catr: list[int] = Field([1, 2, 3, 4, 5, 6, 7, 9])
-    circ: list[int] = Field([-1, 1, 2, 3, 4])
+    trajet: Literal[-1, 0, 1, 2, 3, 4, 5, 9]
+    catr: Literal[1, 2, 3, 4, 5, 6, 7, 9]
+    circ: Literal[-1, 1, 2, 3, 4]
     vosp: int = Field(ge=-1, le=3)
-    prof: list[int] = Field([-1, 1, 2, 3, 4])
-    plan: list[int] = Field([-1, 1, 2, 3, 4])
-    surf: list[int] = Field([-1, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-    situ: list[int] = Field([-1, 0, 1, 2, 3, 4, 5, 6, 8])
+    prof: Literal[-1, 1, 2, 3, 4]
+    plan: Literal[-1, 1, 2, 3, 4]
+    surf: Literal[-1, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    situ: Literal[-1, 0, 1, 2, 3, 4, 5, 6, 8]
     lum: int = Field(ge=1, le=5)
-    atm: list[int] = Field([-1, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-    col: list[int] = Field([-1, 1, 2, 3, 4, 5, 6, 7])
+    atm: Literal[-1, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    col: Literal[-1, 1, 2, 3, 4, 5, 6, 7]
 
     class Config:
         extra = 'allow'
@@ -61,17 +62,17 @@ class InputData(BaseModel):
     grav: int = Field(ge=1, le=4, default=1)
     catu: int = Field(ge=1, le=3, default=1)
     sexe: int = Field(ge=1, le=2, default=1)
-    trajet: list[int] = Field([-1, 0, 1, 2, 3, 4, 5, 9], default=1)
-    catr: list[int] = Field([1, 2, 3, 4, 5, 6, 7, 9], default=1)
-    circ: list[int] = Field([-1, 1, 2, 3, 4], default=1)
+    trajet: Literal[-1, 0, 1, 2, 3, 4, 5, 9] = 1
+    catr: Literal[1, 2, 3, 4, 5, 6, 7, 9] = 1
+    circ: Literal[-1, 1, 2, 3, 4] = 1
     vosp: int = Field(ge=-1, le=3, default=1)
-    prof: list[int] = Field([-1, 1, 2, 3, 4], default=1)
-    plan: list[int] = Field([-1, 1, 2, 3, 4], default=1)
-    surf: list[int] = Field([-1, 1, 2, 3, 4, 5, 6, 7, 8, 9], default=1)
-    situ: list[int] = Field([-1, 0, 1, 2, 3, 4, 5, 6, 8], default=1)
+    prof: Literal[-1, 1, 2, 3, 4] = 1
+    plan: Literal[-1, 1, 2, 3, 4] = 1
+    surf: Literal[-1, 1, 2, 3, 4, 5, 6, 7, 8, 9] = 1
+    situ: Literal[-1, 0, 1, 2, 3, 4, 5, 6, 8] = 1
     lum: int = Field(ge=1, le=5, default=1)
-    atm: list[int] = Field([-1, 1, 2, 3, 4, 5, 6, 7, 8, 9], default=1)
-    col: list[int] = Field([-1, 1, 2, 3, 4, 5, 6, 7], default=1)
+    atm: Literal[-1, 1, 2, 3, 4, 5, 6, 7, 8, 9] = 1
+    col: Literal[-1, 1, 2, 3, 4, 5, 6, 7] = 1
 
 class Token(BaseModel):
     access_token: str
@@ -91,13 +92,6 @@ fake_users_db = {
 
 # OAuth2 schema pour la récupération du token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-# Fonction pour vérifier l'authentification
-# def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
-#     correct_username = users.get(credentials.username)
-#     if not (correct_username and credentials.password == correct_username):
-#         raise HTTPException(status_code=401, detail="Identifiants incorrects")
-#     return credentials.username
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
