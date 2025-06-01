@@ -7,10 +7,19 @@ config.json
 config.yaml
 config_perso.yaml
 
-data/raw/
-data/processed/
-models/
+data/raw/*
+data/processed/*
+data/external/*
+data/interim/*
+
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/external/.gitkeep
+!data/interim/.gitkeep
+
+models/*
 !models/best_model_2023_metadata.json
+!models/.gitkeep
 
 .dvc/tmp/
 .dvc/cache/
