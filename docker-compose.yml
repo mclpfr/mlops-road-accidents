@@ -160,23 +160,6 @@ services:
     depends_on:
       - train_model
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana_service
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    volumes:
-      - ./monitoring/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
-      - ./monitoring/grafana/provisioning/dashboards/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
-      - ./monitoring/grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      - postgres
-
   postgres-airflow:
     image: postgres:13
     container_name: postgres-airflow
