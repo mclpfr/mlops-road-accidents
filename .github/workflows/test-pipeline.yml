@@ -48,6 +48,11 @@ jobs:
         run: |
           python src/train_model/train_model.py
 
+      - name: Run api.py 
+        run: |
+          nohup python src/api/api.py &
+          sleep 10  
+
       - name: Run tests.py
         working-directory: .
         run:  pytest tests/ -v
