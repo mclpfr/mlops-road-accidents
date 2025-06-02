@@ -115,9 +115,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    depends_on:
-      train_model:
-        condition: service_started
+
 
   import_data:
     build:

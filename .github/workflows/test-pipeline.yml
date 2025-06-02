@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas requests beautifulsoup4 pyyaml scikit-learn joblib pytest fastapi uvicorn python-multipart mlflow
+          pip install -r requirements.txt
 
       - name: Recreate config.yaml from secret
         run: |
