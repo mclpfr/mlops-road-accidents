@@ -51,11 +51,12 @@ jobs:
       - name: Run api.py 
         run: |
           nohup python src/api/api.py &
-          sleep 10  
+          sleep 20  
 
       - name: Run tests.py
         working-directory: .
-        run:  pytest tests/ -v
+        run: |
+          pytest tests/ -v
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
