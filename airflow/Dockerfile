@@ -9,6 +9,7 @@ RUN apt-get update && \
     default-libmysqlclient-dev \
     coreutils \
     login \
+    docker.io \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -18,8 +19,10 @@ RUN mkdir -p /opt/airflow/logs /opt/airflow/logs/scheduler /opt/airflow/logs/web
     chmod -R 777 /opt/airflow/logs
 
 # Add airflow user to the docker group to allow access to the Docker socket
-RUN groupadd -g 998 docker || true && \
-    usermod -aG 998 airflow
+RUN if ! getent group docker > /dev/null; then \
+        groupadd docker; \
+    fi && \
+    usermod -aG docker airflow
 
 # Copy scripts and set permissions
 COPY --chown=5000:5000 airflow/scripts/ /opt/airflow/scripts/

@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'evidently_drift_api'
+    static_configs:
+      - targets: ['evidently-api:8001'] # 'evidently-api' sera le nom du service dans docker-compose

@@ -5,8 +5,9 @@
   "tags": ["api", "monitoring"],
   "timezone": "browser",
   "schemaVersion": 36,
-  "version": 1,
+  "version": 3,
   "editable": true,
+  "refresh": "5s",
   "time": {
     "from": "now-1h",
     "to": "now"
@@ -16,6 +17,12 @@
       "id": 1,
       "title": "API Uptime",
       "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
       "targets": [
         {
           "expr": "up{job=\"api\"}",
@@ -42,13 +49,68 @@
             ]
           }
         }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Data Drift Score",
+      "type": "gauge",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 0
       },
-      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "ml_data_drift_score",
+          "legendFormat": "Drift Score",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0.3 },
+              { "color": "red", "value": 0.7 }
+            ]
+          },
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "max": 1,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"],
+          "fields": ""
+        },
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false
+      },
+      "description": "Score de dérive des données (0-1) - Seuil d'alerte à 0.3"
     },
     {
       "id": 2,
       "title": "Request Rate (RPS)",
       "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
       "targets": [
         {
           "expr": "sum(rate(http_requests_total{job=\"api\"}[1m])) by (job)",
@@ -56,14 +118,21 @@
         }
       ],
       "fieldConfig": {
-        "defaults": {"unit": "reqps"}
-      },
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+        "defaults": {
+          "unit": "reqps"
+        }
+      }
     },
     {
       "id": 3,
       "title": "P95 Latency (ms)",
       "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
       "targets": [
         {
           "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"api\"}[5m])) by (le, job))",
@@ -71,14 +140,21 @@
         }
       ],
       "fieldConfig": {
-        "defaults": {"unit": "ms"}
-      },
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+        "defaults": {
+          "unit": "ms"
+        }
+      }
     },
     {
       "id": 4,
       "title": "Average Response Time (ms)",
       "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
       "targets": [
         {
           "expr": "sum(rate(http_response_time_sum{job=\"api\"}[1m])) by (job) / sum(rate(http_response_time_count{job=\"api\"}[1m])) by (job)",
@@ -86,14 +162,21 @@
         }
       ],
       "fieldConfig": {
-        "defaults": {"unit": "ms"}
-      },
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+        "defaults": {
+          "unit": "ms"
+        }
+      }
     },
     {
       "id": 5,
       "title": "5xx Error Rate (RPS)",
       "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 12
+      },
       "targets": [
         {
           "expr": "sum(rate(http_requests_total{job=\"api\", status=\"5xx\"}[1m])) by (job)",
@@ -101,14 +184,21 @@
         }
       ],
       "fieldConfig": {
-        "defaults": {"unit": "ops"}
-      },
-      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 12}
+        "defaults": {
+          "unit": "ops"
+        }
+      }
     },
     {
       "id": 6,
       "title": "HTTP Status Codes (RPS)",
       "type": "barchart",
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 6,
+        "y": 12
+      },
       "targets": [
         {
           "expr": "sum by (status) (rate(http_requests_total{job=\"api\"}[1m]))",
@@ -116,14 +206,21 @@
         }
       ],
       "fieldConfig": {
-        "defaults": {"unit": "reqps"}
-      },
-      "gridPos": {"h": 8, "w": 10, "x": 6, "y": 12}
+        "defaults": {
+          "unit": "reqps"
+        }
+      }
     },
     {
       "id": 7,
       "title": "Error Rate (%)",
       "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 12
+      },
       "targets": [
         {
           "expr": "(sum(rate(http_requests_total{job=\"api\", status=\"5xx\"}[1m])) by (job) / sum(rate(http_requests_total{job=\"api\"}[1m])) by (job)) * 100",
@@ -131,14 +228,21 @@
         }
       ],
       "fieldConfig": {
-        "defaults": {"unit": "percent"}
-      },
-      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 12}
+        "defaults": {
+          "unit": "percent"
+        }
+      }
     },
     {
       "id": 8,
       "title": "Average Request Payload Size (bytes)",
       "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 20
+      },
       "targets": [
         {
           "expr": "avg_request_payload_bytes{job=\"api\"}",
@@ -146,26 +250,38 @@
         }
       ],
       "fieldConfig": {
-        "defaults": {"unit": "bytes"}
-      },
-      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 20}
+        "defaults": {
+          "unit": "bytes"
+        }
+      }
     },
     {
       "id": 9,
       "title": "Active Connections",
       "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 20
+      },
       "targets": [
         {
           "expr": "nginx_connections_active{job=\"api\"}",
           "legendFormat": "Active Connections {{job}}"
         }
-      ],
-      "gridPos": {"h": 8, "w": 6, "x": 6, "y": 20}
+      ]
     },
     {
       "id": 10,
       "title": "API CPU Usage (%)",
       "type": "gauge",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 20
+      },
       "targets": [
         {
           "expr": "sum(rate(container_cpu_usage_seconds_total{name=\"api_service\"}[1m])) by (name) * 100",
@@ -190,67 +306,42 @@
           },
           "unit": "percent"
         }
-      },
-      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 20}
+      }
     },
     {
       "id": 11,
       "title": "API Memory Usage (MB)",
       "type": "gauge",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 20
+      },
       "targets": [
         {
-          "expr": "container_memory_usage_bytes{name=\"api_service\"} / (1024*1024)",
+          "expr": "container_memory_usage_bytes{name=\"api_service\"} / 1024 / 1024",
           "legendFormat": "{{name}}",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "stat": "lastNotNull",
-          "unit": "Mo",
-          "decimals": 0,
-          "min": 0,
-          "max": 1024,
           "color": {
             "mode": "thresholds"
           },
+          "decimals": 2,
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               { "color": "green", "value": null },
-              { "color": "orange", "value": 700 },
-              { "color": "red", "value": 900 }
+              { "color": "orange", "value": 2.5e8 },
+              { "color": "red", "value": 5e8 }
             ]
-          }
+          },
+          "unit": "bytes"
         }
-      },
-      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 20}
-    },
-    {
-      "id": 12,
-      "title": "API Logs",
-      "type": "logs",
-      "datasource": {
-        "type": "loki",
-        "uid": "Loki"
-      },
-      "targets": [
-        {
-          "expr": "{container=\"api_service\"}",
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "Loki"
-          }
-        }
-      ],
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28},
-      "options": {
-        "showTime": true,
-        "enableLogDetails": true,
-        "prettifyLogMessage": false,
-        "wrapLogMessage": false,
-        "sortOrder": "Descending"
       }
     }
   ]

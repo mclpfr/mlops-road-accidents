@@ -1,0 +1,13 @@
+groups:
+- name: data_drift_alerts
+  rules:
+  - alert: HighDataDrift
+    expr: ml_data_drift_score > 0.7
+    for: 5m  # L'alerte ne se déclenche que si la condition est vraie pendant 5 minutes
+    labels:
+      severity: critical
+      category: data_quality
+    annotations:
+      summary: "High data drift detected"
+      description: "Data drift score is {{ $value | humanizePercentage }} (threshold: 70%)"
+      runbook_url: "https://example.com/runbook/data-drift-alert"

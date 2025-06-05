@@ -1,11 +1,34 @@
 global:
-  scrape_interval: 15s # By default, scrape targets every 15 seconds.
+  scrape_interval: 15s  # Par défaut, collecte les métriques toutes les 15 secondes
+  evaluation_interval: 15s  # Évalue les règles toutes les 15 secondes
+
+# Configuration d'Alertmanager
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+# Fichiers de règles à charger
+rule_files:
+  - 'alert.rules'
 
 scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
   - job_name: 'api'
     static_configs:
-      - targets: ['api_service:8000'] # 'api_service' is the container name in docker-compose
+      - targets: ['api_service:8000']  # 'api_service' est le nom du conteneur dans docker-compose
 
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor_service:8080']
+
+  - job_name: 'evidently_drift_api'
+    metrics_path: '/drift_score'
+    static_configs:
+      - targets: ['evidently-api:8001']
+    scheme: http
+    scrape_interval: 1m  # Collecte plus fréquente pour une détection plus rapide
+    scrape_timeout: 30s

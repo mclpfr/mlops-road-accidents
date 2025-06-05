@@ -4,6 +4,30 @@ x-user-info: &user-info
   USER_ID: "1000"
   GROUP_ID: "1000"
 
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: airflow/Dockerfile
+  environment:
+    - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
+    - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+    - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
+    - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
+    - AIRFLOW__WEBSERVER__RBAC=True
+    - AIRFLOW_HOME=/opt/airflow
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/plugins:/opt/airflow/plugins
+    - /var/run/docker.sock:/var/run/docker.sock
+    - airflow_logs:/opt/airflow/logs
+    - ./.:/opt/project
+  user: "root"
+  depends_on:
+    postgres-airflow:
+      condition: service_healthy
+
 services:
   extract_data:
     build:
@@ -120,17 +144,6 @@ services:
       timeout: 5s
       retries: 5
 
-  save_best_model:
-    build:
-      context: .
-      dockerfile: src/save_best_model/Dockerfile
-    container_name: save_best_model_service
-    command: python save_best_model.py
-    volumes:
-      - ./models:/app/models
-      - ./config.yaml:/app/config.yaml
-    working_dir: /app
-
   api:
     container_name: api_service
     build:
@@ -143,7 +156,19 @@ services:
       - "8000:8000"
     depends_on:
       - train_model
-      - save_best_model
+
+  evidently-api:
+    container_name: evidently-api 
+    build:
+      context: ./evidently/api
+      dockerfile: Dockerfile
+    volumes:
+      - ./evidently/api:/app 
+      - ./evidently/reference:/app/../reference 
+      - ./evidently/current:/app/../current 
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:v2.47.2
@@ -152,33 +177,54 @@ services:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/alert.rules:/etc/prometheus/alert.rules
       - prometheus_data:/prometheus
     command: 
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'  # Permet de recharger la configuration via API
     depends_on:
       - api
+      - evidently-api
+      - alertmanager
+    networks:
+      - default
 
-  loki:
-    image: grafana/loki:2.9.0
-    container_name: loki_service
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager_service
     ports:
-      - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
+      - '9093:9093'
     volumes:
-      - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    restart: unless-stopped
+    networks:
+      - default
 
-  promtail:
-    image: grafana/promtail:2.9.0
-    container_name: promtail_service
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
-    command: -config.file=/etc/promtail/config.yml
-    depends_on:
-      - loki
+#  loki:
+#    image: grafana/loki:2.9.0
+#    container_name: loki_service
+#    ports:
+#      - "3100:3100"
+#    command: -config.file=/etc/loki/local-config.yaml
+#    volumes:
+#      - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml
+
+#  promtail:
+#    image: grafana/promtail:2.9.0
+#    container_name: promtail_service
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+#      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
+#    command: -config.file=/etc/promtail/config.yml
+#    depends_on:
+#      - loki
 
   grafana:
     image: grafana/grafana:latest
@@ -195,21 +241,81 @@ services:
       - ./monitoring/grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json
       - grafana_data:/var/lib/grafana
     depends_on:
+      - prometheus
+      - alertmanager
       - postgres
-      - loki
+#      - loki
 
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.2
-    container_name: cadvisor_service
+#  cadvisor:
+#    image: gcr.io/cadvisor/cadvisor:v0.47.2
+#    container_name: cadvisor_service
+#    ports:
+#      - "8081:8080"
+#    volumes:
+#      - /:/rootfs:ro
+#      - /var/run:/var/run:rw
+#      - /sys:/sys:ro
+#      - /var/lib/docker/:/var/lib/docker:ro
+
+  postgres-airflow:
+    image: postgres:13
+    container_name: postgres-airflow
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
     ports:
-      - "8081:8080"
+      - "5433:5432"
     volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:rw
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
+      - postgres_airflow_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+      
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    entrypoint: /opt/airflow/scripts/entrypoint.sh
+    command: version
+    restart: on-failure
+    depends_on:
+      postgres-airflow:
+        condition: service_healthy
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      airflow-init:
+        condition: service_started
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    command: scheduler
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      airflow-init:
+        condition: service_started
 
 volumes:
   postgres_data:
-  grafana_data:
   prometheus_data:
+  grafana_data:
+  alertmanager_data:
+  postgres_airflow_data:
+  airflow_logs:
