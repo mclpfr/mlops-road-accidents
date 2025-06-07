@@ -11,6 +11,8 @@ data/raw/
 data/processed/
 models/
 !models/best_model_2023_metadata.json
+evidently/curren
+evidently/reference
 
 .dvc/tmp/
 .dvc/cache/
