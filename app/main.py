@@ -234,15 +234,15 @@ def predict_live(feature_inputs):
         return None
 
     payload = {
-        "features": [feature_inputs] # L'API attend une liste de dictionnaires de features
+        "features": [feature_inputs] # The API expects a list of feature dictionaries
     }
-    df_payload = pd.DataFrame(feature_inputs, index=[0]) # Crée un DataFrame avec une seule ligne
+    df_payload = pd.DataFrame(feature_inputs, index=[0]) # Create a DataFrame with a single row
     csv_payload = df_payload.to_csv(index=False)
 
     files = {'file_request': ('live_prediction.csv', csv_payload, 'text/csv')}
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
     try:
-        response = requests.post(API_ENDPOINT_PREDICT, files=files, headers=headers, timeout=10) # timeout de 10s
+        response = requests.post(API_ENDPOINT_PREDICT, files=files, headers=headers, timeout=10) # 10 second timeout
         response.raise_for_status() 
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -278,7 +278,7 @@ if st.session_state.token:
         st.dataframe(accidents_df)
 
         if 'grav' in accidents_df.columns:
-            accidents_df_copy_grav = accidents_df.copy() # Créer une copie pour éviter SettingWithCopyWarning
+            accidents_df_copy_grav = accidents_df.copy() # Create a copy to avoid SettingWithCopyWarning
 
             def map_gravity_to_api_format(grav_value):
                 if grav_value in [1, 2]: # Indemne (1), Tué (2)
@@ -298,7 +298,7 @@ if st.session_state.token:
             
             fig_grav_api = px.pie(gravity_api_counts, values='count', names='label', color='label',
                                   title='Répartition des Accidents par Gravité (Regroupée)',
-                                  color_discrete_map={'Pas Grave': '#2ca02c', 'Grave': '#d62728'}) # Vert pour Pas Grave, Rouge pour Grave
+                                  color_discrete_map={'Pas Grave': '#2ca02c', 'Grave': '#d62728'}) # Green for Not Serious, Red for Serious
             st.plotly_chart(fig_grav_api, use_container_width=True)
         else:
             st.warning("La colonne 'grav' est introuvable pour générer le graphique de gravité.")
@@ -320,16 +320,16 @@ if st.session_state.token:
             
             if not accidents_df_filtered.empty:
                 department_counts = accidents_df_filtered['dep_str'].value_counts().reset_index()
-                department_counts.columns = ['dep', 'count'] # Renommer les colonnes pour Plotly
+                department_counts.columns = ['dep', 'count'] # Rename columns for Plotly
                 
                 fig_dep = px.bar(department_counts, x='dep', y='count',\
-                                 title="Nombre d'Accidents par Département (Métropole et Corse)",\
+                                  title="Nombre d'Accidents par Département (Métropole et Corse)",\
                                  labels={'dep': 'Département', 'count': "Nombre d'accidents"},\
-                                 text_auto=True) # Afficher les valeurs sur les barres
+                                 text_auto=True) # Display values on the bars
                 fig_dep.update_xaxes(categoryorder='total descending') 
                 st.plotly_chart(fig_dep, use_container_width=True)
             else:
-                st.info("Aucun accident trouvé pour les départements métropolitains et la Corse (codes <= 96, ou 2A/2B).")
+                st.info("No accidents found for metropolitan departments and Corsica (codes <= 96, or 2A/2B).")
         else:
             st.warning("La colonne 'dep' est introuvable pour générer l'histogramme par département.")
     else:
@@ -372,7 +372,7 @@ if st.session_state.token:
                 except Exception as e:
                     st.error(f"Erreur lors de la conversion des métriques simples en tableau : {e}")
                     st.write("Métriques simples (brutes) :")
-                    st.json(metrics_for_table) # Fallback pour les métriques simples
+                    st.json(metrics_for_table) # Fallback for simple metrics
         
             if remaining_complex_metrics:
                 st.caption("Métriques complexes supplémentaires (non affichables dans le tableau simple) :")
@@ -393,7 +393,7 @@ if st.session_state.token:
                 def format_options(option_value):
                     if "option_labels" in feature_info and option_value in feature_info["option_labels"]:
                         return feature_info["option_labels"][option_value]
-                    return str(option_value) # Fallback si le libellé n'est pas défini
+                    return str(option_value) # Fallback if label is not defined
 
                 input_features[feature_name] = st.selectbox(
                     label=feature_info["label"],
