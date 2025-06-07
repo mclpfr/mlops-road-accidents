@@ -1,0 +1,29 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 3h
+  receiver: 'airflow_webhook'
+  routes:
+    - match:
+        alertname: HighDataDrift
+      receiver: 'airflow_webhook'
+      repeat_interval: 1h  # Ne pas spammer Airflow, attendre 1h avant de renvoyer l'alerte
+
+receivers:
+- name: 'airflow_webhook'
+  webhook_configs:
+  - url: 'http://evidently-api:8001/trigger_airflow_from_alert'
+    send_resolved: false  # Ne pas envoyer de notification lorsque l'alerte est résolue
+    http_config:
+      basic_auth:
+        username: 'airflow'
+        password: 'airflow'
+    max_alerts: 3
+
+# Configuration pour la persistance des alertes
+# Alertmanager a besoin d'un volume persistant pour stocker l'état des alertes
+# Cela sera monté via docker-compose.yml

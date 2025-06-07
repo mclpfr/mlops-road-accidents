@@ -1,0 +1,131 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Nombre total d'accidents",
+      "gridPos": {"x": 0, "y": 0, "w": 24, "h": 4},
+      "datasource": {"type": "postgres", "uid": "PostgreSQL"},
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) as value FROM accidents WHERE CAST(an AS INTEGER) = 2023",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "type": "piechart",
+      "title": "Répartition par condition de luminosité",
+      "gridPos": {"x": 0, "y": 4, "w": 8, "h": 8},
+      "datasource": {"type": "postgres", "uid": "PostgreSQL"},
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "WITH conditions AS ( SELECT lum, CASE WHEN lum = '1' THEN 'Plein jour' WHEN lum = '2' THEN 'Crépuscule ou aube' WHEN lum = '3' THEN 'Nuit sans éclairage' WHEN lum = '4' THEN 'Nuit avec éclairage' WHEN lum = '5' THEN 'Nuit avec éclairage non allumé' ELSE 'Non spécifié' END as condition_label, COUNT(*) as lum_count FROM accidents WHERE CAST(an AS INTEGER) = 2023 AND lum IS NOT NULL GROUP BY lum ), total_annual_accidents AS ( SELECT COUNT(*) as total_count FROM accidents WHERE CAST(an AS INTEGER) = 2023 AND lum IS NOT NULL ) SELECT c.condition_label as condition, (c.lum_count * 100.0 / taa.total_count) as percentage FROM conditions c, total_annual_accidents taa ORDER BY percentage DESC",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "type": "barchart",
+      "title": "Top 10 départements",
+      "gridPos": {"x": 8, "y": 4, "w": 16, "h": 8},
+      "datasource": {"type": "postgres", "uid": "PostgreSQL"},
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT dep as department, COUNT(*) as accidents FROM accidents WHERE CAST(an AS INTEGER) = 2023 GROUP BY dep ORDER BY accidents DESC LIMIT 10",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "min": 0,
+          "decimals": 0
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["accidents", "2023"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Accidents 2023",
+  "version": 1,
+  "weekStart": ""
+}

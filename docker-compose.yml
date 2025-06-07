@@ -17,12 +17,13 @@ x-airflow-common: &airflow-common
     - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
     - AIRFLOW__WEBSERVER__RBAC=True
     - AIRFLOW_HOME=/opt/airflow
+    - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
     - /var/run/docker.sock:/var/run/docker.sock
-    # Utiliser un volume nommé pour les logs au lieu d'un montage direct
     - airflow_logs:/opt/airflow/logs
+    - ./.:/opt/project
   user: "root"
   depends_on:
     postgres-airflow:
@@ -72,6 +73,34 @@ services:
     depends_on:
       - synthet_data
       
+  import_data:
+    build:
+      context: .
+      dockerfile: src/import_data/Dockerfile
+      args:
+        <<: *user-info
+    container_name: import_data_service
+    command: >
+      sh -c "chmod +x /app/wait-for-postgres.sh && /app/wait-for-postgres.sh postgres 5432 && python import_data.py"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=road_accidents
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      - MLFLOW_TRACKING_USERNAME=${MLFLOW_TRACKING_USERNAME}
+      - MLFLOW_TRACKING_PASSWORD=${MLFLOW_TRACKING_PASSWORD}
+    volumes:
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./config.yaml:/app/config.yaml
+      - ./src/import_data/wait-for-postgres.sh:/app/wait-for-postgres.sh
+    working_dir: /app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   train_model:
     build:
       context: .
@@ -94,7 +123,7 @@ services:
       - ./dvc.yaml:/app/dvc.yaml
     working_dir: /app
     depends_on:
-      - import_data
+      - prepare_data
 
   postgres:
     build:
@@ -116,49 +145,130 @@ services:
       timeout: 5s
       retries: 5
 
-
-  import_data:
-    build:
-      context: .
-      dockerfile: src/import_data/Dockerfile
-    container_name: import_data_service
-    command: sh -c "/app/wait-for-postgres.sh postgres 5432 python3 /app/import_data.py"
-    volumes:
-      - ./data:/app/data
-      - ./config.yaml:/app/config.yaml
-      - ./models:/app/models
-    environment:
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: road_accidents
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  save_best_model:
-    build:
-      context: .
-      dockerfile: src/save_best_model/Dockerfile
-    container_name: save_best_model_service
-    command: python save_best_model.py
-    volumes:
-      - ./models:/app/models
-      - ./config.yaml:/app/config.yaml
-    working_dir: /app
-
   api:
+    container_name: api_service
     build:
       context: .
       dockerfile: src/api/Dockerfile
-    container_name: api_service
     volumes:
       - ./models:/app/models
+      - ./data:/app/data
     ports:
       - "8000:8000"
     depends_on:
       - train_model
+
+  evidently-api:
+    container_name: evidently-api 
+    build:
+      context: ./evidently/api
+      dockerfile: Dockerfile
+      args:
+        <<: *user-info
+    user: "${USER_ID}:${GROUP_ID}"
+    volumes:
+      - ./evidently/api:/app 
+      - ./evidently/ui:/app/ui/target
+      - ./evidently/current:/app/current
+      - ./evidently/reference:/app/reference
+    ports:
+      - "8001:8001" 
+    environment:
+      - EVIDENTLY_PROJECT_NAME=Road Accidents MLOps
+      - EVIDENTLY_PROJECT_DESCRIPTION=Monitoring dashboard for road accident prediction model
+      # - EVIDENTLY_COLLECTOR_ADDRESS=http://evidently-collector:8085 # Address of the collector service
+      # - FLASK_RUN_PORT=8081
+      - FLASK_RUN_HOST=0.0.0.0
+    # depends_on:
+    #   - evidently-collector
+    networks:
+      - default
+
+  prometheus:
+    image: prom/prometheus:v2.47.2
+    container_name: prometheus_service
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/:/etc/prometheus/  # Monte tout le répertoire
+      - prometheus_data:/prometheus
+    command: 
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - api
+      - evidently-api
+      - alertmanager
+    networks:
+      - default
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager_service
+    ports:
+      - '9093:9093'
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    restart: unless-stopped
+    networks:
+      - default
+
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki_service
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail_service
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana_service
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/provisioning/dashboards/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
+      - ./monitoring/grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - alertmanager
+      - postgres
+      - loki
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: cadvisor_service
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
 
   postgres-airflow:
     image: postgres:13
@@ -179,8 +289,18 @@ services:
   airflow-init:
     <<: *airflow-common
     container_name: airflow-init
-    entrypoint: /opt/airflow/scripts/entrypoint.sh
-    command: echo "Airflow initialized successfully"
+    # Volumes are inherited from x-airflow-common, including ./.:/opt/project
+    entrypoint: >
+      sh -c "
+        echo 'INFO: Setting up permissions for /opt/project/evidently/current...';
+        mkdir -p /opt/project/evidently/current && \
+        chown -R root:0 /opt/project/evidently/current && \
+        chmod -R 775 /opt/project/evidently/current;
+        echo 'INFO: Permissions set for /opt/project/evidently/current.';
+        echo 'INFO: Executing original Airflow entrypoint ( /opt/airflow/scripts/entrypoint.sh ) with command: version';
+        exec /opt/airflow/scripts/entrypoint.sh version
+      "
+    # The original command 'version' is now passed to the exec in entrypoint
     restart: on-failure
     depends_on:
       postgres-airflow:
@@ -217,6 +337,8 @@ services:
 
 volumes:
   postgres_data:
+  prometheus_data:
   grafana_data:
+  alertmanager_data:
   postgres_airflow_data:
   airflow_logs:
