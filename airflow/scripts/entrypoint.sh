@@ -84,11 +84,39 @@ fi
 
     # Initialiser la base de données Airflow
     echo 'Initializing Airflow database...'
-    su -c "airflow db init" airflow
+    set +e
+    su -c "/home/airflow/.local/bin/airflow db init" airflow
+    db_init_exit_code=$?
+    set -e
+    echo "DB init command exited with code: $db_init_exit_code"
+    if [ $db_init_exit_code -ne 0 ]; then
+        echo "ERROR: airflow db init failed. Exiting."
+        exit $db_init_exit_code
+    fi
 
     # Créer un utilisateur administrateur si nécessaire
     echo "Creating admin user if it doesn't exist..."
-    su -c "airflow users list | grep -q 'admin' || airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com" airflow
+    set +e
+    su -c "airflow users list | grep -q '^admin$' || airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com" airflow
+    admin_user_exit_code=$?
+    set -e
+    echo "Admin user creation/check command exited with code: $admin_user_exit_code"
+    if [ $admin_user_exit_code -ne 0 ]; then
+        echo "ERROR: Failed to create or check admin user. Exiting."
+        exit $admin_user_exit_code
+    fi
+
+    # Créer l'utilisateur airflow pour l'API si nécessaire
+    echo "Creating airflow API user if it doesn't exist..."
+    set +e # Désactiver temporairement l'arrêt sur erreur
+    su -c "airflow users list | grep -q '^airflow$' || airflow users create --username airflow --password airflow --firstname Airflow --lastname API --role Admin --email airflow@example.com" airflow
+    exit_code=$?
+    set -e # Réactiver l'arrêt sur erreur
+    echo "User creation/check command for 'airflow' user exited with code: $exit_code"
+    if [ $exit_code -ne 0 ]; then
+        echo "ERROR: Failed to create or check airflow API user. Exiting."
+        exit $exit_code
+    fi
 
     echo 'Airflow initialization completed successfully!'
 
@@ -97,6 +125,7 @@ fi
         echo "Executing command as airflow user: $@"
         # Utiliser le chemin complet pour les commandes Airflow
         if [ "$1" = "webserver" ]; then
+            set -x # Activer le traçage
             exec su -c "/home/airflow/.local/bin/airflow webserver" airflow
         elif [ "$1" = "scheduler" ]; then
             exec su -c "/home/airflow/.local/bin/airflow scheduler" airflow

@@ -57,7 +57,7 @@ def update_reference_dataset_task(**kwargs):
     if not os.path.exists(container_source_file_path):
         raise FileNotFoundError(f"Source file {container_source_file_path} (in container) not found for Evidently reference data.")
     
-    shutil.copy2(container_source_file_path, container_target_file_path)
+    shutil.copyfile(container_source_file_path, container_target_file_path)
     
     # For logging, show the host path so the user knows where to find it on their system
     host_target_file_path_for_log = os.path.join(host_project_root, reference_relative_dir, target_file_name)

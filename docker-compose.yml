@@ -17,6 +17,7 @@ x-airflow-common: &airflow-common
     - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
     - AIRFLOW__WEBSERVER__RBAC=True
     - AIRFLOW_HOME=/opt/airflow
+    - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
@@ -162,13 +163,26 @@ services:
     build:
       context: ./evidently/api
       dockerfile: Dockerfile
+      args:
+        <<: *user-info
+    user: "${USER_ID}:${GROUP_ID}"
     volumes:
       - ./evidently/api:/app 
-      - ./evidently/reference:/app/../reference 
-      - ./evidently/current:/app/../current 
+      - ./evidently/ui:/app/ui/target
+      - ./evidently/current:/app/current
+      - ./evidently/reference:/app/reference
     ports:
-      - "8001:8001"
-    restart: unless-stopped
+      - "8001:8001" 
+    environment:
+      - EVIDENTLY_PROJECT_NAME=Road Accidents MLOps
+      - EVIDENTLY_PROJECT_DESCRIPTION=Monitoring dashboard for road accident prediction model
+      # - EVIDENTLY_COLLECTOR_ADDRESS=http://evidently-collector:8085 # Address of the collector service
+      # - FLASK_RUN_PORT=8081
+      - FLASK_RUN_HOST=0.0.0.0
+    # depends_on:
+    #   - evidently-collector
+    networks:
+      - default
 
   prometheus:
     image: prom/prometheus:v2.47.2
@@ -176,15 +190,14 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - ./monitoring/prometheus/alert.rules:/etc/prometheus/alert.rules
+      - ./monitoring/prometheus/:/etc/prometheus/  # Monte tout le répertoire
       - prometheus_data:/prometheus
     command: 
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
-      - '--web.enable-lifecycle'  # Permet de recharger la configuration via API
+      - '--web.enable-lifecycle'
     depends_on:
       - api
       - evidently-api
@@ -207,24 +220,24 @@ services:
     networks:
       - default
 
-#  loki:
-#    image: grafana/loki:2.9.0
-#    container_name: loki_service
-#    ports:
-#      - "3100:3100"
-#    command: -config.file=/etc/loki/local-config.yaml
-#    volumes:
-#      - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki_service
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml
 
-#  promtail:
-#    image: grafana/promtail:2.9.0
-#    container_name: promtail_service
-#    volumes:
-#      - /var/run/docker.sock:/var/run/docker.sock
-#      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
-#    command: -config.file=/etc/promtail/config.yml
-#    depends_on:
-#      - loki
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail_service
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
 
   grafana:
     image: grafana/grafana:latest
@@ -244,18 +257,18 @@ services:
       - prometheus
       - alertmanager
       - postgres
-#      - loki
+      - loki
 
-#  cadvisor:
-#    image: gcr.io/cadvisor/cadvisor:v0.47.2
-#    container_name: cadvisor_service
-#    ports:
-#      - "8081:8080"
-#    volumes:
-#      - /:/rootfs:ro
-#      - /var/run:/var/run:rw
-#      - /sys:/sys:ro
-#      - /var/lib/docker/:/var/lib/docker:ro
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: cadvisor_service
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
 
   postgres-airflow:
     image: postgres:13
@@ -276,8 +289,18 @@ services:
   airflow-init:
     <<: *airflow-common
     container_name: airflow-init
-    entrypoint: /opt/airflow/scripts/entrypoint.sh
-    command: version
+    # Volumes are inherited from x-airflow-common, including ./.:/opt/project
+    entrypoint: >
+      sh -c "
+        echo 'INFO: Setting up permissions for /opt/project/evidently/current...';
+        mkdir -p /opt/project/evidently/current && \
+        chown -R root:0 /opt/project/evidently/current && \
+        chmod -R 775 /opt/project/evidently/current;
+        echo 'INFO: Permissions set for /opt/project/evidently/current.';
+        echo 'INFO: Executing original Airflow entrypoint ( /opt/airflow/scripts/entrypoint.sh ) with command: version';
+        exec /opt/airflow/scripts/entrypoint.sh version
+      "
+    # The original command 'version' is now passed to the exec in entrypoint
     restart: on-failure
     depends_on:
       postgres-airflow:

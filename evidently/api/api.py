@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import PlainTextResponse, HTMLResponse
 import pandas as pd
+import numpy as np
 from evidently import Report
 from evidently.presets import DataDriftPreset
 import os
@@ -8,8 +9,8 @@ from datetime import datetime
 
 app = FastAPI()
 
-REFERENCE_DATA_DIR = "../reference/"
-CURRENT_DATA_DIR = "../current/"
+REFERENCE_DATA_DIR = "/app/reference/"
+CURRENT_DATA_DIR = "/app/current/"
 
 def _get_latest_file(directory, prefix):
     """Gets the most recent file in a directory with a given prefix."""
@@ -100,50 +101,45 @@ def _calculate_drift_metrics(noise_factor=None):
     # by calculating the distribution difference for each numeric column
     print("--- _calculate_drift_metrics: Calculating distribution differences ---")
     
-    # Initialize drift counter
     drift_count = 0
+    drifted_features = []
     total_columns = len(common_cols)
     
     # For each column, calculate distribution difference
     for col in common_cols:
         if reference_data[col].dtype in ['int64', 'float64'] and reference_data[col].nunique() > 1 and current_data[col].nunique() > 1:
-            # Calculate Pearson correlation between distributions
             try:
-                # If noise_factor is provided, modify the correlation based on the noise
-                if noise_factor is not None:
-                    # Simulate more drift with higher noise_factor
-                    base_corr = 0.9  # Base correlation when no drift
-                    # Scale the correlation based on noise_factor (0.0 = no drift, 1.0 = max drift)
-                    corr = base_corr * (1 - noise_factor * 0.9)  # Scale down to minimum 0.09
-                    print(f"--- Using simulated correlation for {col}: {corr:.3f} (noise_factor={noise_factor}) ---")
-                else:
-                    # Calculate real correlation if no noise_factor is provided
-                    corr = reference_data[col].corr(current_data[col])
-                
-                if abs(corr) < 0.9:  # Arbitrary threshold to detect drift
-                    drift_count += 1
+                # Pearson correlation between distributions
+                ref_vals = reference_data[col].dropna().values
+                cur_vals = current_data[col].dropna().values
+                if len(ref_vals) > 1 and len(cur_vals) > 1:
+                    corr = np.corrcoef(np.histogram(ref_vals, bins=20, density=True)[0],
+                                       np.histogram(cur_vals, bins=20, density=True)[0])[0, 1]
+                    if corr < 0.95:
+                        drift_count += 1
+                        drifted_features.append(col)
             except Exception as e:
-                print(f"--- Error calculating correlation for {col}: {e} ---")
-                # In case of error, consider it as drift
-                drift_count += 1
-    
-    # Calculate percentage of columns with drift
+                print(f"--- _calculate_drift_metrics: Error in correlation for column {col}: {e} ---")
+        else:
+            # For non-numeric or low-variance columns, skip drift detection
+            continue
     drift_share = drift_count / total_columns if total_columns > 0 else 0.0
     
     # Create result dictionary
-    result = {
-        'drift_share': drift_share,
-        'total_columns': total_columns,
-        'drifted_columns': drift_count,
-        'status': 'success'
+    result_dict = {
+        "drift_share": drift_count / total_columns if total_columns > 0 else 0, # Original calculation
+        "total_columns": total_columns,
+        "drifted_columns": drift_count,
+        "drifted_feature_list": drifted_features,
+        "status": "success"
     }
     
-    print(f"--- _calculate_drift_metrics: Calculation complete - {drift_count} out of {total_columns} columns with drift detected ---")
-    
-    return result
+    print(f"--- _calculate_drift_metrics: Calculation complete - {drift_count} out of {total_columns} columns with drift detected ---") # Original print
+    return result_dict
 
 @app.get("/drift_score", response_class=PlainTextResponse)
-def get_drift_score_prometheus(noise: float = None):
+@app.get("/metrics", response_class=PlainTextResponse)
+async def get_drift_score_prometheus(noise: float = None):
     print(f"--- get_drift_score_prometheus: Entering function (noise={noise}) ---") 
     try:
         # Get drift calculation results
@@ -170,8 +166,8 @@ def get_drift_score_prometheus(noise: float = None):
         
         prometheus_metric = "\n".join(response_lines) + "\n"
         
-        print(f"--- get_drift_score_prometheus: metric Prometheus ready ---")
-        return prometheus_metric
+        print(f"--- get_drift_score_prometheus: FINAL metric Prometheus string BEFORE RETURN ---:\n{prometheus_metric}\n--- END OF METRIC --- (Length: {len(prometheus_metric)})")
+        return PlainTextResponse(content=prometheus_metric, media_type="text/plain")
 
     except FileNotFoundError as e:
         print(f"--- get_drift_score_prometheus: EXCEPTION FileNotFoundError: {e} ---")
@@ -229,6 +225,43 @@ async def get_drift_dashboard():
         return HTMLResponse(content=f"<html><body><h1>Error</h1><p>Could not calculate drift: {str(e)}</p></body></html>", status_code=400)
     except Exception as e:
         return HTMLResponse(content=f"<html><body><h1>Error</h1><p>An unexpected error occurred: {str(e)}</p></body></html>", status_code=500)
+
+import requests
+from fastapi import Request, Response
+from fastapi.responses import JSONResponse
+
+@app.get("/drift_report", response_class=JSONResponse)
+async def get_drift_report():
+    """
+    Endpoint to retrieve the complete drift report (score, number of drifted columns, total, list of drifted columns)
+    """
+    try:
+        result = _calculate_drift_metrics()
+        if result.get('status') != 'success':
+            raise ValueError("Error during data drift calculation")
+        # On retourne tout le dictionnaire (score, nombre, liste...)
+        return JSONResponse(content=result)
+    except FileNotFoundError as e:
+        return JSONResponse(content={"error": str(e)}, status_code=404)
+    except ValueError as e:
+        return JSONResponse(content={"error": str(e)}, status_code=400)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
+
+@app.post("/trigger_airflow_from_alert")
+async def trigger_airflow_from_alert(request: Request):
+    # We ignore the Alertmanager payload content
+    airflow_url = "http://airflow-webserver:8080/api/v1/dags/road_accidents/dagRuns"
+    auth = ("airflow", "airflow")
+    headers = {"Content-Type": "application/json"}
+    try:
+        r = requests.post(airflow_url, auth=auth, headers=headers, json={})
+        if r.status_code in (200, 201):
+            return Response(status_code=200)
+        else:
+            return Response(content=r.text, status_code=r.status_code)
+    except Exception as e:
+        return Response(content=str(e), status_code=500)
 
 if __name__ == "__main__":
     import uvicorn

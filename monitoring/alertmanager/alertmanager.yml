@@ -16,17 +16,12 @@ route:
 receivers:
 - name: 'airflow_webhook'
   webhook_configs:
-  - url: 'http://airflow-webserver:8080/api/v1/dags/road_accidents/dagRuns'
+  - url: 'http://evidently-api:8001/trigger_airflow_from_alert'
     send_resolved: false  # Ne pas envoyer de notification lorsque l'alerte est résolue
     http_config:
       basic_auth:
         username: 'airflow'
         password: 'airflow'
-    headers:
-      - name: "Content-Type"
-        value: "application/json"
-      - name: "Cache-Control"
-        value: "no-cache"
     max_alerts: 3
 
 # Configuration pour la persistance des alertes
