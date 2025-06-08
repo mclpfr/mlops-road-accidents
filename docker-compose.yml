@@ -69,6 +69,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml
+      - ./models:/app/models
     working_dir: /app
     depends_on:
       - synthet_data
@@ -176,11 +177,7 @@ services:
     environment:
       - EVIDENTLY_PROJECT_NAME=Road Accidents MLOps
       - EVIDENTLY_PROJECT_DESCRIPTION=Monitoring dashboard for road accident prediction model
-      # - EVIDENTLY_COLLECTOR_ADDRESS=http://evidently-collector:8085 # Address of the collector service
-      # - FLASK_RUN_PORT=8081
       - FLASK_RUN_HOST=0.0.0.0
-    # depends_on:
-    #   - evidently-collector
     networks:
       - default
 
@@ -289,18 +286,21 @@ services:
   airflow-init:
     <<: *airflow-common
     container_name: airflow-init
-    # Volumes are inherited from x-airflow-common, including ./.:/opt/project
     entrypoint: >
       sh -c "
         echo 'INFO: Setting up permissions for /opt/project/evidently/current...';
         mkdir -p /opt/project/evidently/current && \
-        chown -R root:0 /opt/project/evidently/current && \
+        chown -R 50000:0 /opt/project/evidently/current && \
         chmod -R 775 /opt/project/evidently/current;
         echo 'INFO: Permissions set for /opt/project/evidently/current.';
+        echo 'INFO: Setting up permissions for /opt/project/evidently/reference...';
+        mkdir -p /opt/project/evidently/reference && \
+        chown -R root:0 /opt/project/evidently/reference && \
+        chmod -R 775 /opt/project/evidently/reference;
+        echo 'INFO: Permissions set for /opt/project/evidently/reference.';
         echo 'INFO: Executing original Airflow entrypoint ( /opt/airflow/scripts/entrypoint.sh ) with command: version';
         exec /opt/airflow/scripts/entrypoint.sh version
       "
-    # The original command 'version' is now passed to the exec in entrypoint
     restart: on-failure
     depends_on:
       postgres-airflow:

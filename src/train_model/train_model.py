@@ -128,6 +128,8 @@ def train_model(config_path="config.yaml"):
             raise ValueError("None of the selected features are available in the dataset.")
         logger.info(f"Using features: {available_features}")
 
+        logger.info(f"DataFrame columns before target assignment: {data.columns.tolist()}")
+        logger.info(f"Target variable: '{target}'")
         X = pd.get_dummies(data[available_features], drop_first=True)
         y = data[target]
         

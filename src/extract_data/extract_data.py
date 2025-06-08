@@ -61,7 +61,7 @@ def download_accident_data(config_path="config.yaml"):
     caract = pd.read_csv(os.path.join(output_dir, f'caract-{year}.csv'), sep=";", low_memory=False)
 
     # Keep only necessary columns from each dataset
-    usagers_cols = ['Num_Acc', 'grav']  # Only keep Num_Acc and grav from usagers
+    usagers_cols = ['Num_Acc', 'grav', 'catu', 'sexe', 'trajet']  # Keep important columns from usagers
     vehicules_cols = [col for col in vehicules.columns if col not in ['grav']]  # Remove grav if exists
     lieux_cols = [col for col in lieux.columns if col not in ['grav']]  # Remove grav if exists
     caract_cols = [col for col in caract.columns if col not in ['grav']]  # Remove grav if exists
@@ -72,8 +72,13 @@ def download_accident_data(config_path="config.yaml"):
     lieux = lieux[lieux_cols]
     caract = caract[caract_cols]
 
-    # Merge the datasets on the 'Num_Acc' column
-    merged_data = caract.merge(usagers, on="Num_Acc").merge(vehicules, on="Num_Acc").merge(lieux, on="Num_Acc")
+    # Merge the datasets on the 'Num_Acc' column using outer join to preserve all rows
+    merged_data = caract.merge(usagers, on="Num_Acc", how='outer')
+    merged_data = merged_data.merge(vehicules, on="Num_Acc", how='outer')
+    merged_data = merged_data.merge(lieux, on="Num_Acc", how='outer')
+    
+    # Debug: Afficher les colonnes disponibles après fusion
+    print("Colonnes après fusion:", merged_data.columns.tolist())
 
     # Convert 'grav' column to numeric, handling any potential string values
     merged_data['grav'] = pd.to_numeric(merged_data['grav'].astype(str).str.strip('"'), errors='coerce')

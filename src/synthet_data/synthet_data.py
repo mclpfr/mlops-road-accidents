@@ -13,6 +13,9 @@ def load_config(config_path="config.yaml"):
 # Main function to generate accidents_{year}_varied.csv
 # This script creates a mixed dataset: 50% real data, 50% synthetic data (sampled from real distributions)
 def generate_varied_data(input_file=None, output_file=None, year=None):
+    # Ensure different randomness for each execution of this script/function
+    np.random.seed(time.time_ns() % (2**32 - 1)) # Seed with current nanoseconds
+
     # Check if input_file and output_file are provided
     if input_file is None or output_file is None or year is None:
         print("Error: input_file, output_file, and year must be provided.")
@@ -34,31 +37,31 @@ def generate_varied_data(input_file=None, output_file=None, year=None):
         return
     
     total_size = len(df)
-    # Select 50% of the real data (random sample)
-    df_real = df.sample(frac=0.5, random_state=np.random.randint(0, 10000))
+    # --- Generate base low-drift data (50% real, 50% resampled synthetic) ---
+    print("--- Generating base low-drift data (50/50 method) ---")
+    df_real = df.sample(frac=0.5, random_state=np.random.randint(0, 100000)) # Explicit random state for pandas
     n_synth = total_size - len(df_real)
     print(f"Real data selected: {len(df_real)} rows")
     print(f"Synthetic data to generate: {n_synth} rows")
 
-    # Generate synthetic data by sampling each column independently from the real data (including Num_Acc)
     data_synth = {}
     for col in df.columns:
-        # Sample values with replacement to keep the same distribution
-        # Handle case where column might be all NaN
         non_na_values = df[col].dropna().values
         if len(non_na_values) > 0:
             data_synth[col] = np.random.choice(non_na_values, n_synth, replace=True)
         else:
-            # If column is all NaN, just create an array of NaN values
             data_synth[col] = np.array([np.nan] * n_synth)
     df_synth = pd.DataFrame(data_synth)
-    print(f"Synthetic data generated: {len(df_synth)} rows")
+    print(f"Base synthetic data generated: {len(df_synth)} rows")
 
-    # Combine real and synthetic data
     df_combined = pd.concat([df_real, df_synth], ignore_index=True)
-    # Shuffle the combined dataset
-    df_combined = df_combined.sample(frac=1, random_state=np.random.randint(0, 10000)).reset_index(drop=True)
-    print(f"Combined data: {len(df_combined)} rows (should be close to {total_size})")
+    df_combined = df_combined.sample(frac=1, random_state=np.random.randint(0, 100000)).reset_index(drop=True) # Explicit random state for pandas shuffle
+    print(f"Base combined data: {len(df_combined)} rows (should be close to {total_size})")
+
+    # --- Specific modifications to induce drift in 3 target columns ---
+    # Désactivé pour éviter la génération de dérive
+    print("--- Drift-inducing modifications are disabled ---")
+    print(f"--- Final data size: {len(df_combined)} rows ---")
 
     # Save the output file
     df_combined.to_csv(output_file, index=False, sep=';')

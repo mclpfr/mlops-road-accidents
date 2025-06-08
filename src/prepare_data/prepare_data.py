@@ -1,49 +1,65 @@
 import pandas as pd
 import os
+import logging
 import yaml
 import time
-import sys
 from sklearn.preprocessing import StandardScaler
+import joblib
+import sys
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def load_config(config_path="config.yaml"):
-    # Load the configuration file
-    with open(config_path, "r") as file:
+    with open(config_path, 'r') as file:
         return yaml.safe_load(file)
 
 def prepare_data(config_path="config.yaml"):
-    # Load configuration parameters
+    """
+    Prepare the data by processing the synthetized accidents data file.
+    """
+    # Load configuration
     config = load_config(config_path)
     year = config["data_extraction"]["year"]
-
-    # Check if the marker file accidents_{year}_synthet.done exists
-    marker_file = f"data/raw/accidents_{year}_synthet.done"
-    if not os.path.exists(marker_file):
-        print(f"Error: The marker file {marker_file} does not exist. synthet_data.py must be executed first.")
-        return
-
-    # Define paths for raw and processed data
-    synthet_path = os.path.join("data/raw", f"accidents_{year}_synthet.csv")
-    raw_path = os.path.join("data/raw", f"accidents_{year}.csv")
-    processed_dir = "data/processed"
+    
+    # Define paths - WORKDIR is /app, data volume is mounted at /app/data
+    app_data_dir = '/app/data'
+    raw_dir = os.path.join(app_data_dir, 'raw')
+    processed_dir = os.path.join(app_data_dir, 'processed')
+    synthet_path = os.path.join(raw_dir, f'accidents_{year}_synthet.csv')
+    
+    # Create output directory if it doesn't exist
     os.makedirs(processed_dir, exist_ok=True)
-
-    # Use the synthetic file if it exists, otherwise the original file
-    if os.path.exists(synthet_path):
-        data = pd.read_csv(synthet_path, low_memory=False, sep=';')
-    else:
-        data = pd.read_csv(raw_path, low_memory=False, sep=';')
-
-    # Remove 'adr' column if it exists as it's not relevant for analysis
-    if 'adr' in data.columns:
-        data = data.drop('adr', axis=1)
-
+    print(f"Raw data directory: {raw_dir}")
+    print(f"Processed data directory: {processed_dir}")
+    
+    # Load accidents data
+    print(f"Loading data from {synthet_path}...")
+    data = pd.read_csv(synthet_path, low_memory=False, sep=';', encoding='latin1')
+    print(f"Loaded data shape: {data.shape}")
+    
+    # Keep only the first occurrence for each accident (to avoid duplicates)
+    data = data.drop_duplicates(subset='Num_Acc', keep='first')
+    print(f"After dropping duplicates: {data.shape}")
+    
+    # Define the features we want to keep
+    features = ["catu", "sexe", "trajet", "catr", "circ", "vosp", "prof", 
+               "plan", "surf", "situ", "lum", "atm", "col"]
+    
+    # Check if all required columns exist
+    missing_columns = [col for col in features + ['grav'] if col not in data.columns]
+    if missing_columns:
+        raise ValueError(f"Missing required columns in the dataset: {missing_columns}")
+    
+    # Keep only the required columns
+    data = data[features + ['grav']].copy()
+    
     # Handle missing values by filling with the mode of each column
     data.fillna(data.mode().iloc[0], inplace=True)
-
-    # Specifically ensure that 'grav' has no NaN values
-    if 'grav' in data.columns and data['grav'].isna().any():
-        # Remove rows with 'grav' = NaN 
-        data = data.dropna(subset=['grav'])
+    
+    # Ensure that 'grav' has no NaN values
+    data = data.dropna(subset=['grav'])
 
     # Convert gravity to binary classification (0: not severe, 1: severe)
     # Gravity categories:
@@ -53,22 +69,64 @@ def prepare_data(config_path="config.yaml"):
     # 4 – Blessé léger (slightly injured)
     # Group 1 and 4 as not severe (0), group 2 and 3 as severe (1)
     data['grav'] = data['grav'].apply(lambda x: 1 if x in [2, 3] else 0)
+    
+    # Print summary
+    print("\n=== Data Summary ===")
+    print(f"Final shape: {data.shape}")
+    print("\nClass distribution (0: not severe, 1: severe):")
+    print(data['grav'].value_counts())
+    
+    # Define paths for scaler
+    model_dir = '/app/models'  # As per docker-compose volume mount for models
+    os.makedirs(model_dir, exist_ok=True)
+    scaler_path = os.path.join(model_dir, f'scaler_{year}.joblib')
+    logger.info(f"Scaler will be saved to: {scaler_path}")
 
-    # Select numerical columns for normalization (excluding 'grav' and non-numerical columns)
-    numerical_columns = data.select_dtypes(include=['float64', 'int64']).columns
-    numerical_columns = [col for col in numerical_columns if col != 'grav']  # Exclude target
+    # Separate features and target
+    X = data[features]
+    y = data['grav']
 
-    if numerical_columns:
-        # Normalize numerical features using StandardScaler
-        scaler = StandardScaler()
-        data[numerical_columns] = scaler.fit_transform(data[numerical_columns])
+    # Initialize and fit scaler on features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    # Convert scaled features back to DataFrame
+    X_scaled_df = pd.DataFrame(X_scaled, columns=features, index=X.index)
+    
+    # Combine scaled features and target
+    processed_data_scaled = pd.concat([X_scaled_df, y], axis=1)
+    
+    # Save the scaler
+    joblib.dump(scaler, scaler_path)
+    logger.info(f"Scaler saved to {scaler_path}")
 
-    # Save the prepared data to the processed directory
-    output_path = os.path.join(processed_dir, f"prepared_accidents_{year}.csv")
-    data.to_csv(output_path, index=False)
-    print(f"Prepared data saved to {output_path}")
-    with open(os.path.join(processed_dir, "prepared_data.done"), "w") as f:
+    # Save the processed and scaled data
+    logger.info(f"Columns to save (after scaling): {processed_data_scaled.columns.tolist()}")
+    logger.info(f"Data shape before save (after scaling): {processed_data_scaled.shape}")
+    logger.info(f"Data head before save (after scaling):\n{processed_data_scaled.head()}")
+    
+    output_file = f"prepared_accidents_{year}.csv"
+    output_path = os.path.join(processed_dir, output_file)
+    processed_data_scaled.to_csv(output_path, index=False)
+    logger.info(f"Processed and scaled data saved to {output_path}")
+
+    # Verify the file was created and has the right columns
+    if os.path.exists(output_path):
+        df_check = pd.read_csv(output_path, nrows=1)
+        print(f"\n=== Output File Verification ===")
+        print(f"Output file created at: {output_path}")
+        print(f"Columns in output file: {df_check.columns.tolist()}")
+        print(f"First row values: {df_check.iloc[0].to_dict()}")
+    else:
+        print(f"ERROR: Output file was not created at {output_path}")
+    
+    # Create done file
+    done_file = os.path.join(processed_dir, "prepared_data.done")
+    with open(done_file, "w") as f:
         f.write("done\n")
+    print(f"\nDone file created at: {done_file}")
+    
+    return data
 
 if __name__ == "__main__":
     # Load configuration parameters

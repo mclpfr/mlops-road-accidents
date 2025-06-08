@@ -1,3 +1,4 @@
+import sys
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import PlainTextResponse, HTMLResponse
 import pandas as pd
@@ -13,7 +14,6 @@ REFERENCE_DATA_DIR = "/app/reference/"
 CURRENT_DATA_DIR = "/app/current/"
 
 def _get_latest_file(directory, prefix):
-    """Gets the most recent file in a directory with a given prefix."""
     print(f"--- _get_latest_file: Searching in '{directory}' for prefix '{prefix}' ---")
     if not os.path.exists(directory):
         print(f"--- _get_latest_file: ERROR - Directory does not exist: {directory} ---")
@@ -30,15 +30,13 @@ def _get_latest_file(directory, prefix):
     return os.path.join(directory, latest_file)
 
 def _calculate_drift_metrics(noise_factor=None):
-    """Helper function to calculate drift metrics and return the report dictionary.
-    
-    Args:
-        noise_factor: Optional factor to simulate different levels of data drift (0.0 to 1.0)
-    """
     print(f"--- _calculate_drift_metrics: Entering function (noise_factor={noise_factor}) ---")
     
-    reference_file = _get_latest_file(REFERENCE_DATA_DIR, "best_model_data") # Fixed prefix
-    current_file = _get_latest_file(CURRENT_DATA_DIR, "current_data") # Fixed prefix
+    MODEL_FEATURES = ["catu", "sexe", "trajet", "catr", "circ", "vosp", "prof", 
+                     "plan", "surf", "situ", "lum", "atm", "col"]
+    
+    reference_file = _get_latest_file(REFERENCE_DATA_DIR, "best_model_data") 
+    current_file = _get_latest_file(CURRENT_DATA_DIR, "current_data") 
 
     if not reference_file:
         print("--- _calculate_drift_metrics: ERROR - Reference file not found ---")
@@ -60,81 +58,113 @@ def _calculate_drift_metrics(noise_factor=None):
     print(f"--- _calculate_drift_metrics: Reference data dimensions: {reference_data.shape} ---")
     print(f"--- _calculate_drift_metrics: Current data dimensions: {current_data.shape} ---")
 
-    cols_to_drop = ['grav', 'Num_Acc'] # 'grav' is the target, 'Num_Acc' is often an ID
-    reference_data_cols_before_drop = set(reference_data.columns)
-    current_data_cols_before_drop = set(current_data.columns)
-
-    reference_data = reference_data.drop(columns=[col for col in cols_to_drop if col in reference_data.columns], errors='ignore')
-    current_data = current_data.drop(columns=[col for col in cols_to_drop if col in current_data.columns], errors='ignore')
+    available_features = [col for col in MODEL_FEATURES if col in reference_data.columns and col in current_data.columns]
+    missing_features = set(MODEL_FEATURES) - set(available_features)
     
-    dropped_from_ref = reference_data_cols_before_drop - set(reference_data.columns)
-    dropped_from_cur = current_data_cols_before_drop - set(current_data.columns)
-    if dropped_from_ref:
-        print(f"--- _calculate_drift_metrics: Columns dropped from reference_data: {dropped_from_ref} ---")
-    if dropped_from_cur:
-        print(f"--- _calculate_drift_metrics: Columns dropped from current_data: {dropped_from_cur} ---")
-
-    print(f"--- _calculate_drift_metrics: Reference data dimensions (after drop): {reference_data.shape} ---")
-    print(f"--- _calculate_drift_metrics: Current data dimensions (after drop): {current_data.shape} ---")
-
-    common_cols = sorted(list(set(reference_data.columns) & set(current_data.columns)))
-    if not common_cols:
-        print("--- _calculate_drift_metrics: ERROR - No common columns found after potential drops. Please check column names and CSV files. ---")
-        raise ValueError("No common columns between reference and current datasets after potential drops.")
+    if missing_features:
+        print(f"--- WARNING: Some model features are missing: {missing_features} ---")
     
-    print(f"--- _calculate_drift_metrics: Common columns used ({len(common_cols)}): {common_cols} ---")
-    reference_data = reference_data[common_cols]
-    current_data = current_data[common_cols]
+    if not available_features:
+        raise ValueError("No model features available in both reference and current datasets")
+        
+    print(f"--- _calculate_drift_metrics: Using {len(available_features)} model features: {available_features} ---")
+    
+    reference_data = reference_data[available_features].copy()
+    current_data = current_data[available_features].copy()
+    
+    for col in available_features:
+        if reference_data[col].dtype == 'object' or reference_data[col].nunique() < 20:
+            reference_data[col] = reference_data[col].astype('category').cat.codes
+            current_data[col] = current_data[col].astype('category').cat.codes
+    
+    
+    
+    common_cols = available_features
 
     for col in common_cols:
         ref_unique = reference_data[col].nunique()
         cur_unique = current_data[col].nunique()
         ref_nan = reference_data[col].isna().sum()
         cur_nan = current_data[col].isna().sum()
-        print(f"--- Debug col '{col}': REF unique={ref_unique}, nan={ref_nan} | CUR unique={cur_unique}, nan={cur_nan} ---")
         if ref_unique == 1 and len(reference_data) > 1:
             print(f"--- WARNING: Column '{col}' in REFERENCE has only one unique value: {reference_data[col].iloc[0] if len(reference_data) > 0 else 'N/A'} ---")
         if cur_unique == 1 and len(current_data) > 1:
             print(f"--- WARNING: Column '{col}' in CURRENT has only one unique value: {current_data[col].iloc[0] if len(current_data) > 0 else 'N/A'} ---")
     
-    # For Evidently 0.7.6, we'll use a simpler approach
-    # by calculating the distribution difference for each numeric column
+    
+    
     print("--- _calculate_drift_metrics: Calculating distribution differences ---")
     
     drift_count = 0
     drifted_features = []
     total_columns = len(common_cols)
     
-    # For each column, calculate distribution difference
+    
     for col in common_cols:
-        if reference_data[col].dtype in ['int64', 'float64'] and reference_data[col].nunique() > 1 and current_data[col].nunique() > 1:
-            try:
-                # Pearson correlation between distributions
-                ref_vals = reference_data[col].dropna().values
-                cur_vals = current_data[col].dropna().values
-                if len(ref_vals) > 1 and len(cur_vals) > 1:
-                    corr = np.corrcoef(np.histogram(ref_vals, bins=20, density=True)[0],
-                                       np.histogram(cur_vals, bins=20, density=True)[0])[0, 1]
-                    if corr < 0.95:
-                        drift_count += 1
-                        drifted_features.append(col)
-            except Exception as e:
-                print(f"--- _calculate_drift_metrics: Error in correlation for column {col}: {e} ---")
-        else:
-            # For non-numeric or low-variance columns, skip drift detection
+        try:
+            ref_vals = reference_data[col].dropna().values
+            cur_vals = current_data[col].dropna().values
+            
+            
+            if len(ref_vals) <= 1 or len(cur_vals) <= 1:
+                print(f"--- _calculate_drift_metrics: Skipping column '{col}' - not enough data (ref: {len(ref_vals)}, cur: {len(cur_vals)})")
+                continue
+                
+            
+            if np.issubdtype(reference_data[col].dtype, np.number) and reference_data[col].nunique() > 1:
+                
+                ref_hist = np.histogram(ref_vals, bins=20, density=True)[0]
+                cur_hist = np.histogram(cur_vals, bins=20, density=True)[0]
+                
+                
+                if np.all(ref_hist == ref_hist[0]) or np.all(cur_hist == cur_hist[0]):
+                    print(f"--- _calculate_drift_metrics: Skipping numeric column '{col}' - constant histogram")
+                    continue
+                    
+                corr = np.corrcoef(ref_hist, cur_hist)[0, 1]
+                if np.isnan(corr):
+                    print(f"--- _calculate_drift_metrics: NaN correlation for column '{col}'", file=sys.stderr)
+                    continue
+                    
+                if corr < 0.95:
+                    drift_count += 1
+                    drifted_features.append(f"{col} (corr: {corr:.2f})")
+                    print(f"--- _calculate_drift_metrics: Drift detected in column '{col}' (corr: {corr:.2f})")
+                else:
+                    print(f"--- _calculate_drift_metrics: No drift in column '{col}' (corr: {corr:.2f})")
+            else:
+                
+                ref_counts = reference_data[col].value_counts(normalize=True)
+                cur_counts = current_data[col].value_counts(normalize=True)
+                
+                
+                all_cats = set(ref_counts.index).union(set(cur_counts.index))
+                
+                
+                tvd = 0.5 * sum(abs(ref_counts.get(cat, 0) - cur_counts.get(cat, 0)) for cat in all_cats)
+                
+                if tvd > 0.1:
+                    drift_count += 1
+                    drifted_features.append(f"{col} (tvd: {tvd:.2f})")
+                    print(f"--- _calculate_drift_metrics: Categorical drift in column '{col}' (tvd: {tvd:.2f})")
+                else:
+                    print(f"--- _calculate_drift_metrics: No categorical drift in column '{col}' (tvd: {tvd:.2f})")
+                    
+        except Exception as e:
+            print(f"--- _calculate_drift_metrics: Error processing column '{col}': {str(e)}", file=sys.stderr)
             continue
     drift_share = drift_count / total_columns if total_columns > 0 else 0.0
     
-    # Create result dictionary
+    
     result_dict = {
-        "drift_share": drift_count / total_columns if total_columns > 0 else 0, # Original calculation
+        "drift_share": drift_count / total_columns if total_columns > 0 else 0,
         "total_columns": total_columns,
         "drifted_columns": drift_count,
         "drifted_feature_list": drifted_features,
         "status": "success"
     }
     
-    print(f"--- _calculate_drift_metrics: Calculation complete - {drift_count} out of {total_columns} columns with drift detected ---") # Original print
+    print(f"--- _calculate_drift_metrics: Calculation complete - {drift_count} out of {total_columns} columns with drift detected ---")
     return result_dict
 
 @app.get("/drift_score", response_class=PlainTextResponse)
@@ -150,14 +180,14 @@ async def get_drift_score_prometheus(noise: float = None):
         if result.get('status') != 'success':
             raise ValueError("Error during data drift calculation")
         
-        # Get drift score
+        
         drift_share = float(result.get('drift_share', 0.0))
         drifted_columns = int(result.get('drifted_columns', 0))
-        total_columns = int(result.get('total_columns', 1))  # Avoid division by zero
+        total_columns = int(result.get('total_columns', 1))
         
         print(f"--- get_drift_score_prometheus: Drift detected in {drifted_columns} out of {total_columns} columns (score: {drift_share:.2f}) ---")
 
-        # Format the response in Prometheus format
+        
         response_lines = [
             "# HELP ml_data_drift_score Drift score between reference and current data (share of drifting features)",
             "# TYPE ml_data_drift_score gauge",
@@ -182,14 +212,11 @@ async def get_drift_score_prometheus(noise: float = None):
 @app.get("/drift_dashboard", response_class=HTMLResponse)
 async def get_drift_dashboard():
     try:
-        # Get drift calculation results
         result = _calculate_drift_metrics()
         
-        # Check if calculation was successful
         if result.get('status') != 'success':
             raise ValueError("Error during data drift calculation")
         
-        # Get drift metrics
         drift_share = result.get('drift_share', 0.0)
         drifted_columns = result.get('drifted_columns', 0)
         total_columns = result.get('total_columns', 1)
@@ -232,14 +259,10 @@ from fastapi.responses import JSONResponse
 
 @app.get("/drift_report", response_class=JSONResponse)
 async def get_drift_report():
-    """
-    Endpoint to retrieve the complete drift report (score, number of drifted columns, total, list of drifted columns)
-    """
     try:
         result = _calculate_drift_metrics()
         if result.get('status') != 'success':
             raise ValueError("Error during data drift calculation")
-        # On retourne tout le dictionnaire (score, nombre, liste...)
         return JSONResponse(content=result)
     except FileNotFoundError as e:
         return JSONResponse(content={"error": str(e)}, status_code=404)
@@ -250,7 +273,7 @@ async def get_drift_report():
 
 @app.post("/trigger_airflow_from_alert")
 async def trigger_airflow_from_alert(request: Request):
-    # We ignore the Alertmanager payload content
+    
     airflow_url = "http://airflow-webserver:8080/api/v1/dags/road_accidents/dagRuns"
     auth = ("airflow", "airflow")
     headers = {"Content-Type": "application/json"}
@@ -265,6 +288,6 @@ async def trigger_airflow_from_alert(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    # This is for local testing. For deployment, use a proper ASGI server like Uvicorn/Gunicorn.
-    # The Dockerfile in a real setup would specify how to run this.
-    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True) # Using port 8001 for the drift service
+    
+    
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
