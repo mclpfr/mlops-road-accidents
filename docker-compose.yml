@@ -82,7 +82,7 @@ services:
         <<: *user-info
     container_name: import_data_service
     command: >
-      sh -c "chmod +x /app/wait-for-postgres.sh && /app/wait-for-postgres.sh postgres 5432 && python import_data.py"
+      sh -c "/app/wait-for-postgres.sh postgres 5432 && python import_data.py"
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
@@ -122,6 +122,7 @@ services:
       - ./config.yaml:/app/config.yaml
       - ./.git:/app/.git
       - ./dvc.yaml:/app/dvc.yaml
+      - ./.dvc:/app/.dvc
     working_dir: /app
     depends_on:
       - prepare_data

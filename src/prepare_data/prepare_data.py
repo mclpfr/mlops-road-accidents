@@ -24,7 +24,7 @@ def prepare_data(config_path="config.yaml"):
     year = config["data_extraction"]["year"]
     
     # Define paths - WORKDIR is /app, data volume is mounted at /app/data
-    app_data_dir = '/app/data'
+    app_data_dir = 'data'
     raw_dir = os.path.join(app_data_dir, 'raw')
     processed_dir = os.path.join(app_data_dir, 'processed')
     synthet_path = os.path.join(raw_dir, f'accidents_{year}_synthet.csv')
@@ -77,7 +77,7 @@ def prepare_data(config_path="config.yaml"):
     print(data['grav'].value_counts())
     
     # Define paths for scaler
-    model_dir = '/app/models'  # As per docker-compose volume mount for models
+    model_dir = 'models'  # As per docker-compose volume mount for models
     os.makedirs(model_dir, exist_ok=True)
     scaler_path = os.path.join(model_dir, f'scaler_{year}.joblib')
     logger.info(f"Scaler will be saved to: {scaler_path}")
