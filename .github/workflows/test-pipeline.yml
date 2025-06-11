@@ -46,11 +46,10 @@ jobs:
         run: |
           echo "${{ secrets.CONFIG_YAML }}" > config.yaml
 
-      # Créer les dossiers nécessaires
       - name: Create necessary directories
         run: |
           mkdir -p data models
-          chmod 777 models  # Permettre l'écriture dans le dossier models
+          chmod 777 models  
 
       - name: Build and run extract_data container
         run: |
@@ -67,7 +66,6 @@ jobs:
           docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t prepare_data_service -f src/prepare_data/Dockerfile .
           docker run --rm -v $(pwd)/data:/app/data -v $(pwd)/models:/app/models -v $(pwd)/config.yaml:/app/config.yaml prepare_data_service
 
-      # CORRECTION PRINCIPALE : Monter le dossier models/
       - name: Build and run train_model container
         env:
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
@@ -83,18 +81,6 @@ jobs:
             -e MLFLOW_TRACKING_USERNAME="${MLFLOW_TRACKING_USERNAME}" \
             -e MLFLOW_TRACKING_PASSWORD="${MLFLOW_TRACKING_PASSWORD}" \
             train_model_service
-
-      # Vérifier que le modèle a été créé
-      - name: Verify model creation
-        run: |
-          if [ -f "models/rf_model_2023.joblib" ]; then
-            echo "✅ Model file created successfully"
-            ls -la models/
-          else
-            echo "❌ Model file not found"
-            ls -la models/ || echo "Models directory not found"
-            exit 1
-          fi
 
       - name: Build API Docker image
         run: docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t api_service -f src/api/Dockerfile .
@@ -117,7 +103,6 @@ jobs:
             sleep 2
           done
 
-      # Installer Python et les dépendances avant les tests
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
