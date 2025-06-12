@@ -20,7 +20,6 @@ RUN mkdir -p /app/data/raw && \
     chown -R appuser:appuser /app /app/data
 
 COPY config.yaml .
-
 COPY src/extract_data/extract_data.py .
 
 USER appuser
