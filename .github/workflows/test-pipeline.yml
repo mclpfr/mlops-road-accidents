@@ -55,16 +55,37 @@ jobs:
         run: |
           docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t extract_data_service -f src/extract_data/Dockerfile .
           docker run --rm -v $(pwd)/data:/app/data -v $(pwd)/config.yaml:/app/config.yaml extract_data_service
+          if [ -f "data/raw/accidents_2023.csv" ]; then
+            touch data/raw/extract_data.done
+            echo "Created marker file: data/raw/extract_data.done"
+          else
+            echo "Error: Data file not created"
+            exit 1
+          fi
 
       - name: Build and run synthet_data container
         run: |
           docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t synthet_data_service -f src/synthet_data/Dockerfile .
           docker run --rm -v $(pwd)/data:/app/data -v $(pwd)/config.yaml:/app/config.yaml synthet_data_service
+          if [ -f "data/raw/accidents_2023_synthet.csv" ]; then
+            touch data/raw/accidents_2023_synthet.done
+            echo "Created marker file: data/raw/accidents_2023_synthet.done"
+          else
+            echo "Error: Synthet data file not created"
+            exit 1
+          fi
 
       - name: Build and run prepare_data container
         run: |
           docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t prepare_data_service -f src/prepare_data/Dockerfile .
           docker run --rm -v $(pwd)/data:/app/data -v $(pwd)/models:/app/models -v $(pwd)/config.yaml:/app/config.yaml prepare_data_service
+          if [ -f "data/processed/prepared_accidents_2023.csv" ]; then
+            touch data/processed/prepared_data.done
+            echo "Created marker file: data/processed/prepared_data.done"
+          else
+            echo "Error: Prepared data file not created"
+            exit 1
+          fi
 
       - name: Build and run train_model container
         env:
@@ -81,6 +102,12 @@ jobs:
             -e MLFLOW_TRACKING_USERNAME="${MLFLOW_TRACKING_USERNAME}" \
             -e MLFLOW_TRACKING_PASSWORD="${MLFLOW_TRACKING_PASSWORD}" \
             train_model_service
+          if [ -f "models/train_model.done" ]; then
+            echo "Training completed successfully"
+          else
+            echo "Error: Training did not complete successfully"
+            exit 1
+          fi
 
       - name: Build API Docker image
         run: docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t api_service -f src/api/Dockerfile .
