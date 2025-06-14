@@ -26,4 +26,4 @@ scrape_configs:
         target_label: 'service' 
       - action: replace
         target_label: job
-        replacement: DOCKER_SCRAPE_SERVICE_API 
+        replacement: api 

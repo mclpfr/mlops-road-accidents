@@ -13,7 +13,7 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def load_config(config_path="config.yaml"):
+def load_config(config_path="/app/config.yaml"):
     try:
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
@@ -28,7 +28,7 @@ def load_config(config_path="config.yaml"):
                 "password": os.getenv("MLFLOW_TRACKING_PASSWORD", "")
             },
             "postgresql": {
-                "host": os.getenv("POSTGRES_HOST", "postgres_service"),  # Modifié pour utiliser postgres_service par défaut
+                "host": os.getenv("POSTGRES_HOST", "localhost"),
                 "port": os.getenv("POSTGRES_PORT", "5432"),
                 "user": os.getenv("POSTGRES_USER", "postgres"),
                 "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
@@ -45,33 +45,28 @@ def import_accidents_data(engine, data_path):
     try:
         logger.info(f"Importing accident data from {data_path}")
         try:
-            # Lire uniquement les 20 premières lignes
-            accidents_df = pd.read_csv(data_path, low_memory=False, on_bad_lines='skip', sep=';', nrows=20)
-            logger.info(f"Successfully read first 20 rows from {data_path}")
+            accidents_df = pd.read_csv(data_path, low_memory=False, on_bad_lines='skip', sep=';')
         except TypeError:
-            accidents_df = pd.read_csv(data_path, low_memory=False, error_bad_lines=False, sep=';', nrows=20)
-            logger.info(f"Successfully read first 20 rows from {data_path} (legacy method)")
+            accidents_df = pd.read_csv(data_path, low_memory=False, error_bad_lines=False, sep=';')
 
         # Some malformed lines in the CSV file were ignored during import.
         logger.warning("Some malformed lines in the CSV file were ignored during import.")
 
-        # logger.info(f"Original columns: {list(accidents_df.columns)}")
-        # # Required columns for accident data
-        # columns_needed = [
-        #     'Num_Acc', 'jour', 'mois', 'an', 'hrmn', 'lum', 'dep', 'com', 'agg', 'int', 'atm', 'col', 'adr', 'lat', 'long'
-        # ]
+        # Required columns for accident data
+        columns_needed = [
+            'Num_Acc', 'jour', 'mois', 'an', 'hrmn', 'lum', 'dep', 'com', 'agg', 'int', 'atm', 'col', 'adr', 'lat', 'long', 'grav'
+        ]
 
-        # # Filter only available columns
-        # available_columns = [col for col in columns_needed if col in accidents_df.columns]
+        # Filter only available columns
+        available_columns = [col for col in columns_needed if col in accidents_df.columns]
 
-        # # Check if any required columns are available
-        # if not available_columns:
-        #     logger.error("No required columns are available in the dataset")
-        #     return
+        # Check if any required columns are available
+        if not available_columns:
+            logger.error("No required columns are available in the dataset")
+            return
 
-        # # Select only available columns for import
-        # accidents_df = accidents_df[available_columns]
-        logger.info("Skipping column filtering to import all columns.")
+        # Select only available columns for import
+        accidents_df = accidents_df[available_columns]
 
         # Import accident data into the 'accidents' table
         accidents_df.to_sql('accidents', engine, if_exists='replace', index=False,
@@ -195,7 +190,7 @@ def main():
     engine = get_postgres_connection(config)
 
     year = config["data_extraction"]["year"]
-    data_path = f"data/raw/accidents_{year}.csv"
+    data_path = f"/app/data/raw/accidents_{year}.csv"
     import_accidents_data(engine, data_path)
 
     import_model_metrics(engine, config)
@@ -204,10 +199,10 @@ def main():
     
     # Clean up all marker files
     marker_files = [
-        "data/raw/extract_data.done",
-        "data/raw/accidents_{year}_synthet.done".format(year=year),
-        "data/processed/prepared_data.done",
-        "models/train_model.done"
+        "/app/data/raw/extract_data.done",
+        "/app/data/raw/accidents_{year}_synthet.done".format(year=year),
+        "/app/data/processed/prepared_data.done",
+        "/app/models/train_model.done"
     ]
     
     for marker_file in marker_files:
