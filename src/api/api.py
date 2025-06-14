@@ -1,5 +1,3 @@
-""" API """
-
 import os
 import io
 import warnings
@@ -20,25 +18,32 @@ from sklearn.metrics import classification_report
 from sklearn.exceptions import UndefinedMetricWarning
 from pydantic import BaseModel, ValidationError, Field
 
+# Addition to detect Streamlit environment
+try:
+    import streamlit as st
+    STREAMLIT_AVAILABLE = True
+except ImportError:
+    STREAMLIT_AVAILABLE = False
+
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
-# Initialiser l'application FastAPI
+# Initialize FastAPI application
 app = FastAPI()
 security = HTTPBasic()
 
-# Configuration de la sécurité
+# Security configuration
 JWT_SECRET_KEY = "key"
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# Context de hachage des mots de passe
+# Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Charger les informations sensibles depuis le fichier JSON
+# Load sensitive information from JSON file
 # with open('.config.json', encoding='utf-8') as f:
 #     users = json.load(f)
 
-# Modèles Pydantic pour les données
+# Pydantic models for data
 class Feature(BaseModel):
     grav: int = Field(ge=1, le=4)
     catu: int = Field(ge=1, le=3)
@@ -82,7 +87,7 @@ class User(BaseModel):
     username: str
     hashed_password: str
 
-# Exemple
+# Example
 fake_users_db = {
     "johndoe": {
         "username": "johndoe",
@@ -90,12 +95,41 @@ fake_users_db = {
     }
 }
 
-# OAuth2 schema pour la récupération du token
+# OAuth2 schema for token retrieval
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def get_mlflow_config():
+    """Retrieves MLflow configuration from Streamlit secrets or environment variables"""
+    config = {}
+    
+    # Try Streamlit secrets first if available
+    if STREAMLIT_AVAILABLE:
+        try:
+            if hasattr(st, 'secrets') and "mlflow" in st.secrets:
+                logger.info("MLflow configuration found in Streamlit secrets")
+                mlflow_secrets = st.secrets["mlflow"]
+                config = {
+                    "tracking_uri": mlflow_secrets.get("tracking_uri"),
+                    "username": mlflow_secrets.get("username", ""),
+                    "password": mlflow_secrets.get("password", "")
+                }
+                return config
+        except Exception as e:
+            logger.warning(f"Error reading Streamlit secrets: {e}")
+    
+    # Fallback to environment variables
+    logger.info("Using environment variables for MLflow")
+    config = {
+        "tracking_uri": os.getenv("MLFLOW_TRACKING_URI"),
+        "username": os.getenv("MLFLOW_TRACKING_USERNAME", ""),
+        "password": os.getenv("MLFLOW_TRACKING_PASSWORD", "")
+    }
+    
+    return config
 
 def load_config(config_path="config.yaml"):
     try:
@@ -103,24 +137,37 @@ def load_config(config_path="config.yaml"):
         with open(config_path, "r") as file:
             config = yaml.safe_load(file)
             logger.info(f"Configuration loaded from {config_path}")
+            
+            # Override MLflow config with Streamlit secrets if available
+            mlflow_config = get_mlflow_config()
+            if mlflow_config.get("tracking_uri"):
+                config["mlflow"] = mlflow_config
+                logger.info("MLflow configuration overridden with Streamlit secrets/env vars")
+            
             return config
     except FileNotFoundError:
         logger.warning(f"Config file {config_path} not found, using environment variables")
+        
+        # Get MLflow configuration from Streamlit secrets or env vars
+        mlflow_config = get_mlflow_config()
+        
+        # Check that tracking URI is defined
+        if not mlflow_config.get("tracking_uri"):
+            # Default URI for local MLflow
+            mlflow_config["tracking_uri"] = "http://localhost:5000"
+            logger.warning(f"No MLflow URI found, using default: {mlflow_config['tracking_uri']}")
+        
         # Fallback to environment variables
         config = {
             "data_extraction": {
                 "year": os.getenv("DATA_YEAR", "2023"),
                 "url": os.getenv("DATA_URL", "https://www.data.gouv.fr/en/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/")
             },
-            "mlflow": {
-                "tracking_uri": os.getenv("MLFLOW_TRACKING_URI"),
-                "username": os.getenv("MLFLOW_TRACKING_USERNAME"),
-                "password": os.getenv("MLFLOW_TRACKING_PASSWORD")
-            },
+            "mlflow": mlflow_config
         }
         return config
 
-# Télécharger le meilleur modèle localement
+# Download the best model locally
 def find_best_model(config_path="config.yaml"):
     try:
         # Load configuration parameters
@@ -128,19 +175,26 @@ def find_best_model(config_path="config.yaml"):
         year = config["data_extraction"]["year"]
         logger.info(f"Loaded configuration for year {year}")
 
-        # Configure MLflow from config.yaml or environment variables
+        # Configure MLflow from config.yaml, Streamlit secrets, or environment variables
         mlflow_config = config["mlflow"]
         tracking_uri = mlflow_config["tracking_uri"]
+        
         if not tracking_uri:
-            raise ValueError("MLflow tracking URI not found in config or environment variables")
+            raise ValueError("MLflow tracking URI not found in config, Streamlit secrets, or environment variables")
 
         logger.info(f"Setting MLflow tracking URI to: {tracking_uri}")
         mlflow.set_tracking_uri(tracking_uri)
 
-        # Configure authentication
-        os.environ["MLFLOW_TRACKING_USERNAME"] = mlflow_config["username"]
-        os.environ["MLFLOW_TRACKING_PASSWORD"] = mlflow_config["password"]
-        logger.info("MLflow authentication configured")
+        # Configure authentication if provided
+        username = mlflow_config.get("username")
+        password = mlflow_config.get("password")
+        
+        if username and password:
+            os.environ["MLFLOW_TRACKING_USERNAME"] = username
+            os.environ["MLFLOW_TRACKING_PASSWORD"] = password
+            logger.info("MLflow authentication configured")
+        else:
+            logger.info("No MLflow authentication credentials provided")
 
         # Test MLflow connection
         try:
@@ -163,42 +217,50 @@ def find_best_model(config_path="config.yaml"):
                         logger.info(f"  Latest best version: {best_version.version}, Stage: {best_version.current_stage}")
                         logger.info(f"  Tags: {best_version.tags}")
 
-                        # Télécharger la version du modèle avec le tag "best_model"
+                        # Download the model version with "best_model" tag
                         model_uri = f"models:/{model_name}/{best_version.version}"
                         
-                        # Charger le modèle
+                        # Load the model
                         model = mlflow.sklearn.load_model(model_uri)
                         model_version = {best_version.version}
+                        logger.info(f"Successfully loaded model {model_name} version {best_version.version}")
                         return model, model_version
+
+                # If no model with "best_model" tag is found
+                logger.warning("No model with 'best_model' tag found")
+                return None, None
 
             except Exception as e:
                 logger.error(f"Error checking existing models: {str(e)}")
+                return None, None
 
         except Exception as e:
             logger.error(f"Failed to connect to MLflow server: {str(e)}")
-            raise
+            # In case of connection failure, return None rather than raise exception
+            return None, None
 
     except Exception as e:
         logger.error(f"An error occurred during best model finding: {str(e)}")
+        return None, None
 
-# Fonction pour vérifier le mot de passe
+# Function to verify password
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-# Fonction pour obtenir un utilisateur
+# Function to get a user
 def get_user(db, username: str):
     if username in db:
         user_dict = db[username]
         return User(**user_dict)
 
-# Fonction pour authentifier un utilisateur
+# Function to authenticate a user
 def authenticate_user(fake_db, username: str, password: str):
     user = get_user(fake_db, username)
     if not user or not verify_password(password, user.hashed_password):
         return False
     return user
 
-# Fonction pour créer un token d'accès
+# Function to create an access token
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     if expires_delta:
@@ -209,15 +271,30 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return encoded_jwt
 
-# Chargement du modèle
-model_use, model_version_use = find_best_model(config_path="config.yaml")
+# Model loading with error handling
+try:
+    model_use, model_version_use = find_best_model(config_path="config.yaml")
+    if model_use is None:
+        logger.warning("No model loaded from MLflow, API will work in limited mode")
+        model_version_use = None
+    else:
+        logger.info(f"Model loaded successfully, version: {model_version_use}")
+except Exception as e:
+    logger.error(f"Failed to load model: {e}")
+    model_use = None
+    model_version_use = None
 
-# Endpoint pour vérifier l'API
+# Endpoint to check the API
 @app.get("/")
 def verify_api():
-    return {"message": "Bienvenue ! L'API est fonctionnelle."}
+    model_status = "Model loaded" if model_use is not None else "No model available"
+    return {
+        "message": "Bienvenue ! L'API est fonctionnelle.",
+        "model_status": model_status,
+        "model_version": model_version_use
+    }
 
-# Endpoint pour obtenir un token
+# Endpoint to get a token
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = authenticate_user(fake_users_db, form_data.username, form_data.password)
@@ -233,7 +310,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-# Fonction pour obtenir l'utilisateur courant
+# Function to get current user
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -252,19 +329,26 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return user
 
-# Endpoint sécurisé
+# Secure endpoint
 @app.get("/protected/me", response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
-# Endpoint pour faire des prédictions
+# Endpoint for predictions
 @app.post("/protected/predict")
 async def predict(data: InputData, current_user: User = Depends(get_current_user)):
+    # Check that model is available
+    if model_use is None:
+        raise HTTPException(
+            status_code=503, 
+            detail="Model not available. Please check MLflow configuration."
+        )
+    
     try:
-        # Données en entrée
+        # Input data
         df = pd.DataFrame([data.model_dump()])
 
-        # Sélection model features
+        # Model features selection
         model_features = [
             "catu",
             "sexe",
@@ -282,25 +366,36 @@ async def predict(data: InputData, current_user: User = Depends(get_current_user
             ]
         target = "grav"
 
-        # Préparation features (X) et target (y)
+        # Prepare features (X) and target (y)
         X = pd.get_dummies(df[model_features])
         y = df[target].apply(lambda x: 0 if x in [3, 4] else 1)  # 0: grave, 1: not grave
 
-        # Prédictions avec le modèle
+        # Predictions with the model
         y_pred = model_use.predict(X)
 
-        # Sortie des résultats
-        return {"user": current_user, "prediction": y_pred.tolist()}
+        # Output results
+        return {
+            "user": current_user, 
+            "prediction": y_pred.tolist(),
+            "model_version": model_version_use
+        }
 
     except ValidationError as e:
-        # Retourner une erreur si la validation échoue
+        # Return error if validation fails
         raise HTTPException(status_code=422, detail=e.errors()) from e
     except Exception as e:
-        # Gérer d'autres exceptions possibles
+        # Handle other possible exceptions
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 @app.post("/protected/predict_csv")
 async def predict_csv(file_request: UploadFile = File(), current_user: User = Depends(get_current_user)):
+    # Vérifier que le modèle est disponible
+    if model_use is None:
+        raise HTTPException(
+            status_code=503, 
+            detail="Model not available. Please check MLflow configuration."
+        )
+    
     try:
         # Lire le fichier CSV avec pandas
         contents = await file_request.read()
@@ -346,7 +441,11 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
         df_report = pd.DataFrame(report).transpose()
         df_report.to_csv("data/out/classification_report.csv")
 
-        return {"user": current_user, "message": f"Prédiction effectuée avec succès avec le modèle version {model_version_use}"}
+        return {
+            "user": current_user, 
+            "message": f"Prédiction effectuée avec succès avec le modèle version {model_version_use}",
+            "model_version": model_version_use
+        }
 
     except ImportError as e:
         return JSONResponse({'error': str(e)}, status_code=500)
@@ -360,13 +459,36 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
 # Endpoint pour mettre à jour le modèle
 @app.get("/protected/reload")
 async def reload_model(current_user: User = Depends(get_current_user)):
-    global model_use
-    model_up, model_version_up = find_best_model(config_path="config.yaml")
-    if model_version_up > model_version_use:
-        model_use = model_up
-        return {"user": current_user, "message": "Mise à jour d'un nouveau modèle effectué."}
-    else:
-        return {"user": current_user, "message": "Il n'y a pas de mise à jour d'un nouveau modèle."}
+    global model_use, model_version_use
+    
+    try:
+        model_up, model_version_up = find_best_model(config_path="config.yaml")
+        
+        if model_up is None:
+            return {
+                "user": current_user, 
+                "message": "Aucun modèle disponible dans MLflow."
+            }
+        
+        if model_version_up and model_version_use and model_version_up > model_version_use:
+            model_use = model_up
+            model_version_use = model_version_up
+            return {
+                "user": current_user, 
+                "message": f"Mise à jour effectuée vers le modèle version {model_version_up}."
+            }
+        else:
+            return {
+                "user": current_user, 
+                "message": "Aucune mise à jour de modèle disponible.",
+                "current_version": model_version_use
+            }
+    except Exception as e:
+        logger.error(f"Error during model reload: {e}")
+        return {
+            "user": current_user, 
+            "message": f"Erreur lors du rechargement du modèle : {str(e)}"
+        }
 
 # Lancer l'application avec Uvicorn
 if __name__ == "__main__":

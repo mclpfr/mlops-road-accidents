@@ -1047,7 +1047,9 @@ def show_interactive_demo():
                 if hasattr(model, 'predict_proba'):
                     proba = model.predict_proba(X)[0]
                     confidence = proba[pred]
-                prediction_label = "Grave" if pred == 0 else "Pas Grave"
+                # Correction : 0 = Pas Grave, 1 = Grave
+                prediction_label = "Pas Grave" if pred == 0 else "Grave"
+                # Rouge pour Grave (sérieux), Vert pour Pas Grave
                 color = "#EF4444" if prediction_label == "Grave" else "#10B981"
                 conf_text = f"Confiance: {confidence:.1%}" if confidence is not None else ""
                 st.markdown(f"""
