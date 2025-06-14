@@ -13,28 +13,29 @@ def download_accident_data(config_path="config.yaml"):
     # Load configuration parameters
     config = load_config(config_path)
     year = config["data_extraction"]["year"]
-    url = config["data_extraction"]["url"]
-
-    # Perform an HTTP GET request to fetch the webpage content
-    response = requests.get(url)
-    response.raise_for_status()  # Ensure request was successful
-
-    # Parse the HTML content using BeautifulSoup
-    soup = BeautifulSoup(response.text, 'html.parser')
-
-    # Find all links on the page
-    resource_links = soup.find_all('a', href=True)
-
-    # List of required CSV files for the specified year
-    files_to_download = [f'usagers-{year}.csv', f'vehicules-{year}.csv', f'lieux-{year}.csv', f'caract-{year}.csv']
-
-    # Dictionary to store valid download links
-    csv_links = {
-        file_name: link['href']
-        for file_name in files_to_download
-        for link in resource_links
-        if file_name in link['href']
-    }
+    
+    # Direct URLs for 2023 files
+    if year == "2023":
+        csv_links = {
+            f'usagers-{year}.csv': 'https://static.data.gouv.fr/resources/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/20241023-153328/usagers-2023.csv',
+            f'vehicules-{year}.csv': 'https://static.data.gouv.fr/resources/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/20241023-153253/vehicules-2023.csv',
+            f'lieux-{year}.csv': 'https://static.data.gouv.fr/resources/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/20241023-153219/lieux-2023.csv',
+            f'caract-{year}.csv': 'https://static.data.gouv.fr/resources/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/20241028-103125/caract-2023.csv'
+        }
+    else:
+        # Original implementation for other years
+        url = config["data_extraction"]["url"]
+        response = requests.get(url)
+        response.raise_for_status()  # Ensure request was successful
+        soup = BeautifulSoup(response.text, 'html.parser')
+        resource_links = soup.find_all('a', href=True)
+        files_to_download = [f'usagers-{year}.csv', f'vehicules-{year}.csv', f'lieux-{year}.csv', f'caract-{year}.csv']
+        csv_links = {
+            file_name: link['href']
+            for file_name in files_to_download
+            for link in resource_links
+            if file_name in link['href']
+        }
 
     # Check if any links were found
     if not csv_links:
@@ -83,10 +84,10 @@ def download_accident_data(config_path="config.yaml"):
     # Convert 'grav' column to numeric, handling any potential string values
     merged_data['grav'] = pd.to_numeric(merged_data['grav'].astype(str).str.strip('"'), errors='coerce')
 
-    # Limit dataset to 2000 lines 
+    # Limit dataset to 100000 lines 
     original_size = len(merged_data)
-    print(f"Limiting the dataset to 20000 rows (original size: {original_size} rows)")
-    merged_data = merged_data.head(20000)
+    print(f"Limiting the dataset to 100000 rows (original size: {original_size} rows)")
+    merged_data = merged_data.head(100000)
     
     # Save the merged data to the output directory
     output_path = os.path.join(output_dir, f'accidents_{year}.csv')

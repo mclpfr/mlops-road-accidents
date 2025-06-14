@@ -1,6 +1,6 @@
 {
   "uid": "api_monitoring_dashboard_v2",
-  "title": "API Monitoring Dashboard (v2)",
+  "title": "API",
   "description": "Monitoring API health, latency, error rates, throughput, and system resources based on provided metrics.",
   "tags": ["api", "monitoring"],
   "timezone": "browser",
@@ -342,6 +342,39 @@
           },
           "unit": "bytes"
         }
+      }
+    },
+    {
+      "id": 13,
+      "title": "API Logs",
+      "type": "logs",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "Loki"
+      },
+      "targets": [
+        {
+          "expr": "{job=\"api\"}",
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "Loki"
+          }
+        }
+      ],
+      "options": {
+        "showLabels": true,
+        "showTime": true,
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "wrapLogMessage": false,
+        "sortOrder": "Descending"
       }
     }
   ]
