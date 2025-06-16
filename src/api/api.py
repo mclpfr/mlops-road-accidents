@@ -357,6 +357,11 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
         # Gérer d'autres exceptions possibles
         raise HTTPException(status_code=500, detail=str(e)) from e
 
+# Instrumentation Prometheus
+from prometheus_fastapi_instrumentator import Instrumentator
+
+Instrumentator().instrument(app).expose(app)
+
 # Endpoint pour mettre à jour le modèle
 @app.get("/protected/reload")
 async def reload_model(current_user: User = Depends(get_current_user)):

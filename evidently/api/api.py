@@ -13,6 +13,10 @@ app = FastAPI()
 REFERENCE_DATA_DIR = "/app/reference/"
 CURRENT_DATA_DIR = "/app/current/"
 
+# Global override for the noise factor applied during drift calculation.
+# Allows simulating a constant drift visible in Prometheus.
+NOISE_OVERRIDE = None  # None = no override, otherwise float (>0)
+
 def _get_latest_file(directory, prefix):
     print(f"--- _get_latest_file: Searching in '{directory}' for prefix '{prefix}' ---")
     if not os.path.exists(directory):
@@ -72,12 +76,34 @@ def _calculate_drift_metrics(noise_factor=None):
     reference_data = reference_data[available_features].copy()
     current_data = current_data[available_features].copy()
     
+    # ADD NOISE IF noise_factor PARAMETER IS SPECIFIED
+    if noise_factor is not None and noise_factor > 0:
+        print(f"--- _calculate_drift_metrics: Applying noise factor {noise_factor} to current data ---")
+        
+        # Ajouter du bruit aux données courantes pour simuler le drift
+        for col in available_features:
+            if current_data[col].dtype in ['int64', 'float64', 'int32', 'float32']:
+                # For numerical columns, add Gaussian noise
+                if current_data[col].std() > 0:
+                    noise = np.random.normal(0, noise_factor * current_data[col].std(), len(current_data))
+                    current_data[col] = current_data[col] + noise
+                    print(f"--- _calculate_drift_metrics: Added numerical noise to column '{col}' ---")
+            else:
+                # For categorical columns, randomly shuffle a percentage of values
+                if noise_factor > 0.1:  # Si le bruit est significatif
+                    n_to_shuffle = int(len(current_data) * min(noise_factor, 1.0))
+                    if n_to_shuffle > 0:
+                        indices_to_shuffle = np.random.choice(len(current_data), n_to_shuffle, replace=False)
+                        shuffled_values = current_data[col].iloc[indices_to_shuffle].sample(frac=1).values
+                        current_data.loc[current_data.index[indices_to_shuffle], col] = shuffled_values
+                        print(f"--- _calculate_drift_metrics: Added categorical noise to column '{col}' (shuffled {n_to_shuffle} values) ---")
+        
+        print(f"--- _calculate_drift_metrics: Noise applied successfully ---")
+    
     for col in available_features:
         if reference_data[col].dtype == 'object' or reference_data[col].nunique() < 20:
             reference_data[col] = reference_data[col].astype('category').cat.codes
             current_data[col] = current_data[col].astype('category').cat.codes
-    
-    
     
     common_cols = available_features
 
@@ -91,31 +117,24 @@ def _calculate_drift_metrics(noise_factor=None):
         if cur_unique == 1 and len(current_data) > 1:
             print(f"--- WARNING: Column '{col}' in CURRENT has only one unique value: {current_data[col].iloc[0] if len(current_data) > 0 else 'N/A'} ---")
     
-    
-    
     print("--- _calculate_drift_metrics: Calculating distribution differences ---")
     
     drift_count = 0
     drifted_features = []
     total_columns = len(common_cols)
     
-    
     for col in common_cols:
         try:
             ref_vals = reference_data[col].dropna().values
             cur_vals = current_data[col].dropna().values
             
-            
             if len(ref_vals) <= 1 or len(cur_vals) <= 1:
                 print(f"--- _calculate_drift_metrics: Skipping column '{col}' - not enough data (ref: {len(ref_vals)}, cur: {len(cur_vals)})")
                 continue
                 
-            
             if np.issubdtype(reference_data[col].dtype, np.number) and reference_data[col].nunique() > 1:
-                
                 ref_hist = np.histogram(ref_vals, bins=20, density=True)[0]
                 cur_hist = np.histogram(cur_vals, bins=20, density=True)[0]
-                
                 
                 if np.all(ref_hist == ref_hist[0]) or np.all(cur_hist == cur_hist[0]):
                     print(f"--- _calculate_drift_metrics: Skipping numeric column '{col}' - constant histogram")
@@ -133,13 +152,10 @@ def _calculate_drift_metrics(noise_factor=None):
                 else:
                     print(f"--- _calculate_drift_metrics: No drift in column '{col}' (corr: {corr:.2f})")
             else:
-                
                 ref_counts = reference_data[col].value_counts(normalize=True)
                 cur_counts = current_data[col].value_counts(normalize=True)
                 
-                
                 all_cats = set(ref_counts.index).union(set(cur_counts.index))
-                
                 
                 tvd = 0.5 * sum(abs(ref_counts.get(cat, 0) - cur_counts.get(cat, 0)) for cat in all_cats)
                 
@@ -153,16 +169,29 @@ def _calculate_drift_metrics(noise_factor=None):
         except Exception as e:
             print(f"--- _calculate_drift_metrics: Error processing column '{col}': {str(e)}", file=sys.stderr)
             continue
+    
     drift_share = drift_count / total_columns if total_columns > 0 else 0.0
     
-    
-    result_dict = {
-        "drift_share": drift_count / total_columns if total_columns > 0 else 0,
-        "total_columns": total_columns,
-        "drifted_columns": drift_count,
-        "drifted_feature_list": drifted_features,
-        "status": "success"
-    }
+    # IF NOISE IS APPLIED, FORCE A HIGH DRIFT FOR TESTING
+    if noise_factor is not None and noise_factor > 0:
+        # Force a high drift proportional to noise_factor
+        forced_drift_share = min(noise_factor, 1.0)  # Maximum 1.0
+        print(f"--- _calculate_drift_metrics: FORCING drift_share to {forced_drift_share} due to noise_factor={noise_factor} ---")
+        result_dict = {
+            "drift_share": forced_drift_share,
+            "total_columns": total_columns,
+            "drifted_columns": int(forced_drift_share * total_columns),
+            "drifted_feature_list": drifted_features + [f"SIMULATED_DRIFT (noise: {noise_factor})"],
+            "status": "success"
+        }
+    else:
+        result_dict = {
+            "drift_share": drift_share,
+            "total_columns": total_columns,
+            "drifted_columns": drift_count,
+            "drifted_feature_list": drifted_features,
+            "status": "success"
+        }
     
     print(f"--- _calculate_drift_metrics: Calculation complete - {drift_count} out of {total_columns} columns with drift detected ---")
     return result_dict
@@ -171,6 +200,9 @@ def _calculate_drift_metrics(noise_factor=None):
 @app.get("/metrics", response_class=PlainTextResponse)
 async def get_drift_score_prometheus(noise: float = None):
     print(f"--- get_drift_score_prometheus: Entering function (noise={noise}) ---") 
+    # If no noise parameter in the request and an override is defined, apply it
+    if noise is None and NOISE_OVERRIDE is not None:
+        noise = NOISE_OVERRIDE
     try:
         # Get drift calculation results
         result = _calculate_drift_metrics(noise_factor=noise)
@@ -180,14 +212,12 @@ async def get_drift_score_prometheus(noise: float = None):
         if result.get('status') != 'success':
             raise ValueError("Error during data drift calculation")
         
-        
         drift_share = float(result.get('drift_share', 0.0))
         drifted_columns = int(result.get('drifted_columns', 0))
         total_columns = int(result.get('total_columns', 1))
         
         print(f"--- get_drift_score_prometheus: Drift detected in {drifted_columns} out of {total_columns} columns (score: {drift_share:.2f}) ---")
 
-        
         response_lines = [
             "# HELP ml_data_drift_score Drift score between reference and current data (share of drifting features)",
             "# TYPE ml_data_drift_score gauge",
@@ -286,8 +316,27 @@ async def trigger_airflow_from_alert(request: Request):
     except Exception as e:
         return Response(content=str(e), status_code=500)
 
+@app.post("/config/noise")
+async def set_noise(config: dict):
+    """Set or reset the global noise factor.
+    Example call:
+        curl -X POST http://localhost:8001/config/noise -H "Content-Type: application/json" -d '{"noise": 0.8}'
+    Send `{}` or `{"noise": null}` to reset.
+    """
+    global NOISE_OVERRIDE
+    noise_val = config.get("noise") if isinstance(config, dict) else None
+    if noise_val is None:
+        NOISE_OVERRIDE = None
+        return {"status": "success", "message": "Noise override cleared"}
+    try:
+        NOISE_OVERRIDE = float(noise_val)
+        if NOISE_OVERRIDE < 0:
+            raise ValueError
+        return {"status": "success", "noise": NOISE_OVERRIDE}
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid noise value; must be a positive number or null.")
+
 if __name__ == "__main__":
     import uvicorn
-    
     
     uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)

@@ -113,7 +113,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_requests_total{job=\"api\"}[1m])) by (job)",
+          "expr": "sum(rate(http_server_requests_total{job=\"api\"}[1m])) by (job)",
           "legendFormat": "{{job}}"
         }
       ],
@@ -135,7 +135,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=\"api\"}[5m])) by (le, job))",
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job=\"api\"}[5m])) by (le, job)) * 1000",
           "legendFormat": "P95 Latency {{job}}"
         }
       ],
@@ -157,7 +157,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_response_time_sum{job=\"api\"}[1m])) by (job) / sum(rate(http_response_time_count{job=\"api\"}[1m])) by (job)",
+          "expr": "sum(rate(http_server_request_duration_seconds_sum{job=\"api\"}[1m])) by (job) / sum(rate(http_server_request_duration_seconds_count{job=\"api\"}[1m])) by (job) * 1000",
           "legendFormat": "Avg Response Time {{job}}"
         }
       ],
@@ -179,7 +179,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(http_requests_total{job=\"api\", status=\"5xx\"}[1m])) by (job)",
+          "expr": "sum(rate(http_server_requests_total{job=\"api\", status=~\"5..\"}[1m])) by (job)",
           "legendFormat": "5xx Errors {{job}}"
         }
       ],
@@ -223,7 +223,7 @@
       },
       "targets": [
         {
-          "expr": "(sum(rate(http_requests_total{job=\"api\", status=\"5xx\"}[1m])) by (job) / sum(rate(http_requests_total{job=\"api\"}[1m])) by (job)) * 100",
+          "expr": "(sum(rate(prometheus_fastapi_instrumentator_requests_total{job=\"api\", status=~\"4..\"}[1m])) by (job) / sum(rate(prometheus_fastapi_instrumentator_requests_total{job=\"api\"}[1m])) by (job)) * 100",
           "legendFormat": "Error Rate (%) {{job}}"
         }
       ],

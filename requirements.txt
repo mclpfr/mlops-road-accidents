@@ -17,5 +17,7 @@ requests==2.32.3
 scikit-learn==1.6.1
 sqlalchemy==2.0.29
 uvicorn==0.34.0
+prometheus-fastapi-instrumentator==6.1.0
+prometheus-client==0.20.0
 python-jose==3.4.0
 plotly>=5.0.0
