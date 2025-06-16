@@ -12,7 +12,8 @@ def load_config(config_path="config.yaml"):
 def download_accident_data(config_path="config.yaml"):
     # Load configuration parameters
     config = load_config(config_path)
-    year = config["data_extraction"]["year"]
+    # Ensure year is a string to handle both quoted and unquoted values in YAML
+    year = str(config["data_extraction"]["year"])
     
     # Direct URLs for 2023 files
     if year == "2023":
