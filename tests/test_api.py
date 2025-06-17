@@ -173,6 +173,20 @@ def test_predict_with_invalid_data():
     response = requests.post(PREDICT_URL, headers=headers, json=test_data, timeout=10)
     assert response.status_code == 422
 
+def test_predict_server_error():
+    '''Test de l'API : erreur serveur 5xx (predict_csv avec fichier vide)'''
+    data = {"sub": "johndoe"}
+    token = create_access_token(data)
+    headers = {"Authorization": f"Bearer {token}"}
+    files = {"file_request": ("empty.csv", "", "text/csv")}
+    response = requests.post(
+        PREDICT_URL + "_csv",  # endpoint /protected/predict_csv
+        headers=headers,
+        files=files,
+        timeout=10,
+    )
+    assert response.status_code >= 500 and response.status_code < 600
+
 def test_predict_missing_jwt():
     '''Test de l'API de prédiction : jeton JWT manquant'''
     test_data = valid_data
