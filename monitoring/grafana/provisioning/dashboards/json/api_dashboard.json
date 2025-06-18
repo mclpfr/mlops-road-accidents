@@ -23,32 +23,44 @@
         "x": 0,
         "y": 0
       },
+      "datasource": "Prometheus",
       "targets": [
         {
-          "expr": "up{job=\"api\"}",
-          "legendFormat": "API Health"
+          "expr": "time() - process_start_time_seconds{job=~\"api|api_service\"}",
+          "legendFormat": "Uptime"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {"text": "Down", "color": "red"},
-                "1": {"text": "Up", "color": "green"}
-              }
-            }
-          ],
+          "unit": "dthms",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {"color": "red", "value": null},
-              {"color": "red", "value": 0.5},
-              {"color": "green", "value": 1}
+              {"color": "orange", "value": 300},
+              {"color": "green", "value": 3600}
             ]
-          }
+          },
+          "mappings": [],
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0
         }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "showUnfilled": true,
+        "orientation": "horizontal"
       }
     },
     {
