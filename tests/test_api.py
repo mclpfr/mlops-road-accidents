@@ -8,7 +8,7 @@ JWT_SECRET_KEY = "key"
 JWT_ALGORITHM = "HS256"
 
 # URL pour les endpoints : /login et /predict
-LOGIN_URL = "http://127.0.0.1:8000/token"
+LOGIN_URL = "http://127.0.0.1:8000/auth/token"
 PREDICT_URL = "http://127.0.0.1:8000/protected/predict"
 
 # Context de hachage des mots de passe
