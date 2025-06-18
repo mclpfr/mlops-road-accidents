@@ -64,7 +64,7 @@ python src/train_model/train_model.py
 
 ### Lancement API
 ```bash
-python src/api/api.py
+python src/api/main.py
 ```
 
 ### Lancement de tests unitaires
