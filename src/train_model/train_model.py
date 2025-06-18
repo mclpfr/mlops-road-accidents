@@ -18,7 +18,7 @@ from git import Repo
 from git.exc import GitCommandError, InvalidGitRepositoryError, NoSuchPathError
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def load_config(config_path="config.yaml"):
@@ -242,6 +242,28 @@ def train_model(config_path="config.yaml"):
                     best_model_path = os.path.join(model_dir, f"{best_model_filename_base}.joblib")
                     joblib.dump(model, best_model_path)
                     logger.info(f"Model saved locally as best model: {best_model_path}")
+                    
+                    # Generate and save confusion matrix heatmap
+                    import matplotlib.pyplot as plt
+                    import seaborn as sns
+                    
+                    plt.figure(figsize=(10, 7))
+                    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
+                                xticklabels=['Pas Grave', 'Grave'], 
+                                yticklabels=['Pas Grave', 'Grave'])
+                    plt.title('Matrice de Confusion')
+                    plt.xlabel('Prédiction')
+                    plt.ylabel('Réalité')
+                    
+                    # Save the figure
+                    confusion_matrix_path = os.path.join(model_dir, f"confusion_matrix_best_model_{year}.png")
+                    plt.savefig(confusion_matrix_path, bbox_inches='tight', dpi=300)
+                    plt.close()
+                    logger.info(f"Confusion matrix heatmap saved to {confusion_matrix_path}")
+                    
+                    # Log the confusion matrix as an MLflow artifact
+                    mlflow.log_artifact(confusion_matrix_path, "confusion_matrix")
+                    logger.info("Confusion matrix heatmap logged to MLflow artifacts")
 
                     metadata_path = os.path.join(model_dir, f"{best_model_filename_base}_metadata.json")
                     commit_hash = "N/A"
