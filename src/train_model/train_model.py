@@ -14,6 +14,8 @@ import time
 import traceback
 import subprocess
 import sys
+from git import Repo
+from git.exc import GitCommandError, InvalidGitRepositoryError, NoSuchPathError
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -333,38 +335,54 @@ def train_model(config_path="config.yaml"):
                         if os.path.exists(".gitignore"): git_add_paths.append(".gitignore")
                         if os.path.exists("dvc.yaml"): git_add_paths.append("dvc.yaml") # As requested
 
-                        git_config = config.get("git", {})
-                        if git_config.get("user", {}).get("name") and git_config.get("user", {}).get("email"):
-                            try:
-                                subprocess.run(["git", "config", "user.name", git_config["user"]["name"]], check=True)
-                                subprocess.run(["git", "config", "user.email", git_config["user"]["email"]], check=True)
-                                logger.info(f"Git identity configured: {git_config['user']['name']} <{git_config['user']['email']}>")
-                            except Exception as e:
-                                logger.warning(f"Could not configure Git user: {e}")
-                        
-                        for f_to_git_add in git_add_paths:
-                            try:
-                                logger.info(f"Git add: {f_to_git_add}")
-                                # Using -f to force add if necessary (e.g., .gitignore modified by dvc, or dvc.yaml)
-                                subprocess.run(["git", "add", "-f", f_to_git_add], check=True, capture_output=True, text=True)
-                            except subprocess.CalledProcessError as e:
-                                logger.error(f"Failed 'git add -f {f_to_git_add}': {e}\nStdout: {e.stdout}\nStderr: {e.stderr}")
-                        
                         try:
-                            commit_message = f"Promote best model v{registered_model_version.version} (acc: {current_accuracy:.4f}); Update DVC data/model" # English
-                            logger.info(f"Git commit with message: '{commit_message}'")
-                            subprocess.run(["git", "commit", "-m", commit_message], check=True, capture_output=True, text=True)
-                            logger.info("Git commit successful.")
+                            # Initialize Git repository object
+                            repo = Repo('.')
                             
-                            # Push changes to the remote repository
-                            try:
-                                logger.info("Pushing changes to remote repository...")
-                                subprocess.run(["git", "push"], check=True, capture_output=True, text=True)
-                                logger.info("Successfully pushed changes to remote repository.")
-                            except subprocess.CalledProcessError as e:
-                                logger.error(f"Git push failed: {e}\nStdout: {e.stdout}\nStderr: {e.stderr}")
-                        except subprocess.CalledProcessError as e:
-                            logger.error(f"Git commit failed: {e}\nStdout: {e.stdout}\nStderr: {e.stderr}")
+                            # Configure Git user if not already configured
+                            git_config = config.get("git", {})
+                            if git_config.get("user", {}).get("name") and git_config.get("user", {}).get("email"):
+                                try:
+                                    with repo.config_writer() as git_config_writer:
+                                        git_config_writer.set_value("user", "name", git_config["user"]["name"])
+                                        git_config_writer.set_value("user", "email", git_config["user"]["email"])
+                                    logger.info(f"Git identity configured: {git_config['user']['name']} <{git_config['user']['email']}>")
+                                except Exception as e:
+                                    logger.warning(f"Could not configure Git user: {e}")
+                            
+                            # Add all modified files to staging
+                            for f_to_git_add in git_add_paths:
+                                try:
+                                    logger.info(f"Git add: {f_to_git_add}")
+                                    repo.git.add(f_to_git_add, force=True)
+                                except Exception as e:
+                                    logger.error(f"Failed to add {f_to_git_add} to Git: {str(e)}")
+                            
+                            # Check if there are any changes to commit
+                            if repo.is_dirty() or repo.untracked_files:
+                                # Create a simple one-line commit message
+                                commit_message = f"New best model {model_name_registry} v{registered_model_version.version} (acc: {current_accuracy:.4f}) - {time.strftime('%Y-%m-%d %H:%M')}"
+                                
+                                # Create the commit
+                                repo.git.commit(m=commit_message)
+                                logger.info(f"Git commit created with message: {commit_message}")
+                                
+                                # Push changes to the remote repository
+                                try:
+                                    logger.info("Pushing changes to remote repository...")
+                                    origin = repo.remote(name='origin')
+                                    origin.push()
+                                    logger.info("Successfully pushed changes to remote repository.")
+                                except GitCommandError as e:
+                                    logger.error(f"Git push failed: {str(e)}")
+                            else:
+                                logger.info("No changes to commit.")
+                                
+                        except (InvalidGitRepositoryError, NoSuchPathError) as e:
+                            logger.error(f"Git repository not found or invalid: {str(e)}")
+                        except Exception as e:
+                            logger.error(f"Error during Git operations: {str(e)}")
+                            logger.error(traceback.format_exc())
                     else:
                         logger.warning("No .dvc files to add to Git. Git commit for DVC changes was skipped.")
 

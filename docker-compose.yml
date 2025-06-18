@@ -116,16 +116,25 @@ services:
         rm -f /app/models/train_model.done;
         su -c 'python train_model.py' appuser
       "
+    environment:
+      - DVC_REMOTE=${DVC_REMOTE}
+      - DVC_REMOTE_URL=${DVC_REMOTE_URL}
+      - DVC_ENDPOINT_URL=${DVC_ENDPOINT_URL}
+      - DVC_USERNAME=${DVC_USERNAME}
+      - DVC_PASSWORD=${DVC_PASSWORD}
     volumes:
-      - ./data:/app/data
-      - ./models:/app/models
-      - ./config.yaml:/app/config.yaml
-      - ./.git:/app/.git
-      - ./dvc.yaml:/app/dvc.yaml
-      - ./.dvc:/app/.dvc
+      - ./data:/app/data:rw
+      - ./models:/app/models:rw
+      - ./config.yaml:/app/config.yaml:rw
+      - ./.git:/app/.git:rw
+      - ./dvc.yaml:/app/dvc.yaml:rw
+      - ./.dvc:/app/.dvc:rw
+      - ./src/prepare_data:/app/src/prepare_data:ro
+      - ./src/synthet_data:/app/src/synthet_data:ro
     working_dir: /app
     depends_on:
       - prepare_data
+      - synthet_data
 
   postgres:
     build:
