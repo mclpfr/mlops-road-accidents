@@ -25,10 +25,12 @@ RUN mkdir -p /app/data /app/data/out
 COPY config.yaml .
 
 # Copier le reste de l'application
-COPY src/api/api.py .
+COPY src/api/main.py .
+COPY src/api/auth_api.py .
+COPY src/api/predict_api.py .
 
 # Exposer le port sur lequel l'application va tourner
 EXPOSE 8000
 
 # Commande pour lancer l'application
-CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
