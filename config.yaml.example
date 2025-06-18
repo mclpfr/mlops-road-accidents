@@ -35,3 +35,4 @@ git:
   user:
     name: "NAME"
     email: "EMAIL"
+    token: "YOUR_TOKEN"
