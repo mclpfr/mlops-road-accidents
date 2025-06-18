@@ -8,7 +8,7 @@ import joblib
 import sys
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def load_config(config_path="config.yaml"):
@@ -38,10 +38,6 @@ def prepare_data(config_path="config.yaml"):
     print(f"Loading data from {synthet_path}...")
     data = pd.read_csv(synthet_path, low_memory=False, sep=';', encoding='latin1')
     print(f"Loaded data shape: {data.shape}")
-    
-    # Keep only the first occurrence for each accident (to avoid duplicates)
-    data = data.drop_duplicates(subset='Num_Acc', keep='first')
-    print(f"After dropping duplicates: {data.shape}")
     
     # Define the features we want to keep
     features = ["catu", "sexe", "trajet", "catr", "circ", "vosp", "prof", 
