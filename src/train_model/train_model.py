@@ -359,16 +359,27 @@ def train_model(config_path="config.yaml"):
                             # Initialize Git repository object
                             repo = Repo('.')
                             
-                            # Configure Git user if not already configured
+                            # Configure Git user and authentication
                             git_config = config.get("git", {})
-                            if git_config.get("user", {}).get("name") and git_config.get("user", {}).get("email"):
+                            git_user = git_config.get("user", {})
+                            
+                            # Set user name and email
+                            if git_user.get("name") and git_user.get("email"):
                                 try:
                                     with repo.config_writer() as git_config_writer:
-                                        git_config_writer.set_value("user", "name", git_config["user"]["name"])
-                                        git_config_writer.set_value("user", "email", git_config["user"]["email"])
-                                    logger.info(f"Git identity configured: {git_config['user']['name']} <{git_config['user']['email']}>")
+                                        git_config_writer.set_value("user", "name", git_user["name"])
+                                        git_config_writer.set_value("user", "email", git_user["email"])
+                                    logger.info(f"Git identity configured: {git_user['name']} <{git_user['email']}>")
+                                    
+                                    # Configure remote URL with token
+                                    if git_user.get("token"):
+                                        remote_url = f"https://{git_user['name']}:{git_user['token']}@github.com/mclpfr/mlops-road-accidents.git"
+                                        repo.git.remote("set-url", "origin", remote_url)
+                                        logger.info("Git remote URL updated with token authentication")
+                                        
                                 except Exception as e:
-                                    logger.warning(f"Could not configure Git user: {e}")
+                                    logger.warning(f"Could not configure Git: {e}")
+                                    logger.debug(traceback.format_exc())
                             
                             # Add all modified files to staging
                             for f_to_git_add in git_add_paths:
