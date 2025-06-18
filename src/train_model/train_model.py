@@ -312,6 +312,11 @@ def train_model(config_path="config.yaml"):
                                                      capture_output=True, text=True)
                                 if result.returncode == 0:
                                     logger.info(f"Successfully committed {f_path} to DVC cache")
+                                    # Ajouter le fichier .dvc correspondant à la liste pour Git
+                                    dvc_file = f"{f_path}.dvc"
+                                    if os.path.exists(dvc_file):
+                                        git_add_paths.append(dvc_file)
+                                        logger.info(f"Added to Git staging: {dvc_file}")
                                 else:
                                     # If the first commit failed, retry once (no fallback to `dvc add`)
                                     logger.info(f"Retrying `dvc commit --force` for {f_path}...")
@@ -319,6 +324,11 @@ def train_model(config_path="config.yaml"):
                                                          capture_output=True, text=True)
                                     if result.returncode == 0:
                                         logger.info(f"Successfully committed {f_path} to DVC cache on retry")
+                                        # Ajouter le fichier .dvc correspondant à la liste pour Git
+                                        dvc_file = f"{f_path}.dvc"
+                                        if os.path.exists(dvc_file):
+                                            git_add_paths.append(dvc_file)
+                                            logger.info(f"Added to Git staging: {dvc_file}")
                                     else:
                                         logger.error(f"Failed to add/commit {f_path} to DVC: {result.stderr}")
                             except subprocess.CalledProcessError as e:
@@ -331,9 +341,19 @@ def train_model(config_path="config.yaml"):
                     
                     # --- Git Integration (continued) ---
                     if git_add_paths: # If .dvc files were created/updated
-                        git_add_paths.append(metadata_path) # The metadata file itself
-                        if os.path.exists(".gitignore"): git_add_paths.append(".gitignore")
-                        if os.path.exists("dvc.yaml"): git_add_paths.append("dvc.yaml") # As requested
+                        # Ajouter le fichier de métadonnées s'il existe
+                        if os.path.exists(metadata_path):
+                            git_add_paths.append(metadata_path)
+                            logger.info(f"Added metadata to Git staging: {metadata_path}")
+                        
+                        # Ajouter les fichiers de configuration si nécessaires
+                        if os.path.exists(".gitignore"): 
+                            git_add_paths.append(".gitignore")
+                            logger.info("Added .gitignore to Git staging")
+                            
+                        if os.path.exists("dvc.yaml"): 
+                            git_add_paths.append("dvc.yaml")
+                            logger.info("Added dvc.yaml to Git staging")
 
                         try:
                             # Initialize Git repository object
