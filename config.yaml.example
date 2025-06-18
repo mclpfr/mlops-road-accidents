@@ -13,6 +13,13 @@ model:
   test_size: 0.2
   cv_folds: 5
 
+  hyperparameters:
+    n_estimators: 300
+    max_depth: 15
+    min_samples_split: 5
+    min_samples_leaf: 2
+    max_features: "sqrt"
+
 postgresql:
   host: "postgres"
   port: "5432"

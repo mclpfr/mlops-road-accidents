@@ -3,7 +3,8 @@ import joblib
 import yaml
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, confusion_matrix
+import numpy as np
 import os
 import mlflow
 import mlflow.sklearn
@@ -176,6 +177,11 @@ def train_model(config_path="config.yaml"):
             logger.info(f"Parameters logged to MLflow: {params_to_log}")
             
             y_pred = model.predict(X_test)
+            # Compute and log confusion matrix artifact
+            cm = confusion_matrix(y_test, y_pred)
+            np.save("confusion_matrix.npy", cm)
+            mlflow.log_artifact("confusion_matrix.npy")
+            os.remove("confusion_matrix.npy")  # clean up
             report = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
             logger.info("Model evaluation completed.")
             
@@ -305,12 +311,12 @@ def train_model(config_path="config.yaml"):
                                 if result.returncode == 0:
                                     logger.info(f"Successfully committed {f_path} to DVC cache")
                                 else:
-                                    # If commit fails, try with add as fallback
-                                    logger.info(f"File {f_path} not in DVC pipeline, trying dvc add...")
-                                    result = subprocess.run(["dvc", "add", f_path], 
+                                    # If the first commit failed, retry once (no fallback to `dvc add`)
+                                    logger.info(f"Retrying `dvc commit --force` for {f_path}...")
+                                    result = subprocess.run(["dvc", "commit", "--force", f_path],
                                                          capture_output=True, text=True)
                                     if result.returncode == 0:
-                                        git_add_paths.append(f"{f_path}.dvc") # Add the .dvc file for Git
+                                        logger.info(f"Successfully committed {f_path} to DVC cache on retry")
                                     else:
                                         logger.error(f"Failed to add/commit {f_path} to DVC: {result.stderr}")
                             except subprocess.CalledProcessError as e:

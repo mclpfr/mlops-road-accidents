@@ -8,7 +8,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     
     -- Table for accidents
     CREATE TABLE accidents (
-        Num_Acc INT PRIMARY KEY,
+        Num_Acc INT,
         jour INT,
         mois INT,
         an INT,
@@ -22,7 +22,39 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         col INT,
         adr VARCHAR(255),
         lat DOUBLE PRECISION,
-        long DOUBLE PRECISION
+        long DOUBLE PRECISION,
+        grav INT,
+        catu INT,
+        sexe INT,
+        trajet INT,
+        id_vehicule TEXT,
+        num_veh TEXT,
+        senc INT,
+        catv INT,
+        obs INT,
+        obsm INT,
+        choc INT,
+        manv INT,
+        motor INT,
+        occutc INT,
+        catr INT,
+        voie TEXT,
+        v1 TEXT,
+        v2 TEXT,
+        circ INT,
+        nbv INT,
+        vosp INT,
+        prof INT,
+        pr TEXT,
+        pr1 TEXT,
+        plan INT,
+        lartpc TEXT,
+        larrout TEXT,
+        surf INT,
+        infra INT,
+        situ INT,
+        vma TEXT,
+        PRIMARY KEY (Num_Acc, num_veh)  -- Clé composite car un accident peut avoir plusieurs véhicules
     );
     
     -- Table for best model metrics

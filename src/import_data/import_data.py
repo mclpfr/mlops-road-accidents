@@ -52,21 +52,58 @@ def import_accidents_data(engine, data_path):
         # Some malformed lines in the CSV file were ignored during import.
         logger.warning("Some malformed lines in the CSV file were ignored during import.")
 
-        # Required columns for accident data
-        columns_needed = [
-            'Num_Acc', 'jour', 'mois', 'an', 'hrmn', 'lum', 'dep', 'com', 'agg', 'int', 'atm', 'col', 'adr', 'lat', 'long', 'grav'
+        # Define all columns we expect in the CSV
+        all_columns = [
+            'Num_Acc', 'jour', 'mois', 'an', 'hrmn', 'lum', 'dep', 'com', 'agg', 'int', 
+            'atm', 'col', 'adr', 'lat', 'long', 'grav', 'catu', 'sexe', 'trajet', 'id_vehicule',
+            'num_veh', 'senc', 'catv', 'obs', 'obsm', 'choc', 'manv', 'motor', 'occutc', 'catr',
+            'voie', 'v1', 'v2', 'circ', 'nbv', 'vosp', 'prof', 'pr', 'pr1', 'plan', 'lartpc',
+            'larrout', 'surf', 'infra', 'situ', 'vma'
         ]
 
-        # Filter only available columns
-        available_columns = [col for col in columns_needed if col in accidents_df.columns]
-
-        # Check if any required columns are available
-        if not available_columns:
-            logger.error("No required columns are available in the dataset")
-            return
-
-        # Select only available columns for import
+        # Clean column names (remove any whitespace)
+        accidents_df.columns = accidents_df.columns.str.strip()
+        
+        # Filter only columns that exist in the CSV
+        available_columns = [col for col in all_columns if col in accidents_df.columns]
+        
+        # Log missing columns
+        missing_columns = [col for col in all_columns if col not in accidents_df.columns]
+        if missing_columns:
+            logger.warning(f"The following columns are missing from the CSV: {', '.join(missing_columns)}")
+            
+        # Select and reorder columns
         accidents_df = accidents_df[available_columns]
+        
+        # Ensure data types are correct
+        int_columns = ['jour', 'mois', 'an', 'lum', 'agg', 'int', 'atm', 'col', 'grav', 'catu', 
+                      'sexe', 'trajet', 'senc', 'catv', 'obs', 'obsm', 'choc', 'manv', 'motor', 
+                      'occutc', 'catr', 'circ', 'nbv', 'vosp', 'prof', 'plan', 'surf', 'infra', 'situ']
+                      
+        for col in int_columns:
+            if col in accidents_df.columns:
+                # Replace empty strings with NaN and then fill with a default value
+                accidents_df[col] = pd.to_numeric(accidents_df[col].replace('', '0'), errors='coerce').fillna(0).astype(int)
+        
+        # Convert float columns
+        float_columns = ['lat', 'long']
+        for col in float_columns:
+            if col in accidents_df.columns:
+                # Replace comma with dot for decimal and handle empty strings
+                accidents_df[col] = accidents_df[col].replace(',', '.', regex=True).replace('', '0')
+                accidents_df[col] = pd.to_numeric(accidents_df[col], errors='coerce').fillna(0.0)
+                
+        # Clean text columns
+        text_columns = ['hrmn', 'dep', 'com', 'adr', 'voie', 'v1', 'v2', 'pr', 'pr1', 'lartpc', 'larrout', 'vma']
+        for col in text_columns:
+            if col in accidents_df.columns:
+                accidents_df[col] = accidents_df[col].astype(str).str.strip()
+                # Replace empty strings with None for text fields
+                accidents_df[col] = accidents_df[col].replace('', None)
+                
+        # Ensure Num_Acc and num_veh are not null
+        if 'Num_Acc' in accidents_df.columns and 'num_veh' in accidents_df.columns:
+            accidents_df = accidents_df.dropna(subset=['Num_Acc', 'num_veh'])
 
         # Import accident data into the 'accidents' table
         accidents_df.to_sql('accidents', engine, if_exists='replace', index=False,

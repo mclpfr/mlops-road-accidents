@@ -42,7 +42,7 @@ def load_local_model():
 
 # Configuration de la page
 st.set_page_config(
-    page_title="MLOps Showcase - Accidents de la Route", 
+    page_title="MLOps - Accidents de la Route", 
     page_icon="🚗",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -213,7 +213,7 @@ def get_best_model_overview():
         st.warning(f"Impossible de récupérer les informations générales MLflow : {e}")
         return None
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=30)
 def get_best_model_metrics():
     """Return a dict containing accuracy, precision, recall and f1 extracted from the 'best_model' run in MLflow."""
     try:
@@ -239,15 +239,22 @@ def get_best_model_metrics():
             return None
         run = client.get_run(best_version.run_id)
         metrics = run.data.metrics
+        
         # --- Normalisation des métriques MLflow ---
         metrics_lower = {k.lower(): v for k, v in metrics.items()}
         metric_map = {
             "accuracy": "Accuracy",
             "acc": "Accuracy",
             "precision": "Precision",
+            "precision_macro_avg": "Precision",
+            "macro avg_precision": "Precision",
             "recall": "Recall",
+            "recall_macro_avg": "Recall",
+            "macro avg_recall": "Recall",
             "f1": "F1_score",
             "f1_score": "F1_score",
+            "f1_macro_avg": "F1_score",
+            "macro avg_f1-score": "F1_score",
         }
         result = {}
         for key, label in metric_map.items():
@@ -290,7 +297,7 @@ def get_class_distribution():
     })
     return class_distribution
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=30)
 def fetch_best_model_info():
     """Retrieve from MLflow the hyper-parameters and the confusion matrix of the model tagged 'best_model'.
     Returns (hyperparams_dict, confusion_matrix_numpy) or (None, None) if an error occurs.
@@ -313,12 +320,12 @@ def fetch_best_model_info():
         client = MlflowClient()
         model_name = "accident-severity-predictor"
 
-        # Recherche de la version du modèle avec le tag 'best_model'
+        # Recherche de la version la plus récente avec le tag 'best_model'
         best_version = None
         for mv in client.search_model_versions(f"name='{model_name}'"):
             if mv.tags and "best_model" in mv.tags:
-                best_version = mv
-                break
+                if best_version is None or int(mv.version) > int(best_version.version):
+                    best_version = mv
         if best_version is None:
             return None, None
 
@@ -332,8 +339,11 @@ def fetch_best_model_info():
             'min_samples_leaf', 'max_features'
         ]
         hyperparams_dict = {k: params.get(k) for k in hyperparam_keys if k in params}
+        # Fall back to all params if none of the expected keys are present (ensures we still display real values)
+        if not hyperparams_dict and params:
+            hyperparams_dict = params
 
-        # Tentative de récupération d'une matrice de confusion déjà enregistrée comme artefact
+        # On ignore toute matrice de confusion stockée comme artefact pour garantir un recalcul à jour
         cm_artifact = None
         try:
             for art in client.list_artifacts(run_id):
@@ -380,11 +390,8 @@ def fetch_best_model_info():
             X, y, test_size=test_size, random_state=random_state_split, stratify=y
         )
         y_pred = model.predict(X_test)
-        # Si artefact trouvé, on l'utilise, sinon on recalcule
-        if cm_artifact is not None:
-            cm = cm_artifact
-        else:
-            cm = confusion_matrix(y_test, y_pred)
+        # Toujours recalculer la matrice de confusion pour avoir la dernière version
+        cm = confusion_matrix(y_test, y_pred)
         return hyperparams_dict, cm
     except Exception as e:
         # Logging Streamlit sans interrompre l'app
@@ -440,14 +447,14 @@ def main(accidents_count):
     # Titre principal avec gradient
     st.markdown("""
     <div style="background: linear-gradient(90deg, #3B82F6, #8B5CF6); padding: 2rem; border-radius: 0.5rem; margin-bottom: 2rem;">
-        <h1 style="color: white; margin: 0; font-size: 2.5rem;">MLOps Showcase - Prédiction Accidents de la Route</h1>
+        <h1 style="color: white; margin: 0; font-size: 2.5rem;">MLOps - Prédiction Accidents de la Route</h1>
         <p style="color: #E5E7EB; margin: 0.5rem 0 0 0; font-size: 1.1rem;">Projet MLOps complet avec pipeline automatisé, monitoring et déploiement</p>
         <p style="color: #CBD5E1; margin: 0.5rem 0 0 0;">Marco LOPES – MLOps & DevOps Engineer | Portfolio Technique</p>
     </div>
     """, unsafe_allow_html=True)
     
     # Sidebar pour navigation
-    st.sidebar.title("🔍 Navigation")
+    st.sidebar.title("Navigation")
     page = st.sidebar.selectbox(
         "Choisir une section",
         ["Vue d'ensemble", "Données & EDA", "Modélisation ML", "Démo Interactive"]
@@ -532,12 +539,46 @@ def show_overview(model_metrics, accidents_count):
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Architecture et compétences
+    # Métriques de performance détaillées
+    st.markdown("---")
+    st.subheader("Métriques de Performance")
+    
+    # Récupération des métriques
+    metrics_dict = get_best_model_metrics() or {}
+    overall_accuracy = round((metrics_dict.get("Accuracy", 0)*100) if metrics_dict.get("Accuracy",0)<=1 else metrics_dict.get("Accuracy",0), 1)
+    overall_precision = round((metrics_dict.get("Precision", 0)*100) if metrics_dict.get("Precision",0)<=1 else metrics_dict.get("Precision",0), 1)
+    overall_recall = round((metrics_dict.get("Recall", 0)*100) if metrics_dict.get("Recall",0)<=1 else metrics_dict.get("Recall",0), 1)
+    overall_f1 = round((metrics_dict.get("F1_score", 0)*100) if metrics_dict.get("F1_score",0)<=1 else metrics_dict.get("F1_score",0), 1)
+    _, cm = fetch_best_model_info()
+    f1_pas, f1_grave = _compute_per_class_f1(cm)   
+    prec_pas, prec_grave, rec_pas, rec_grave = _compute_per_class_pr_rc(cm)
+    
+    # Affichage des métriques dans des colonnes
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Accuracy", f"{overall_accuracy}%")
+        st.metric("Précision Globale", f"{overall_precision}%")
+        st.metric("Rappel Global", f"{overall_recall}%")
+    
+    with col2:
+        st.markdown("**Précision par Classe**")
+        st.markdown(f"- Pas Grave: {prec_pas}%" if prec_pas is not None else "- Pas Grave: N/A")
+        st.markdown(f"- Grave: {prec_grave}%" if prec_grave is not None else "- Grave: N/A")
+    
+    with col3:
+        st.markdown("**Rappel par Classe**")
+        st.markdown(f"- Pas Grave: {rec_pas}%" if rec_pas is not None else "- Pas Grave: N/A")
+        st.markdown(f"- Grave: {rec_grave}%" if rec_grave is not None else "- Grave: N/A")
+    
+    # Stack technique et architecture
+    st.markdown("---")
+    st.subheader("Architecture du Système")
+    
+    # Réinitialisation des colonnes pour la section d'architecture
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("Architecture du Système")
-        
         # Diagramme d'architecture simplifié
         architecture_data = {
             'Couche': ['Interface', 'API', 'ML Pipeline', 'Data Storage', 'Monitoring'],
@@ -555,16 +596,17 @@ def show_overview(model_metrics, accidents_count):
         st.dataframe(arch_df, hide_index=True, use_container_width=True)
         
         st.info("""
-        **Points forts de l'architecture :**
+        **Architecture en place :**
         - Pipeline MLOps automatisé de bout en bout
         - Monitoring et alertes en temps réel
         - Versioning des données et modèles avec DVC
-        - Déploiement containerisé avec Docker
+        - API RESTful pour les prédictions
+        - Conteneurisation avec Docker
         - Tests automatisés et CI/CD
         """)
     
     with col2:
-        st.subheader("🛠️ Stack Technique")
+        st.subheader("Stack Technique")
         
         skills = [
             "Python", "Scikit-learn", "MLflow", "Docker", 
@@ -587,6 +629,22 @@ def show_overview(model_metrics, accidents_count):
 def show_data_analysis(class_distribution):
     st.header("Analyse des Données & Feature Engineering")
     
+    # Aperçu du jeu de données
+    st.subheader("Aperçu des données")
+    try:
+        # Récupération des 10 premières lignes de la table accidents
+        query = """
+        SELECT * 
+        FROM accidents 
+        LIMIT 10
+        """
+        df_preview = fetch_data_from_db(query)
+        st.dataframe(df_preview, use_container_width=True)
+        st.caption("Aperçu des 10 premières lignes de la table 'accidents'")
+    except Exception as e:
+        st.error(f"Erreur lors de la récupération des données : {e}")
+    
+    st.markdown("---")
     # Distribution des classes
     col1, col2 = st.columns(2)
     
@@ -604,7 +662,7 @@ def show_data_analysis(class_distribution):
         st.plotly_chart(fig_pie, use_container_width=True)
     
     with col2:
-        st.subheader("🔢 Statistiques des Classes")
+        st.subheader("Statistiques des Classes")
         st.dataframe(class_distribution, hide_index=True, use_container_width=True)
         
         # Construire dynamiquement la description du déséquilibre
@@ -617,31 +675,44 @@ def show_data_analysis(class_distribution):
             imbalance_note = "Dataset déséquilibré"
 
         st.markdown(f"""
-        **🎯 Stratégie de traitement :**
+        **Stratégie de traitement :**
         - {imbalance_note}
         - Application de techniques de rééchantillonnage
         - Métriques focalisées sur le rappel pour les cas graves
         """)
     
     # Features engineering
-    st.subheader("⚙️ Features Engineering")
+    st.subheader("Features Engineering")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("**📋 Variables Utilisées :**")
+        st.markdown("**Variables Utilisées :**")
         features_info = {
-            'Feature': [
+            'Variable': [
                 'catu', 'sexe', 'trajet', 'catr', 'circ', 'vosp', 'prof',
                 'plan', 'surf', 'situ', 'lum', 'atm', 'col'
             ],
             'Description': [
-                'Catégorie usager', 'Sexe', 'Motif trajet', 'Type route',
-                'Régime circulation', 'Voie spéciale', 'Profil route',
-                'Tracé en plan', 'État surface', 'Situation accident',
-                'Conditions éclairage', 'Conditions météo', 'Type collision'
+                'Catégorie usager (1=Conducteur, 2=Passager, 3=Piéton)',
+                'Sexe (1=Homme, 2=Femme)',
+                'Motif du déplacement (1=Domicile-travail, 2=Promenade, etc.)',
+                'Type de route (1=Autoroute, 2=Nationale, 3=Départementale, etc.)',
+                'Régime de circulation (1=À sens unique, 2=Bidirectionnel, etc.)',
+                'Voie réservée (1=Piste cyclable, 2=Voie bus, etc.)',
+                'Profil de la route (1=Plat, 2=Pente, 3=Sommet de côte, etc.)',
+                'Tracé en plan (1=Partie droite, 2=Courbe à gauche, 3=Courbe à droite, etc.)',
+                'État de la surface (1=Normale, 2=Mouillée, 3=Flaques, 4=Enneigée, etc.)',
+                'Situation de l\'accident (1=Sur chaussée, 2=Sur accotement, etc.)',
+                'Conditions d\'éclairage (1=Plein jour, 2=Crépuscule, 3=Nuit sans éclairage, etc.)',
+                'Conditions atmosphériques (1=Normale, 2=Pluie légère, 3=Pluie forte, etc.)',
+                'Type de collision (1=Deux véhicules - frontale, 2=Deux véhicules - par l\'arrière, etc.)'
             ],
-            'Type': ['Catégorielle'] * 13
+            'Type': ['Catégorielle'] * 13,
+            'Valeurs Uniques': [
+                '1-3', '1-2', '0-9', '1-9', '1-4', '0-3', '1-4',
+                '1-4', '1-8', '0-8', '1-5', '1-9', '1-7'
+            ]
         }
         
         features_df = pd.DataFrame(features_info)
@@ -651,12 +722,12 @@ def show_data_analysis(class_distribution):
         st.markdown("**🔧 Pipeline de Preprocessing :**")
         
         preprocessing_steps = [
-            "✅ Gestion des valeurs manquantes (mode/médiane)",
-            "✅ Encodage des variables catégorielles (One-Hot)",
-            "✅ Standardisation des features numériques",
-            "✅ Détection et traitement des outliers",
-            "✅ Création de features dérivées",
-            "✅ Validation croisée stratifiée"
+            "✅ Suppression des doublons (Num_Acc)",
+            "✅ Sélection des 13 variables explicatives pertinentes",
+            "✅ Imputation des valeurs manquantes (mode par colonne)",
+            "✅ Binarisation de la cible ‘grav’ (0 : pas grave / 1 : grave)",
+            "✅ Standardisation des variables numériques (StandardScaler)",
+            "✅ Sauvegarde du scaler & des données préparées"
         ]
         
         for step in preprocessing_steps:
@@ -692,7 +763,7 @@ def show_model_analysis(model_metrics):
         st.plotly_chart(fig_metrics, use_container_width=True)
     
     with col2:
-        st.subheader("🏆 Comparaison des Algorithmes")
+        st.subheader("Comparaison des Algorithmes")
         
         algo_comparison = {
             'Algorithme': ['Random Forest', 'XGBoost', 'SVM', 'Logistic Regression'],
@@ -704,13 +775,13 @@ def show_model_analysis(model_metrics):
         algo_df = pd.DataFrame(algo_comparison)
         st.dataframe(algo_df, hide_index=True, use_container_width=True)
         
-        st.success("🎯 **RandomForest sélectionné** pour son excellent équilibre performance/temps d'entraînement")
+        st.success("**RandomForest sélectionné** pour son excellent équilibre performance/temps d'entraînement")
     
     # Hyperparamètres et détails
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("⚙️ Hyperparamètres Optimaux")
+        st.subheader("Hyperparamètres Optimaux")
         
         # Récupération depuis MLflow
         hyperparams_dict, cm_mlflow = fetch_best_model_info()
@@ -730,7 +801,7 @@ def show_model_analysis(model_metrics):
         st.dataframe(hyper_df, hide_index=True, use_container_width=True)
     
     with col2:
-        subheader_text = "🎯 Matrice de Confusion"
+        subheader_text = "Matrice de Confusion"
         st.subheader(subheader_text)
         
         # Utilise la matrice MLflow récupérée ci-dessus si disponible, sinon fallback simulé
@@ -753,10 +824,10 @@ def show_model_analysis(model_metrics):
         st.plotly_chart(fig_conf, use_container_width=True)
 
 def show_mlops_pipeline(pipeline_steps):
-    st.header("⚙️ Pipeline MLOps & Infrastructure")
+    st.header("Pipeline MLOps & Infrastructure")
     
     # État du pipeline
-    st.subheader("🔄 État Actuel du Pipeline")
+    st.subheader("État Actuel du Pipeline")
     
     for step in pipeline_steps:
         status_class = f"step-{step['Status']}"
@@ -778,7 +849,7 @@ def show_mlops_pipeline(pipeline_steps):
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("🏗️ Services Infrastructure")
+        st.subheader("Services Infrastructure")
         
         services = {
             'Service': ['MLflow', 'PostgreSQL', 'FastAPI', 'Prometheus', 'Grafana', 'Airflow'],
@@ -809,7 +880,7 @@ def show_mlops_pipeline(pipeline_steps):
             st.markdown(feature)
     
     # Timeline du déploiement
-    st.subheader("📅 Timeline de Déploiement")
+    st.subheader("Timeline de Déploiement")
     
     timeline_data = pd.DataFrame({
         'Date': pd.date_range('2024-01-01', periods=6, freq='M'),
@@ -1190,6 +1261,7 @@ def add_sidebar_info(accidents_count):
     st.sidebar.markdown("---")
     st.sidebar.subheader("Informations Projet")
     
+    
     # Récupération des métriques MLflow et calcul des F1-score par classe
     metrics_dict = get_best_model_metrics() or {}
     overall_accuracy = round((metrics_dict.get("Accuracy", 0)*100) if metrics_dict.get("Accuracy",0)<=1 else metrics_dict.get("Accuracy",0), 1)
@@ -1197,7 +1269,7 @@ def add_sidebar_info(accidents_count):
     overall_recall = round((metrics_dict.get("Recall", 0)*100) if metrics_dict.get("Recall",0)<=1 else metrics_dict.get("Recall",0), 1)
     overall_f1 = round((metrics_dict.get("F1_score", 0)*100) if metrics_dict.get("F1_score",0)<=1 else metrics_dict.get("F1_score",0), 1)
     _, cm = fetch_best_model_info()
-    f1_pas, f1_grave = _compute_per_class_f1(cm)
+    f1_pas, f1_grave = _compute_per_class_f1(cm)   
     prec_pas, prec_grave, rec_pas, rec_grave = _compute_per_class_pr_rc(cm)
     # Gestion des None -> "N/A"
     prec_pas = "N/A" if prec_pas is None else prec_pas
@@ -1211,29 +1283,13 @@ def add_sidebar_info(accidents_count):
     formatted_count = f"{accidents_count:,}".replace(",", " ")
     
     st.sidebar.markdown(f"""
-    **🎯 Objectif :**  
+    **Objectif :**  
     Prédire la gravité des accidents de la route pour optimiser les interventions d'urgence.
     
-    **📊 Dataset :**  
+    **Dataset :**  
     - {formatted_count} accidents analysés
     - 13 features engineered
     - [Données gouvernementales françaises](https://www.data.gouv.fr/en/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/)
-    
-    **🏆 Performance :**  
-    - Accuracy&nbsp;: {overall_accuracy}%  
-    - Precision&nbsp;: {overall_precision}%  
-    - Recall&nbsp;: {overall_recall}%  
-    - Precision&nbsp;(Pas Grave)&nbsp;: {prec_pas}%  
-    - Precision&nbsp;(Grave)&nbsp;: {prec_grave}%  
-    - Recall&nbsp;(Pas Grave)&nbsp;: {rec_pas}%  
-    - Recall&nbsp;(Grave)&nbsp;: {rec_grave}%  
-    - F1_score&nbsp;(Pas Grave)&nbsp;: {f1_pas}%  
-    - F1_score&nbsp;(Grave)&nbsp;: {f1_grave}%
-    
-    **Technologies :**  
-    - Python, Scikit-learn, MLflow  
-    - Airflow, FastAPI, PostgreSQL  
-    - Docker, Prometheus, Grafana  
     """)
     
     st.sidebar.markdown("---")
@@ -1245,8 +1301,6 @@ def add_sidebar_info(accidents_count):
     """)
     
 
-
-# Footer avec contact
 def add_footer():
     st.markdown("---")
     st.markdown("""
