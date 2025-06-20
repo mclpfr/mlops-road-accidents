@@ -9,21 +9,39 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  - job_name: DOCKER_SCRAPE_SERVICE_API 
+  - job_name: docker
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
-        filters:
-          - name: name 
-            values: ["api_service"] 
     relabel_configs:
+      # Extraction du nom du conteneur
       - source_labels: ['__meta_docker_container_name']
-        regex: '/(.*)'
-        target_label: 'container'
-      - source_labels: ['__meta_docker_container_log_stream']
-        target_label: 'logstream'
+        regex: '/([a-zA-Z0-9_-]+)'
+        target_label: 'container_name'
+        
+      # Extraction du nom du service à partir des labels Docker
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
-        target_label: 'service' 
-      - action: replace
-        target_label: job
-        replacement: api 
+        target_label: 'service'
+        
+      # Si le service n'est pas défini, utiliser le nom du conteneur
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service', '__meta_docker_container_name']
+        regex: '([^,]*),/([^,]+)'
+        replacement: '$1$2'
+        target_label: 'service'
+        
+      # Ajout du nom court du conteneur
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/([^/]+)'
+        target_label: 'container_short_name'
+        
+      # Autres métadonnées utiles
+      - source_labels: ['__meta_docker_container_id']
+        target_label: 'container_id'
+      - source_labels: ['__meta_docker_container_image']
+        target_label: 'image'
+      - source_labels: ['__meta_docker_container_state']
+        target_label: 'state'
+        
+      # Définition du job pour regrouper tous les logs Docker
+      - target_label: 'job'
+        replacement: 'dockerlogs'
