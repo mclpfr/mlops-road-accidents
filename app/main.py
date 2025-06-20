@@ -75,6 +75,11 @@ except Exception as e:
     pass  # Ignorer les erreurs de configuration MLflow
 
 import streamlit as st
+import streamlit.components.v1 as components
+try:
+    from streamlit_extras.st_autorefresh import st_autorefresh
+except ModuleNotFoundError:
+    st_autorefresh = None
 
 # -----------------------------------------------------------------------------
 # Monkey-patch Streamlit `st.info` to silence verbose debug messages unless the
@@ -591,7 +596,7 @@ def main(accidents_count):
     st.sidebar.title("Navigation")
     page = st.sidebar.selectbox(
         "Choisir une section",
-        ["Vue d'ensemble", "Données & EDA", "Modélisation ML", "Démo Interactive"]
+        ["Vue d'ensemble", "Données & EDA", "Modélisation ML", "Monitoring", "Démo Interactive"]
     )
     
     # Génération des données d'exemple
@@ -603,6 +608,8 @@ def main(accidents_count):
         show_data_analysis(class_distribution)
     elif page == "Modélisation ML":
         show_model_analysis(model_metrics)
+    elif page == "Monitoring":
+        show_monitoring(drift_data)
     elif page == "Démo Interactive":
         show_interactive_demo()
 
@@ -1105,6 +1112,44 @@ def show_mlops_pipeline(pipeline_steps):
 
 def show_monitoring(drift_data):
     st.header("📡 Monitoring & Data Drift Detection")
+
+    # -----------------------------------------------------------------
+    # Dashboard Grafana Cloud intégré
+    # -----------------------------------------------------------------
+    try:
+        grafana_url = st.secrets["grafana"]["dashboard_url"]
+        # Ajout auth basic si secrets fournis
+        gc_user = st.secrets.get("GRAFANA_CLOUD_USER")
+        gc_key = st.secrets.get("GRAFANA_CLOUD_API_KEY")
+        auth_prefix = ""
+        if gc_user and gc_key:
+            auth_prefix = f"https://{gc_user}:{gc_key}@"
+            # remplace le https://<host> par https://user:key@<host>
+            grafana_url = grafana_url.replace("https://", auth_prefix, 1)
+        st.subheader("📊 Dashboard Grafana Cloud")
+        # Construction URL embed avec mode kiosk
+        embed_url = grafana_url + ("&" if "?" in grafana_url else "?") + "kiosk&theme=light"
+        components.html(
+            f'<iframe src="{embed_url}" style="width:100%; height:800px; border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+            height=800,
+        )
+        # Auto-refresh toutes les 5 s si l'extension est disponible
+        if st_autorefresh:
+            st_autorefresh(interval=5000, key="monitoring_refresh")
+
+        # -----------------------------------------------------------------
+        # Panel API en image (render) actualisé toutes les 5 s
+        # -----------------------------------------------------------------
+        panel_url = (
+            f"{auth_prefix}mclpfr1.grafana.net/render/d-solo/api_monitoring_dashboard_v2/api"
+            "?orgId=1&from=now-1h&to=now&panelId=1&theme=light"
+        )
+        st.image(panel_url, caption="API – last hour")
+        if st_autorefresh:
+            st_autorefresh(interval=5000, key="panel_refresh")
+    except Exception as e:
+        st.warning("Impossible d'afficher le dashboard dans la page. Ouvrez-le dans un nouvel onglet :")
+        st.markdown(f"[📊 Ouvrir le dashboard Grafana]({grafana_url})")
     
     # Métriques de monitoring en temps réel
     col1, col2, col3, col4 = st.columns(4)
@@ -1316,7 +1361,8 @@ def show_interactive_demo():
                 if hasattr(model, 'predict_proba'):
                     proba = model.predict_proba(X)[0]
                     confidence = proba[pred]
-                prediction_label = "Grave" if pred == 0 else "Pas Grave"
+                # 1 = Grave, 0 = Pas Grave
+                prediction_label = "Grave" if pred == 1 else "Pas Grave"
                 color = "#EF4444" if prediction_label == "Grave" else "#10B981"
                 conf_text = f"Confiance: {confidence:.1%}" if confidence is not None else ""
                 st.markdown(f"""
