@@ -517,6 +517,38 @@ Le modèle Random Forest génère des métriques de performance qui **varient à
 
 **Avantage de la variabilité** : Cette variation permet de tester efficacement le système de détection de drift et la promotion automatique de modèles basée sur l'amélioration des performances.
 
+## Limites et Axes d'Amélioration
+
+- Les données synthétiques ne remplacent pas des données réelles de production
+- Le modèle ne prend pas en compte les données en temps réel (ex : trafic, événements locaux)
+- L'évaluation ne couvre pas les biais potentiels liés au genre ou à la région géographique
+- Vérification automatique du schéma et des valeurs aberrantes dans prepare_data
+- Tests de qualité des données via tests/test_check_data_*.py
+
+## Sécurité
+
+- L'API REST est protégée par JWT (JSON Web Token)
+- Les données utilisateurs ne sont pas conservées
+- L'accès aux services internes (Prometheus, Grafana, Airflow) est limité au réseau local
+- Les secrets sont injectés via config.yaml et ne sont pas commités
+
+## Reproductibilité
+
+Pour reproduire l'entraînement avec les données et le code exacts d'un run antérieur :
+
+```bash
+git checkout <commit_hash>
+dvc pull
+docker-compose up train_model
+```
+
+## Ressources
+
+- Environ 103 Mo de données après extraction
+- Entraînement complet en ~3 minutes sur CPU
+- Taille moyenne du modèle : 124 Mo
+- RAM recommandée : 8 Go minimum
+
 ## Contact
 
 **Marco LOPES** - MLOps & DevOps Engineer
