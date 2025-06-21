@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-model
+spec:
+  template:
+    metadata:
+      labels:
+        app: train-model
+    spec:
+      containers:
+      - name: train-model
+        image: "{{ .Values.trainModel.image.repository }}:{{ .Values.trainModel.image.tag }}"
+        command: ["python", "train_model.py"]
+        env:
+        - name: MLFLOW_TRACKING_USERNAME
+          value: "{{ .Values.mlopsConfig.mlflow.username }}"
+        - name: MLFLOW_TRACKING_PASSWORD
+          value: "{{ .Values.mlopsConfig.mlflow.password }}"
+        resources:
+          {{- toYaml .Values.trainModel.resources | nindent 12 }}
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: models
+          mountPath: /app/models
+        - name: config
+          mountPath: /app/config.yaml
+          subPath: config.yaml
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: mlops-data
+      - name: models
+        persistentVolumeClaim:
+          claimName: models-data
+      - name: config
+        configMap:
+          name: mlops-config
+      imagePullSecrets:
+      - name: regcred
+      restartPolicy: Never

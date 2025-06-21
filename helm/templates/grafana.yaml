@@ -1,0 +1,67 @@
+{{- if .Values.grafana.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  ports:
+  - port: {{ .Values.grafana.service.port }}
+    targetPort: 3000
+  selector:
+    app: grafana
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: "{{ .Values.grafana.image.repository }}:{{ .Values.grafana.image.tag }}"
+        ports:
+        - containerPort: 3000
+        env:
+        - name: GF_SECURITY_ADMIN_USER
+          value: {{ .Values.grafana.credentials.adminUser }}
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: {{ .Values.grafana.credentials.adminPassword }}
+        - name: GF_USERS_ALLOW_SIGN_UP
+          value: "false"
+        resources:
+          {{- toYaml .Values.grafana.resources | nindent 12 }}
+        volumeMounts:
+        - name: grafana-data
+          mountPath: /var/lib/grafana
+        - name: grafana-provisioning
+          mountPath: /etc/grafana/provisioning/datasources
+        - name: grafana-provisioning
+          mountPath: /etc/grafana/provisioning/dashboards/dashboards.yaml
+          subPath: dashboards.yaml
+          readOnly: true
+        - name: grafana-dashboard-best-model
+          mountPath: /etc/grafana/provisioning/dashboards/best_model_dashboard.json
+          subPath: best_model_dashboard.json
+          readOnly: true
+      imagePullSecrets:
+      - name: regcred
+      volumes:
+      - name: grafana-data
+        persistentVolumeClaim:
+          claimName: grafana-data
+      - name: grafana-provisioning
+        configMap:
+          name: grafana-provisioning
+      - name: grafana-dashboard-best-model
+        configMap:
+          name: grafana-dashboard-best-model
+{{- end -}}
