@@ -8,13 +8,19 @@ Ce projet MLOps complet prédit la gravité des accidents de la route en France 
 
 - **Prédiction binaire** : Classifier les accidents comme "Grave" (hospitalisé/décédé) ou "Pas Grave" (indemne/blessé léger)
 - **Pipeline automatisé** : Extraction, données synthétiques, préparation, entraînement et déploiement automatiques
-- **Monitoring continu** : Détection de drift et re-entraînement automatique
+- **Monitoring complet** : 
+  - Détection de drift des données avec Evidently
+  - Surveillance des performances API en temps réel
+  - Dashboards de monitoring système et métier
+  - Re-entraînement automatique sur alerte de drift
 - **API REST** : Service de prédiction sécurisé avec authentification JWT
 
 ## Architecture du Système
 
 ```
-Extraction → Données Synthétiques → Préparation → Entraînement → API → Monitoring
+Extraction → Données Synthétiques → Préparation → Entraînement → API → Monitoring Complet
+                                                                        ↓
+                                            Alertes Drift → Re-entraînement Automatique
 ```
 
 ## Démarrage Rapide
@@ -48,7 +54,7 @@ cp config.yaml.example config.yaml
 
 3. **Lancement complet**
 ```bash
-# Pipeline complet (extraction → entraînement → API → monitoring)
+# Pipeline complet
 docker-compose up --build
 
 # Ou en arrière-plan
@@ -60,9 +66,165 @@ docker-compose up -d --build
 | Service | URL | Description |
 |---------|-----|-------------|
 | API Prédictions | http://localhost:8000/docs | API REST avec documentation Swagger |
-| Grafana | http://localhost:3000 | Dashboards de monitoring (admin/admin) |
+| **Grafana** | http://localhost:3000 | **4 Dashboards de monitoring** (admin/admin) |
 | Prometheus | http://localhost:9090 | Métriques système et modèle |
 | Airflow | http://localhost:8080 | Orchestration des pipelines (admin/admin) |
+| Evidently API | http://localhost:8001 | Service de détection de drift |
+
+## Monitoring & Dashboards Grafana
+
+### Accès et Configuration
+- **URL** : http://localhost:3000
+- **Identifiants** : admin/admin
+- **Sources de données** : PostgreSQL, Prometheus, Loki (pré-configurées)
+- **Actualisation** : Toutes les 5 secondes pour un monitoring temps réel
+
+### 4 Dashboards Intégrés
+
+#### **1. API Performance Monitoring Dashboard**
+**Surveillance en temps réel de l'API de prédiction**
+
+**Métriques de Performance :**
+- Uptime de l'API et temps de fonctionnement total
+- Taux de requêtes par seconde (RPS)
+- Latence P95 et temps de réponse moyen
+- Taux d'erreurs 5xx et distribution des codes HTTP
+- Utilisation CPU et mémoire des conteneurs API
+
+**Logs en Temps Réel :**
+- Panel logs API intégré via Loki
+- Filtrage automatique par niveau (INFO, ERROR, WARNING)
+- Corrélation logs/métriques pour diagnostic rapide
+
+**Alertes Visuelles :**
+- Seuils CPU (>70%), mémoire (>80%), latence (>500ms)
+- Codes couleur : Vert (normal), Orange (attention), Rouge (critique)
+
+#### **2. Data Drift Monitoring Dashboard**
+**Détection automatique de la dérive des données**
+
+**Score de Drift Global :**
+- Gauge principal avec score Evidently (0-1)
+- Seuil d'alerte : >0.5 (déclenche re-entraînement automatique)
+- Évolution du drift dans le temps (graphique temporel)
+
+**Drift par Feature :**
+- Tableau détaillé des 13 variables du modèle
+- Status individuel : OK / DRIFT pour chaque feature
+- Histogrammes de comparaison référence vs courant
+
+**Pipeline de Détection :**
+- Mise à jour quotidienne via DAG `daily_data_processing`
+- Webhook automatique Alertmanager → Airflow sur drift élevé
+- Logs de détection et actions automatiques
+
+#### **3. Model Performance Dashboard**
+**Suivi des performances ML en production**
+
+**Métriques du Meilleur Modèle :**
+- Version et timestamp du modèle en production
+- Accuracy, Precision, Recall, F1-Score actuels
+- Évolution des performances dans le temps
+- Comparaison avec les modèles précédents
+
+**Gestion des Versions :**
+- Historique des promotions de modèles
+- Déclencheurs de re-entraînement (drift/performance)
+- Métadonnées d'entraînement (hyperparamètres, dataset size)
+
+**Seuils de Performance :**
+- Accuracy >85% (excellent)
+- Accuracy 80-85% (acceptable)
+- Accuracy <80% (re-entraînement recommandé)
+
+#### **4. Business Analytics Dashboard**
+**Analyse des données métier et statistiques descriptives**
+
+**Vue d'Ensemble des Accidents :**
+- Nombre total d'accidents analysés (2023)
+- Répartition Grave vs Pas Grave (pie chart)
+- Tendances temporelles et saisonnières
+
+**Analyses Géographiques :**
+- Top 10 des départements les plus accidentés
+- Répartition par type de route (autoroute/nationale/etc.)
+- Cartographie des zones à risque
+
+**Conditions d'Accidents :**
+- Répartition par conditions de luminosité
+- Impact météorologique sur la gravité
+- Analyse par catégorie d'usager (conducteur/piéton/passager)
+
+### Intégration Complète du Monitoring
+
+#### **Détection de Drift avec Evidently**
+
+**Architecture Technique :**
+```
+Nouvelles Données → Evidently API → Score Drift > 0.5 → 
+Prometheus Alerte → Alertmanager → Webhook → 
+Airflow DAG → Re-entraînement → Nouveau Modèle
+```
+
+**API Evidently** (`http://localhost:8001`)
+- Service FastAPI dédié au calcul de drift
+- Endpoint `/metrics` pour Prometheus (format OpenMetrics)
+- Comparaison données référence vs données courantes
+
+**Stockage des Données :**
+```
+evidently/
+├── reference/    # Données de référence (best_model_data.csv)
+├── current/     # Données courantes (current_data.csv)
+└── api/         # Service de calcul du drift
+```
+
+**Méthodes de Détection :**
+- **Variables numériques** : Corrélation entre histogrammes (seuil < 0.95)
+- **Variables catégorielles** : Distance de variation totale (seuil > 0.1)
+- **Score final** : Proportion de features ayant dérivé
+
+#### **Tests de Drift (Simulation)**
+
+```bash
+# Forcer un drift artificiel pour tester les alertes
+curl -X POST http://localhost:8001/config/noise \
+  -H "Content-Type: application/json" \
+  -d '{"noise": 0.8}'
+
+# Vérifier l'alerte dans Grafana Dashboard "Data Drift Monitoring"
+# L'alerte se déclenche automatiquement et lance le re-entraînement
+
+# Réinitialiser le drift
+curl -X POST http://localhost:8001/config/noise \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### Métriques Prometheus Disponibles
+
+```promql
+# Drift des données
+ml_data_drift_score                    # Score global de drift (0-1)
+ml_feature_drift{feature="catu"}       # Drift par feature
+
+# Performance API
+http_requests_total                    # Nombre total de requêtes
+http_request_duration_seconds          # Durée des requêtes
+api_predictions_total                  # Nombre de prédictions
+
+# Système
+container_cpu_usage_seconds_total      # CPU par conteneur
+container_memory_usage_bytes           # Mémoire par conteneur
+```
+
+### Workflow de Monitoring Automatique
+
+1. **Monitoring Continu** : Les 4 dashboards actualisent leurs métriques toutes les 5 secondes
+2. **Détection de Drift** : Evidently calcule le score quotidiennement via DAG Airflow
+3. **Alertes Automatiques** : Prometheus surveille les seuils et déclenche Alertmanager
+4. **Actions Correctives** : Webhook automatique vers Airflow pour re-entraînement
+5. **Validation** : Nouveau modèle validé et promu automatiquement si performances meilleures
 
 ## Données
 
@@ -88,7 +250,6 @@ docker-compose up -d --build
   - Permet de simuler la variabilité des données en production
   - Évite d'avoir toujours la même accuracy avec des données 2023 figées
   - Essentiel pour tester la détection de drift et les alertes automatiques
-- Déduplication sur `Num_Acc`
 - Imputation des valeurs manquantes par le mode
 - Binarisation de la cible : `grav` → 0 (pas grave) / 1 (grave)
 - Standardisation avec `StandardScaler`
@@ -96,8 +257,8 @@ docker-compose up -d --build
 ## Modélisation
 
 **Algorithme** : Random Forest Classifier
-- **Hyperparamètres optimisés** : n_estimators=300, max_depth=15, etc.
-- **Métriques** : Accuracy ~84%, Precision/Recall équilibrés
+- **Hyperparamètres optimisés** : n_estimators=300, max_depth=15, min_samples_split=5, min_samples_leaf=2, max_features="sqrt", random_state=42
+- **Métriques** : Precision/Recall équilibrés avec performance variable selon l'entraînement
 - **Validation** : Train/test split 80/20 avec stratification
 
 **MLflow Integration** :
@@ -123,7 +284,7 @@ Le projet utilise une approche innovante avec **génération de données synthé
 
 ### Étapes du Pipeline
 
-1. **Extraction** (`extract_data`) : Téléchargement des données gouvernementales CSV 2023
+1. **Extraction** (`extract_data`) : Téléchargement et fusion des 4 fichiers CSV gouvernementaux 2023 (caractéristiques, lieux, usagers, véhicules) en un seul fichier unifié `accidents_2023.csv`
 2. **Augmentation** (`synthet_data`) : Génération de 50% données synthétiques basées sur les distributions réelles
 3. **Préparation** (`prepare_data`) : Feature engineering et normalisation
 4. **Entraînement** (`train_model`) : Random Forest avec tracking MLflow et variations d'accuracy
@@ -145,160 +306,6 @@ Extraction Quotidienne → Données Synthétiques → Préparation → Mise à j
 ### 3. Déclenchement Automatique
 - **Seuil de drift** : > 0.5
 - **Action** : Re-entraînement automatique via webhook Alertmanager → Airflow
-
-## Monitoring & Alertes
-
-### Détection de Drift avec Evidently
-
-#### Architecture de la Détection de Drift
-
-Le système utilise **Evidently** pour détecter automatiquement la dérive des données en comparant les distributions entre :
-- **Données de référence** : Dataset utilisé pour entraîner le "meilleur modèle" 
-- **Données courantes** : Nouvelles données traitées quotidiennement
-
-#### Mise en Place Technique
-
-**1. API Evidently** (`evidently/api/api.py`)
-- Service FastAPI dédié exposé sur le port 8001
-- Endpoint `/metrics` pour Prometheus au format OpenMetrics
-- Calcul du score de drift basé sur les 13 features du modèle
-
-**2. Stockage des Données**
-```
-evidently/
-├── reference/          # Données de référence (best_model_data.csv)
-├── current/           # Données courantes (current_data.csv)
-└── api/              # Service de calcul du drift
-```
-
-**3. Calcul du Score de Drift**
-- **Variables numériques** : Corrélation entre histogrammes (seuil < 0.95)
-- **Variables catégorielles** : Distance de variation totale (seuil > 0.1)
-- **Score final** : Proportion de features ayant dérivé
-
-**4. Mise à Jour Automatique**
-- **Données courantes** : Mises à jour par le DAG quotidien `daily_data_processing`
-- **Données de référence** : Mises à jour lors de la promotion d'un nouveau meilleur modèle
-
-#### Intégration avec le Pipeline MLOps
-
-**1. Collecte par Prometheus**
-```yaml
-# monitoring/prometheus/prometheus.yml
-scrape_configs:
-  - job_name: 'evidently_drift_api'
-    metrics_path: '/metrics'
-    static_configs:
-      - targets: ['evidently-api:8001']
-```
-
-**2. Règles d'Alerte**
-```yaml
-# monitoring/prometheus/alert.rules.yml
-- alert: HighDataDrift
-  expr: ml_data_drift_score > 0.5
-  for: 1m
-  annotations:
-    summary: "High data drift detected ({{ $value }})"
-```
-
-**3. Webhook Automatique**
-```yaml
-# monitoring/alertmanager/alertmanager.yml
-receivers:
-- name: 'airflow_webhook'
-  webhook_configs:
-  - url: 'http://evidently-api:8001/trigger_airflow_from_alert'
-```
-
-#### Workflow de Détection et Réaction
-
-```
-Nouvelles Données → Evidently API → Score Drift > 0.5 → Prometheus Alerte → 
-Alertmanager → Webhook → Airflow DAG road_accidents → Re-entraînement → Nouveau Modèle
-```
-
-**Orchestration Airflow** :
-- **DAG `daily_data_processing`** : Exécution quotidienne pour récupérer de nouveaux datasets (Extraction → Synthétique → Préparation → Evidently)
-- **DAG `road_accidents`** : Déclenchement sur alerte de drift pour re-entraînement complet
-
-#### Tests et Simulation
-
-**Forcer un Drift Artificiel** (pour tests)
-```bash
-# Augmenter le drift à 80%
-curl -X POST http://localhost:8001/config/noise \
-  -H "Content-Type: application/json" \
-  -d '{"noise": 0.8}'
-
-# Vérifier l'alerte dans Prometheus
-curl http://localhost:9090/api/v1/query?query=ml_data_drift_score
-```
-
-### Dashboards Grafana
-
-#### Accès et Configuration
-- **URL** : http://localhost:3000
-- **Identifiants** : admin/admin
-- **Sources de données** : PostgreSQL, Prometheus, Loki (pré-configurées)
-
-#### Liste des Dashboards
-
-**1. API Monitoring Dashboard**
-- **Objectif** : Surveillance en temps réel de l'API de prédiction
-- **Métriques clés** :
-  - Uptime de l'API et temps de fonctionnement
-  - Score de drift des données (gauge avec seuils d'alerte)
-  - Taux de requêtes par seconde (RPS)
-  - Latence P95 et temps de réponse moyen
-  - Taux d'erreurs 5xx et distribution des codes HTTP
-  - Utilisation CPU et mémoire des conteneurs API
-  - **Logs API en temps réel** via Loki (panel logs intégré)
-
-**2. Best Model Metrics Dashboard**
-- **Objectif** : Suivi des performances du modèle en production
-- **Métriques clés** :
-  - Version et année du meilleur modèle
-  - Accuracy, Precision, Recall, F1-Score
-  - Évolution des métriques dans le temps
-  - Seuils de performance avec alertes visuelles (vert/orange/rouge)
-
-**3. Accidents 2023 Dashboard**
-- **Objectif** : Analyse des données métier et statistiques descriptives
-- **Métriques clés** :
-  - Nombre total d'accidents analysés
-  - Répartition par conditions de luminosité (pie chart)
-  - Top 10 des départements les plus accidentés
-  - Statistiques mises à jour toutes les 5 secondes
-
-**4. Container Resources Dashboard**
-- **Objectif** : Monitoring de l'infrastructure et des ressources système
-- **Métriques clés** :
-  - Utilisation CPU par conteneur (%)
-  - Consommation mémoire par service
-  - I/O réseau (réception/transmission)
-  - I/O disque (lecture/écriture)
-  - Vue d'ensemble de la santé de l'infrastructure
-
-#### Alertes Visuelles
-- **Seuils configurés** : Performance modèle (>80%), CPU (>70%), mémoire, drift (>0.3)
-- **Codes couleur** : Vert (normal), Orange (attention), Rouge (critique)
-- **Actualisation** : Toutes les 5 secondes pour un monitoring temps réel
-
-### Métriques Système
-```promql
-# Score de drift des données
-ml_data_drift_score
-
-# Métriques API
-http_requests_total
-http_request_duration_seconds
-```
-
-### Alertes Grafana
-- Drift élevé détecté
-- Latence API anormale
-- Erreurs 5xx en augmentation
 
 ## API REST
 
@@ -473,15 +480,15 @@ docker-compose up airflow-webserver airflow-scheduler
 ```
 
 ### Gestion DVC (Automatique)
-```bash
-# DVC est géré automatiquement par train_model.py
-# Lors de la promotion d'un nouveau meilleur modèle :
-# - dvc commit --force pour les nouveaux fichiers
-# - git add des fichiers .dvc
-# - git commit avec métadonnées du modèle
-# - git push automatique
 
-# Récupération des données/modèles uniquement
+DVC est géré automatiquement par train_model.py lors de la promotion d'un nouveau meilleur modèle :
+- dvc commit --force pour les nouveaux fichiers
+- git add des fichiers .dvc
+- git commit avec métadonnées du modèle
+- git push automatique
+
+Pour récupérer les données/modèles uniquement :
+```bash
 dvc pull
 ```
 
@@ -510,53 +517,7 @@ Le modèle Random Forest génère des métriques de performance qui **varient à
 
 **Avantage de la variabilité** : Cette variation permet de tester efficacement le système de détection de drift et la promotion automatique de modèles basée sur l'amélioration des performances.
 
-## Troubleshooting
-
-### Problèmes Courants
-
-1. **Erreur de mémoire**
-   ```bash
-   # Augmenter la mémoire Docker à 8GB minimum
-   ```
-
-2. **MLflow non accessible**
-   ```bash
-   # Vérifier les credentials DagsHub dans config.yaml
-   ```
-
-3. **DVC non configuré**
-   ```bash
-   # DVC est géré automatiquement par train_model.py
-   # Vérifier que git est configuré dans config.yaml
-   ```
-
-4. **Base de données non initialisée**
-   ```bash
-   docker-compose restart postgres
-   ```
-
-5. **Ports occupés**
-   ```bash
-   # Modifier les ports dans docker-compose.yml
-   ```
-
-## Contribution
-
-1. Fork le projet
-2. Créer une branche feature (`git checkout -b feature/amélioration`)
-3. Commit (`git commit -m 'Ajout fonctionnalité'`)
-4. Push (`git push origin feature/amélioration`)
-5. Ouvrir une Pull Request
-
-## Licence
-
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
-
 ## Contact
 
 **Marco LOPES** - MLOps & DevOps Engineer
 - LinkedIn: [linkedin.com/in/marco-lopes-084063336](https://www.linkedin.com/in/marco-lopes-084063336/)
-
-## Tags
-
-`mlops` `machine-learning` `fastapi` `docker` `airflow` `mlflow` `prometheus` `grafana` `data-science` `road-safety` `france` `random-forest` `monitoring` `devops`
