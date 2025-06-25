@@ -208,41 +208,23 @@
       "gridPos": {
         "h": 8,
         "w": 10,
-        "x": 6,
+        "x": 10,
         "y": 16
       },
       "targets": [
         {
-          "expr": "sum by (status) (rate(http_requests_total{job=\"api\"}[1m]))",
+          "expr": "sum(rate(http_requests_total{job=\"api\"}[1m])) by (status)",
           "legendFormat": "{{status}}"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "reqps"
+          "unit": "ops"
         }
-      }
-    },
-    {
-      "id": 7,
-      "title": "Error Rate (%)",
-      "type": "timeseries",
-      "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 16
       },
-      "targets": [
-        {
-          "expr": "(sum(rate(http_requests_total{job=\"api\", status=~\"4..\"}[1m])) by (job) / sum(rate(http_requests_total{job=\"api\"}[1m])) by (job)) * 100",
-          "legendFormat": "Error Rate (%) {{job}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent"
-        }
+      "options": {
+        "minXSpacing": 200,
+        "xTickLabelRotation": -45
       }
     },
     {

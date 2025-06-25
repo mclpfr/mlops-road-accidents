@@ -3,7 +3,7 @@ groups:
   rules:
   - alert: HighDataDrift
     expr: ml_data_drift_score > 0.5
-    for: 1m  # Duration for which the condition must be true before firing the alert
+    for: 5s  # Duration for which the condition must be true before firing the alert
     labels:
       severity: critical
       service: evidently-api

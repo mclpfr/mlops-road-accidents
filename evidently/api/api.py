@@ -7,6 +7,8 @@ from evidently import Report
 from evidently.presets import DataDriftPreset
 import os
 from datetime import datetime
+import tempfile
+from simple_report import generate_simple_html_report
 
 app = FastAPI()
 
@@ -282,6 +284,118 @@ async def get_drift_dashboard():
         return HTMLResponse(content=f"<html><body><h1>Error</h1><p>Could not calculate drift: {str(e)}</p></body></html>", status_code=400)
     except Exception as e:
         return HTMLResponse(content=f"<html><body><h1>Error</h1><p>An unexpected error occurred: {str(e)}</p></body></html>", status_code=500)
+
+
+@app.get("/drift_full_report", response_class=HTMLResponse)
+async def get_drift_full_report(noise: float = None):
+    """Return a full Evidently Data Drift report as an HTML page."""
+    try:
+        print("--- get_drift_full_report: Starting HTML report generation ---")
+        reference_file = _get_latest_file(REFERENCE_DATA_DIR, "best_model_data")
+        current_file = _get_latest_file(CURRENT_DATA_DIR, "current_data")
+
+        if not reference_file or not current_file:
+            print(f"--- get_drift_full_report: File not found - ref: {reference_file}, current: {current_file} ---")
+            raise FileNotFoundError("Reference or current data file missing")
+
+        print(f"--- get_drift_full_report: Loading data files - ref: {reference_file}, current: {current_file} ---")
+        reference_data = pd.read_csv(reference_file)
+        current_data = pd.read_csv(current_file)
+        
+        print(f"--- get_drift_full_report: Data loaded - ref shape: {reference_data.shape}, current shape: {current_data.shape} ---")
+        
+        # If no 'noise' parameter is provided, use the global override
+        if noise is None:
+            noise = NOISE_OVERRIDE
+            if noise is not None:
+                print(f"--- get_drift_full_report: Using global NOISE_OVERRIDE={noise} ---")
+                
+        # Force the drift_share to the noise value if specified
+        # This ensures the HTML report will display the same value as the API
+        force_drift_share = noise if noise is not None else None
+        print(f"--- get_drift_full_report: Force drift_share to {force_drift_share} ---")
+
+        # Apply noise to current data if noise parameter is provided
+        if noise is not None and noise > 0:
+            print(f"--- get_drift_full_report: Applying noise factor {noise} to current data ---")
+            
+            # Create a copy of current data to avoid modifying the original
+            current_data = current_data.copy()
+            
+            # Select only numeric columns to apply noise
+            numeric_cols = current_data.select_dtypes(include=['number']).columns.tolist()
+            if numeric_cols:
+                # Apply Gaussian noise to numeric columns
+                for col in numeric_cols:
+                    # Calculate the column's standard deviation
+                    std = current_data[col].std()
+                    if std > 0:
+                        # Generate Gaussian noise with standard deviation proportional to the noise factor
+                        # Use a higher factor to ensure detectable drift
+                        noise_values = np.random.normal(0, std * noise * 2, size=len(current_data))
+                        # Add noise to current data
+                        current_data[col] = current_data[col] + noise_values
+                        # Also add a systematic shift to ensure drift
+                        if noise > 0.5:  # For high noise factors, add a shift
+                            shift = std * noise
+                            current_data[col] = current_data[col] + shift
+                print(f"--- get_drift_full_report: Enhanced noise applied to {len(numeric_cols)} numeric columns ---")
+            
+            # For categorical columns, we can shuffle more values
+            categorical_cols = current_data.select_dtypes(include=['object', 'category']).columns.tolist()
+            if categorical_cols:
+                # Determine number of items to shuffle (proportional to noise factor)
+                # Use a higher factor to ensure detectable drift
+                n_samples = int(len(current_data) * noise * 2)
+                if n_samples > 0:
+                    for col in categorical_cols:
+                        # Randomly select indices to modify
+                        indices = np.random.choice(len(current_data), size=min(n_samples, len(current_data)), replace=False)
+                        # Get unique values from the column
+                        unique_values = current_data[col].unique()
+                        if len(unique_values) > 1:
+                            # For each selected index, assign a different random value
+                            for idx in indices:
+                                current_value = current_data.loc[idx, col]
+                                # Select a value different from the current one
+                                other_values = [v for v in unique_values if v != current_value]
+                                if other_values:
+                                    current_data.loc[idx, col] = np.random.choice(other_values)
+                            
+                            # For high noise factors, also introduce new categories
+                            if noise > 0.5 and len(indices) > 0:
+                                # Create a new category
+                                new_category = f"NEW_VALUE_{col}"
+                                # Replace some values with the new category
+                                n_new = max(1, int(len(indices) * 0.2))
+                                new_indices = np.random.choice(indices, size=n_new, replace=False)
+                                current_data.loc[new_indices, col] = new_category
+                    
+                    print(f"--- get_drift_full_report: Enhanced shuffling in {len(categorical_cols)} categorical columns for {n_samples} samples ---")
+        
+        # Use our custom function to generate a simple HTML report
+        print("--- get_drift_full_report: Generating custom HTML report ---")
+        try:
+            html = generate_simple_html_report(reference_data, current_data, force_drift_share)
+            print(f"--- get_drift_full_report: Custom HTML report generated, length: {len(html)} ---")
+        except Exception as e:
+            print(f"--- get_drift_full_report: Error generating custom HTML report: {e} ---")
+            raise
+        
+        if not html or len(html) < 100:
+            raise ValueError(f"Generated HTML is too short or empty: {len(html)} bytes")
+        
+        print("--- get_drift_full_report: Successfully generated HTML report ---")
+        return HTMLResponse(content=html)
+                
+    except FileNotFoundError as e:
+        print(f"--- get_drift_full_report: FileNotFoundError: {e} ---")
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        print(f"--- get_drift_full_report: Exception: {e} ---")
+        raise HTTPException(status_code=500, detail=f"Unable to generate report: {e}")
+
+
 
 import requests
 from fastapi import Request, Response

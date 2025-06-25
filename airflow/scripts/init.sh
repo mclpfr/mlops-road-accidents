@@ -5,17 +5,7 @@ set -e
 mkdir -p /opt/airflow/logs /opt/airflow/logs/scheduler /opt/airflow/logs/webserver /opt/airflow/logs/worker
 chmod -R 777 /opt/airflow/logs
 
-# Initialiser la base de données Airflow
-airflow db init
+# Database initialization and user creation steps are now managed in /opt/airflow/scripts/entrypoint.sh
 
-# Créer un utilisateur administrateur
-airflow users create \
-  --username admin \
-  --password admin \
-  --firstname Admin \
-  --lastname User \
-  --role Admin \
-  --email admin@example.com
-
-echo "Initialisation d'Airflow terminée avec succès!"
+echo "Log directories preparation completed. No further action in init.sh."
 exit 0

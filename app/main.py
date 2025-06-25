@@ -4,12 +4,12 @@ import sys
 import logging
 from logging.handlers import RotatingFileHandler
 
-# Créer un dossier pour les logs s'il n'existe pas
+# Create logs directory if it doesn't exist
 log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, 'app.log')
 
-# Configuration du handler de fichier avec rotation
+# File handler configuration with rotation
 file_handler = RotatingFileHandler(
     log_file, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8'
 )
@@ -17,18 +17,18 @@ file_handler.setFormatter(logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 ))
 
-# Configuration du logger racine
+# Root logger configuration
 root_logger = logging.getLogger()
 root_logger.setLevel(logging.ERROR)  # Niveau le plus strict
 
-# Supprimer tous les handlers existants
+# Remove all existing handlers
 for handler in root_logger.handlers[:]:
     root_logger.removeHandler(handler)
 
-# Ajouter notre handler de fichier
+# Add our file handler
 root_logger.addHandler(file_handler)
 
-# Rediriger stdout et stderr vers les logs
+# Redirect stdout and stderr to logs
 class StreamToLogger:
     def __init__(self, logger, log_level=logging.INFO):
         self.logger = logger
@@ -42,37 +42,26 @@ class StreamToLogger:
     def flush(self):
         pass
 
-# Rediriger stdout et stderr vers le logger
+# Redirect stdout and stderr to logger
 sys.stdout = StreamToLogger(logging.getLogger('STDOUT'), logging.INFO)
 sys.stderr = StreamToLogger(logging.getLogger('STDERR'), logging.ERROR)
 
-# Désactiver les logs pour les bibliothèques spécifiques
+# Disable logs for specific libraries
 for lib in ['mlflow', 'urllib3', 'matplotlib', 'PIL', 'git', 'fsspec', 'httpcore', 'httpx', 'botocore', 's3transfer', 'boto3']:
     logging.getLogger(lib).setLevel(logging.CRITICAL)
 
-# Configuration des variables d'environnement pour réduire les logs
+# Environment variables configuration to reduce logs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=INFO, 1=WARNING, 2=ERROR, 3=FATAL
 os.environ['MLFLOW_HTTP_REQUEST_TIMEOUT'] = '30'
 os.environ['MLFLOW_HTTP_REQUEST_MAX_RETRIES'] = '1'
 os.environ['MLFLOW_VERBOSE'] = 'false'
 os.environ['GIT_PYTHON_REFRESH'] = 'quiet'
 
-# Désactiver les warnings
+# Disable warnings
 import warnings
 warnings.filterwarnings('ignore')
 
-# Configurer MLflow pour être silencieux
-try:
-    import mlflow
-    mlflow.set_tracking_uri(os.getenv('MLFLOW_TRACKING_URI', 'http://localhost:5000'))
-    mlflow.set_experiment('road-accidents')
-    mlflow.sklearn.autolog(disable=True)
-    # Désactiver les logs de téléchargement de MLflow
-    logging.getLogger('mlflow.tracking.client').setLevel(logging.CRITICAL)
-    logging.getLogger('mlflow.store.artifact.artifact_repo').setLevel(logging.CRITICAL)
-    logging.getLogger('mlflow.store.artifact.artifact_repository_registry').setLevel(logging.CRITICAL)
-except Exception as e:
-    pass  # Ignorer les erreurs de configuration MLflow
+
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -96,44 +85,74 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import json
+import yaml
+import requests
 import os
 from datetime import datetime, timedelta
 import time
 
-# --- Imports MLflow & sklearn pour récupérer les valeurs réelles ---
+# --- MLflow & sklearn imports to retrieve actual values ---
 import mlflow
 from mlflow.tracking import MlflowClient
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 
-# --- Chargement du modèle ML réel pour la démo interactive ---
+# --- Loading the actual ML model for the interactive demo ---
 from pathlib import Path
 import sys
 try:
     sys.path.append(str(Path(__file__).resolve().parent.parent / 'src'))
-    from api.api import find_best_model as _find_best_model  # type: ignore
-except Exception:
-    try:
-        from src.api.api import find_best_model as _find_best_model  # type: ignore
-    except Exception:
-        _find_best_model = None
+    from api.predict_api import find_best_model as _find_best_model
+except ImportError as e:
+    st.error(f"Erreur d'importation : {e}")
+    _find_best_model = None
+
+def setup_mlflow():
+    """Sets up MLflow tracking URI."""
+    # The following environment variables must be set for DagsHub:
+    # export MLFLOW_TRACKING_USERNAME="your_username"
+    # export MLFLOW_TRACKING_PASSWORD="your_dagshub_token"
+    mlflow.set_tracking_uri(os.getenv('MLFLOW_TRACKING_URI', 'https://dagshub.com/mclpfr/mlops-road-accidents.mlflow'))
 
 @st.cache_resource(ttl=3600)
 def load_local_model():
-    """Télécharge et met en cache le meilleur modèle enregistré dans MLflow."""
-    if _find_best_model is None:
-        st.error("Impossible d'importer la fonction find_best_model pour charger le modèle.")
-        return None
+    """Charge et met en cache le meilleur modèle.
+
+    Priorité:
+    1. Récupération via MLflow Registry (fonction ``find_best_model``)
+    2. Fallback sur un fichier local ``models/best_model_2023.joblib``
+    3. Fallback sur le premier ``*.joblib`` trouvé dans ``models/``.
+    """
+    # 1) Tentative via MLflow
+    if _find_best_model is not None:
+        try:
+            setup_mlflow()
+            model, _ = _find_best_model()  # type: ignore
+            if model is not None:
+                return model
+        except Exception as e:
+            logging.getLogger(__name__).warning(f"MLflow indisponible, fallback local : {e}")
+
+    # 2) Fallback fichier local explicite
     try:
-        model, _ = _find_best_model()
-        return model
+        import joblib
+        base_path = Path(__file__).resolve().parent.parent / "models"
+        explicit_path = base_path / "best_model_2023.joblib"
+        if explicit_path.exists():
+            return joblib.load(explicit_path)
+
+        # 3) Sinon, premier .joblib dans le dossier
+        for p in base_path.glob("*.joblib"):
+            return joblib.load(p)
     except Exception as e:
-        st.error(f"Erreur lors du chargement du modèle : {e}")
-        return None
+        st.error(f"Impossible de charger un modèle local : {e}")
+    
+    st.error("Aucun modèle n'a pu être chargé (MLflow ou local).")
+    return None
 
 # Configuration de la page
 st.set_page_config(
-    page_title="MLOps - Accidents de la Route", 
+    page_title="MLOps Project - Road Accidents",
     page_icon="🚗",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -162,22 +181,22 @@ def fetch_data_from_db(query: str):
             "sslmode": "require"
         }
         
-        # Connexion à la base de données
+        # Database connection
         conn = psycopg2.connect(**conn_params)
         
-        # Exécution de la requête avec gestion du contexte
+        # Query execution with context management
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
             cursor.execute("SET statement_timeout = 3000")  # Timeout de 3 secondes
             cursor.execute(query)
             
-            # Récupération des résultats
+            # Fetching results
             if cursor.description:  # Vérifie si la requête retourne des résultats
                 results = cursor.fetchall()
                 df = pd.DataFrame(results)
             else:
                 df = pd.DataFrame()
                 
-            # Validation des changements
+            # Validate changes
             conn.commit()
             
         return df
@@ -186,11 +205,11 @@ def fetch_data_from_db(query: str):
         st.error(f"Erreur de connexion à la base de données ou d'exécution de la requête : {e}")
         return pd.DataFrame()  # Retourner un DataFrame vide en cas d'erreur
     finally:
-        # S'assurer que la connexion est fermée
+        # Ensure the connection is closed
         if 'conn' in locals():
             conn.close()
 
-# CSS personnalisé
+# Custom CSS
 st.markdown("""
 <style>
 .metric-card {
@@ -255,18 +274,7 @@ def get_best_model_overview():
     Returns a dict {model_name, model_type, version, accuracy} or None in case of error.
     """
     try:
-        # Configuration MLflow (même logique que fetch_best_model_info)
-        tracking_uri = None
-        if "mlflow" in st.secrets and "tracking_uri" in st.secrets["mlflow"]:
-            tracking_uri = st.secrets["mlflow"]["tracking_uri"]
-        if not tracking_uri:
-            tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
-        mlflow.set_tracking_uri(tracking_uri)
-        if "mlflow" in st.secrets:
-            ml_secrets = st.secrets["mlflow"]
-            if ml_secrets.get("username") and ml_secrets.get("password"):
-                os.environ["MLFLOW_TRACKING_USERNAME"] = ml_secrets["username"]
-                os.environ["MLFLOW_TRACKING_PASSWORD"] = ml_secrets["password"]
+        setup_mlflow()
         client = MlflowClient()
         model_name = "accident-severity-predictor"
 
@@ -287,7 +295,7 @@ def get_best_model_overview():
         if accuracy_val is not None:
             try:
                 accuracy_val = float(accuracy_val)
-                # Si l'accuracy est exprimée entre 0 et 1, convertir en %
+                # If accuracy is between 0 and 1, convert to %
                 if accuracy_val <= 1:
                     accuracy_val *= 100
                 accuracy_val = round(accuracy_val, 1)
@@ -304,21 +312,40 @@ def get_best_model_overview():
         st.warning(f"Impossible de récupérer les informations générales MLflow : {e}")
         return None
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=600)
+def get_class_distribution():
+    """Retrieve the Grave / Pas Grave distribution from the accidents table."""
+    query = """
+        SELECT grav, COUNT(*) as count
+        FROM accidents
+        GROUP BY grav
+    """
+    df_counts = fetch_data_from_db(query)
+
+    # Si la requête échoue ou retourne vide, renvoyer un DataFrame vide
+    if df_counts.empty or "grav" not in df_counts.columns:
+        return pd.DataFrame()
+
+    # Définition d'une règle simple : grav = 2 (Tué) => Grave, sinon Pas Grave
+    grave_count = int(df_counts[df_counts["grav"] == 2]["count"].sum())
+    pas_grave_count = int(df_counts[df_counts["grav"] != 2]["count"].sum())
+
+    total = grave_count + pas_grave_count
+    if total == 0:
+        return pd.DataFrame()
+
+    class_distribution = pd.DataFrame({
+        "Classe": ["Pas Grave", "Grave"],
+        "Pourcentage": [round(pas_grave_count / total * 100, 2), round(grave_count / total * 100, 2)],
+        "Nombre": [pas_grave_count, grave_count]
+    })
+    return class_distribution
+
+@st.cache_data(ttl=600)
 def get_best_model_metrics():
     """Return a dict containing accuracy, precision, recall and f1 extracted from the 'best_model' run in MLflow."""
     try:
-        tracking_uri = None
-        if "mlflow" in st.secrets and "tracking_uri" in st.secrets["mlflow"]:
-            tracking_uri = st.secrets["mlflow"]["tracking_uri"]
-        if not tracking_uri:
-            tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
-        mlflow.set_tracking_uri(tracking_uri)
-        if "mlflow" in st.secrets:
-            ml_secrets = st.secrets["mlflow"]
-            if ml_secrets.get("username") and ml_secrets.get("password"):
-                os.environ["MLFLOW_TRACKING_USERNAME"] = ml_secrets["username"]
-                os.environ["MLFLOW_TRACKING_PASSWORD"] = ml_secrets["password"]
+        setup_mlflow()
         client = MlflowClient()
         model_name = "accident-severity-predictor"
         best_version = None
@@ -356,37 +383,9 @@ def get_best_model_metrics():
                 result[label] = round(val, 1)
         return result if result else None
     except Exception as e:
-        st.info(f"Metrics MLflow non disponibles : {e}")
+        logging.getLogger(__name__).warning(f"Metrics MLflow non disponibles : {e}")
+        st.warning("Métriques MLflow non disponibles pour le moment. Merci de réessayer plus tard.")
         return None
-
-@st.cache_data(ttl=600)
-def get_class_distribution():
-    """Retrieve the Grave / Pas Grave distribution from the accidents table."""
-    query = """
-        SELECT grav, COUNT(*) as count
-        FROM accidents
-        GROUP BY grav
-    """
-    df_counts = fetch_data_from_db(query)
-
-    # Si la requête échoue ou retourne vide, renvoyer un DataFrame vide
-    if df_counts.empty or "grav" not in df_counts.columns:
-        return pd.DataFrame()
-
-    # Définition d'une règle simple : grav = 2 (Tué) => Grave, sinon Pas Grave
-    grave_count = int(df_counts[df_counts["grav"] == 2]["count"].sum())
-    pas_grave_count = int(df_counts[df_counts["grav"] != 2]["count"].sum())
-
-    total = grave_count + pas_grave_count
-    if total == 0:
-        return pd.DataFrame()
-
-    class_distribution = pd.DataFrame({
-        "Classe": ["Pas Grave", "Grave"],
-        "Pourcentage": [round(pas_grave_count / total * 100, 2), round(grave_count / total * 100, 2)],
-        "Nombre": [pas_grave_count, grave_count]
-    })
-    return class_distribution
 
 @st.cache_data(ttl=600)
 def fetch_best_model_info():
@@ -394,20 +393,8 @@ def fetch_best_model_info():
     Returns (hyperparams_dict, confusion_matrix_numpy) or (None, None) if an error occurs.
     """
     try:
-        # Configuration MLflow
-        # 1. Récupération de l'URI MLflow en priorité depuis st.secrets puis depuis la variable d'env
-        tracking_uri = None
-        if "mlflow" in st.secrets and "tracking_uri" in st.secrets["mlflow"]:
-            tracking_uri = st.secrets["mlflow"]["tracking_uri"]
-        if not tracking_uri:
-            tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
-        mlflow.set_tracking_uri(tracking_uri)
-        # 2. Credentials éventuels (Dagshub requiert basic auth)
-        if "mlflow" in st.secrets:
-            ml_secrets = st.secrets["mlflow"]
-            if ml_secrets.get("username") and ml_secrets.get("password"):
-                os.environ["MLFLOW_TRACKING_USERNAME"] = ml_secrets["username"]
-                os.environ["MLFLOW_TRACKING_PASSWORD"] = ml_secrets["password"]
+        setup_mlflow()
+        # par exemple dans le fichier docker-compose.yml.
         client = MlflowClient()
         model_name = "accident-severity-predictor"
 
@@ -533,7 +520,8 @@ def fetch_best_model_info():
             return hyperparams_dict, None
     except Exception as e:
         # Logging Streamlit sans interrompre l'app
-        st.warning(f"Impossible de récupérer les infos MLflow : {e}")
+        logging.getLogger(__name__).warning(f"Impossible de récupérer les infos MLflow : {e}")
+        st.warning("Informations MLflow non disponibles pour le moment. Merci de réessayer plus tard.")
         return None, None
 
 
@@ -596,7 +584,7 @@ def main(accidents_count):
     st.sidebar.title("Navigation")
     page = st.sidebar.selectbox(
         "Choisir une section",
-        ["Vue d'ensemble", "Données & EDA", "Modélisation ML", "Monitoring", "Démo Interactive"]
+        ["Vue d'ensemble", "Données & EDA", "Modélisation ML", "Monitoring", "Evidently", "MLflow", "Airflow", "Démo Interactive"]
     )
     
     # Génération des données d'exemple
@@ -610,6 +598,12 @@ def main(accidents_count):
         show_model_analysis(model_metrics)
     elif page == "Monitoring":
         show_monitoring(drift_data)
+    elif page == "Evidently":
+        show_evidently()
+    elif page == "MLflow":
+        show_mlflow()
+    elif page == "Airflow":
+        show_airflow()
     elif page == "Démo Interactive":
         show_interactive_demo()
 
@@ -848,11 +842,6 @@ def show_data_analysis(class_distribution):
                 'Conditions d\'éclairage (Plein jour, Crépuscule, Nuit sans éclairage, etc.)',
                 'Conditions atmosphériques (Normale, Pluie légère, Pluie forte, etc.)',
                 'Type de collision (Deux véhicules - frontale, Deux véhicules - par l\'arrière, etc.)'
-            ],
-            'Type': ['Catégorielle'] * 13,
-            'Valeurs Uniques': [
-                '1-3', '1-2', '0-9', '1-9', '1-4', '0-3', '1-4',
-                '1-4', '1-8', '0-8', '1-5', '1-9', '1-7'
             ]
         }
         
@@ -1110,354 +1099,189 @@ def show_mlops_pipeline(pipeline_steps):
     )
     st.plotly_chart(fig_timeline, use_container_width=True)
 
+def show_mlflow():
+    """Provides a link to the MLflow Experiment Tracking UI on DagsHub."""
+    st.header("MLflow - Suivi des Expérimentations")
+
+    
+    mlflow_url = "https://dagshub.com/mclpfr/mlops-road-accidents.mlflow/#/experiments/14?viewStateShareKey=3894e7dac091113a949e1a0b144bdfbf23f857b1cfb2b6251e919052fe25b155&compareRunsMode=TABLE"
+    
+    st.link_button("Ouvrir le suivi d'expérimentations MLflow", mlflow_url)
+
+
+def show_airflow():
+    """Affiche un bouton de redirection vers l'interface Airflow et les identifiants de connexion en lecture seule."""
+    st.header("Airflow – Gestion des flux de données")
+    airflow_base = os.getenv("AIRFLOW_BASE_URL", "http://localhost:8080")
+    st.link_button("Ouvrir l'interface Airflow", airflow_base)
+
+    # Affiche les identifiants de connexion lecture seule
+    with st.expander("Identifiants de connexion (lecture seule)"):
+        st.markdown("""
+        **Utilisateur** : `readonly`  
+        **Mot de passe** : `readonly`
+        """)
+
+
 def show_monitoring(drift_data):
-    st.header("📡 Monitoring & Data Drift Detection")
+    import requests
+    # Retrieve Grafana host from environment
+    grafana_host = os.getenv("GRAFANA_HOST", "195.35.48.95")
+    grafana_url = f"http://{grafana_host}:3000/d/api_monitoring_dashboard_v2/api?orgId=1"
+    
+    # Build embed URL with kiosk mode
+    embed_url = grafana_url + ("&" if "?" in grafana_url else "?") + "kiosk&theme=light"
 
-    # -----------------------------------------------------------------
-    # Dashboard Grafana Cloud intégré
-    # -----------------------------------------------------------------
-    try:
-        grafana_url = st.secrets["grafana"]["dashboard_url"]
-        # Ajout auth basic si secrets fournis
-        gc_user = st.secrets.get("GRAFANA_CLOUD_USER")
-        gc_key = st.secrets.get("GRAFANA_CLOUD_API_KEY")
-        auth_prefix = ""
-        if gc_user and gc_key:
-            auth_prefix = f"https://{gc_user}:{gc_key}@"
-            # remplace le https://<host> par https://user:key@<host>
-            grafana_url = grafana_url.replace("https://", auth_prefix, 1)
-        st.subheader("📊 Dashboard Grafana Cloud")
-        # Construction URL embed avec mode kiosk
-        embed_url = grafana_url + ("&" if "?" in grafana_url else "?") + "kiosk&theme=light"
-        components.html(
-            f'<iframe src="{embed_url}" style="width:100%; height:800px; border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
-            height=800,
-        )
-        # Auto-refresh toutes les 5 s si l'extension est disponible
-        if st_autorefresh:
-            st_autorefresh(interval=5000, key="monitoring_refresh")
-
-        # -----------------------------------------------------------------
-        # Panel API en image (render) actualisé toutes les 5 s
-        # -----------------------------------------------------------------
-        panel_url = (
-            f"{auth_prefix}mclpfr1.grafana.net/render/d-solo/api_monitoring_dashboard_v2/api"
-            "?orgId=1&from=now-1h&to=now&panelId=1&theme=light"
-        )
-        st.image(panel_url, caption="API – last hour")
-        if st_autorefresh:
-            st_autorefresh(interval=5000, key="panel_refresh")
-    except Exception as e:
-        st.warning("Impossible d'afficher le dashboard dans la page. Ouvrez-le dans un nouvel onglet :")
-        st.markdown(f"[📊 Ouvrir le dashboard Grafana]({grafana_url})")
-    
-    # Métriques de monitoring en temps réel
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("🔍 Data Drift Score", "0.18", "-0.10")
-    
-    with col2:
-        st.metric("🚀 API Uptime", "99.8%", "+0.1%")
-    
-    with col3:
-        st.metric("📈 Prédictions/jour", "1,247", "+156")
-    
-    with col4:
-        st.metric("⚡ Latence Moyenne", "89ms", "-12ms")
-    
-    # Graphique de drift
-    st.subheader("📊 Évolution du Data Drift")
-    
-    fig_drift = go.Figure()
-    
-    # Ligne de drift
-    fig_drift.add_trace(go.Scatter(
-        x=drift_data['Date'],
-        y=drift_data['Drift_Score'],
-        mode='lines+markers',
-        name='Data Drift Score',
-        line=dict(color='#EF4444', width=3)
-    ))
-    
-    # Seuil d'alerte
-    fig_drift.add_hline(
-        y=0.3, 
-        line_dash="dash", 
-        line_color="#F59E0B",
-        annotation_text="Seuil d'alerte (0.3)"
-    )
-    
-    fig_drift.update_layout(
-        title="Data Drift Detection - 6 derniers mois",
-        xaxis_title="Date",
-        yaxis_title="Drift Score",
-        height=400
-    )
-    
-    st.plotly_chart(fig_drift, use_container_width=True)
-    
-    # Alertes et actions
+    st.markdown("### Contrôle du Drift Artificiel")
     col1, col2 = st.columns(2)
-    
     with col1:
-        st.subheader("🚨 Alertes Actives")
-        
-        alerts = [
-            {"severity": "🟡", "message": "Drift détecté sur feature 'atm'", "time": "Il y a 2h"},
-            {"severity": "🟢", "message": "Pipeline exécuté avec succès", "time": "Il y a 4h"},
-            {"severity": "��", "message": "Latence API légèrement élevée", "time": "Il y a 6h"}
-        ]
-        
-        for alert in alerts:
-            st.markdown(f"""
-            <div style="border: 1px solid #E5E7EB; border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.5rem; background-color: white;">
-                {alert['severity']} {alert['message']}
-                <br><small style="color: #6B7280;">{alert['time']}</small>
-            </div>
-            """, unsafe_allow_html=True)
-    
+        if st.button("🚨 Forcer le drift", help="Ajoute du bruit aux données pour simuler un drift."):
+            try:
+                response = requests.post("http://localhost:8001/config/noise", json={"noise": 0.8}, timeout=3)
+                if response.status_code == 200:
+                    st.success("Drift artificiel forcé (noise=0.8)")
+                else:
+                    st.error(f"Erreur lors de la requête: {response.status_code} - {response.text}")
+            except Exception as e:
+                st.error(f"Erreur lors de la connexion à l'API: {e}")
     with col2:
-        st.subheader("⚙️ Actions Automatiques")
-        
-        actions = [
-            "🔄 **Re-training automatique** déclenché si drift > 0.5",
-            "📧 **Notifications email** pour les équipes DevOps",
-            "📊 **Dashboard Grafana** mis à jour en temps réel",
-            "🐛 **Logs centralisés** dans Prometheus",
-            "🔍 **Analyse des features** impactées par le drift"
-        ]
-        
-        for action in actions:
-            st.markdown(action)
-        
-        if st.button("🚀 Déclencher Re-training Manuel"):
-            st.success("Re-training déclenché ! Pipeline en cours d'exécution...")
+        if st.button("🔄 Réinitialiser le drift", help="Réinitialise le drift (bruit) artificiel."):
+            try:
+                response = requests.post("http://localhost:8001/config/noise", json={}, timeout=3)
+                if response.status_code == 200:
+                    st.success("Drift artificiel réinitialisé")
+                else:
+                    st.error(f"Erreur lors de la requête: {response.status_code} - {response.text}")
+            except Exception as e:
+                st.error(f"Erreur lors de la connexion à l'API: {e}")
+
+    # Display the iframe, making it tall to fill the page
+    components.html(
+        f'<iframe src="{embed_url}" style="width:100%; height:100vh; border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+        height=900,
+    )
+    return
 
 def show_interactive_demo():
-    st.header("Démo Interactive du Modèle")
-    
-    st.markdown("""
-    Cette section permet de tester le modèle en temps réel avec des paramètres personnalisés.
-    """)
-    
-    # Interface de prédiction
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.subheader("Paramètres de l'Accident")
-        
-        # Formulaire interactif
-        with st.form("prediction_form"):
-            col_a, col_b = st.columns(2)
-            
-            with col_a:
-                catu = st.selectbox("Catégorie d'usager", 
-                                   ["Conducteur", "Passager", "Piéton", "Autre"])
-                
-                sexe = st.selectbox("Sexe", ["Masculin", "Féminin"])
-                
-                trajet = st.selectbox("Motif du déplacement", 
-                                     ["Domicile-travail", "Domicile-école", "Courses", 
-                                      "Professionnel", "Loisirs", "Autre"])
-                
-                catr = st.selectbox("Type de route", 
-                                   ["Autoroute", "Route nationale", "Route départementale", 
-                                    "Voie communale", "Autre"])
-                
-                lum = st.selectbox("Conditions d'éclairage", 
-                                  ["Plein jour", "Crépuscule", "Nuit avec éclairage", 
-                                   "Nuit sans éclairage"])
-            
-            with col_b:
-                atm = st.selectbox("Conditions météo", 
-                                  ["Normale", "Pluie légère", "Pluie forte", 
-                                   "Neige/grêle", "Brouillard", "Autre"])
-                
-                surf = st.selectbox("État de la surface", 
-                                   ["Normale", "Mouillée", "Flaques", "Inondée", 
-                                    "Enneigée", "Verglacée", "Autre"])
-                
-                col = st.selectbox("Type de collision", 
-                                  ["Frontale", "Par l'arrière", "Par le côté", 
-                                   "En chaîne", "Collisions multiples", "Sans collision"])
-                
-                circ = st.selectbox("Régime de circulation", 
-                                   ["Sens unique", "Bidirectionnelle", "Chaussées séparées"])
-                
-                plan = st.selectbox("Tracé en plan", 
-                                   ["Partie rectiligne", "Courbe à gauche", 
-                                    "Courbe à droite", "En S"])
-            
-            submitted = st.form_submit_button("Prédire la Gravité", type="primary")
-    
-    with col2:
-        st.subheader("Résultat de la Prédiction")
-        
-        if submitted:
-            # --- Mapping texte -> codes numériques ---
-            map_catu = {"Conducteur":1, "Passager":2, "Piéton":3, "Autre":1}
-            map_sexe = {"Masculin":1, "Féminin":2}
-            map_trajet = {
-                "Domicile-travail":1, "Domicile-école":2, "Courses":3,
-                "Professionnel":4, "Loisirs":5, "Autre":9
-            }
-            map_catr = {
-                "Autoroute":1, "Route nationale":2, "Route départementale":3,
-                "Voie communale":4, "Autre":9
-            }
-            map_lum = {
-                "Plein jour":1, "Crépuscule":2, "Nuit avec éclairage":3,
-                "Nuit sans éclairage":4
-            }
-            map_atm = {
-                "Normale":1, "Pluie légère":2, "Pluie forte":3, "Neige/grêle":4,
-                "Brouillard":5, "Autre":9
-            }
-            map_surf = {
-                "Normale":1, "Mouillée":2, "Flaques":3, "Inondée":4,
-                "Enneigée":5, "Verglacée":6, "Autre":9
-            }
-            map_col = {
-                "Frontale":1, "Par l'arrière":2, "Par le côté":3,
-                "En chaîne":4, "Collisions multiples":5, "Sans collision":6
-            }
-            map_circ = {"Sens unique":1, "Bidirectionnelle":2, "Chaussées séparées":3}
-            map_plan = {
-                "Partie rectiligne":1, "Courbe à gauche":2, "Courbe à droite":3, "En S":4
-            }
+    """Formulaire Streamlit pour prédire la gravité d'un accident via l'API FastAPI."""
+    st.header("Démo Interactive – Prédiction de la Gravité d'un Accident")
 
-            # Construction du dict de features
-            features = {
-                "catu": map_catu.get(catu, 1),
-                "sexe": map_sexe.get(sexe, 1),
-                "trajet": map_trajet.get(trajet, 1),
-                "catr": map_catr.get(catr, 1),
-                "circ": map_circ.get(circ, 1),
-                "vosp": 0,
-                "prof": 1,
-                "plan": map_plan.get(plan, 1),
-                "surf": map_surf.get(surf, 1),
-                "situ": 1,
-                "lum": map_lum.get(lum, 1),
-                "atm": map_atm.get(atm, 1),
-                "col": map_col.get(col, 1)
-            }
+    # Formulaire utilisateur
+    with st.form("prediction_form"):
+        col_a, col_b = st.columns(2)
+        with col_a:
+            catu = st.selectbox("Catégorie d'usager", ["Conducteur", "Passager", "Piéton", "Autre"])
+            sexe = st.selectbox("Sexe", ["Masculin", "Féminin"])
+            trajet = st.selectbox("Motif du déplacement", [
+                "Domicile-travail", "Domicile-école", "Courses", "Professionnel", "Loisirs", "Autre"])
+            catr = st.selectbox("Type de route", ["Autoroute", "Route nationale", "Route départementale", "Voie communale", "Autre"])
+            lum = st.selectbox("Conditions d'éclairage", ["Plein jour", "Crépuscule", "Nuit avec éclairage", "Nuit sans éclairage"])
+        with col_b:
+            atm = st.selectbox("Conditions météo", ["Normale", "Pluie légère", "Pluie forte", "Neige/grêle", "Brouillard", "Autre"])
+            surf = st.selectbox("État de la surface", ["Normale", "Mouillée", "Flaques", "Inondée", "Enneigée", "Verglacée", "Autre"])
+            col = st.selectbox("Type de collision", ["Frontale", "Par l'arrière", "Par le côté", "En chaîne", "Collisions multiples", "Sans collision"])
+            circ = st.selectbox("Régime de circulation", ["Sens unique", "Bidirectionnelle", "Chaussées séparées"])
+            plan = st.selectbox("Tracé en plan", ["Partie rectiligne", "Courbe à gauche", "Courbe à droite", "En S"])
+        submitted = st.form_submit_button("Prédire la Gravité", type="primary")
 
-            import pandas as pd
-            df_pred = pd.DataFrame([features])
-            model = load_local_model()
-            if model is None:
-                st.error("Modèle non disponible ou non chargé.")
-            else:
-                X = pd.get_dummies(df_pred)
-                if hasattr(model, 'feature_names_in_'):
-                    missing = [c for c in model.feature_names_in_ if c not in X.columns]
-                    for c in missing:
-                        X[c] = 0
-                    X = X[model.feature_names_in_]
-                pred = int(model.predict(X)[0])
-                confidence = None
-                if hasattr(model, 'predict_proba'):
-                    proba = model.predict_proba(X)[0]
-                    confidence = proba[pred]
-                # 1 = Grave, 0 = Pas Grave
-                prediction_label = "Grave" if pred == 1 else "Pas Grave"
-                color = "#EF4444" if prediction_label == "Grave" else "#10B981"
-                conf_text = f"Confiance: {confidence:.1%}" if confidence is not None else ""
-                st.markdown(f"""
-                <div style="text-align: center; padding: 2rem; background-color: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <h2 style="color: {color}; margin: 0;">{prediction_label}</h2>
-                    <p style="color: #6B7280; margin: 0.5rem 0;">{conf_text}</p>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.info("Remplissez le formulaire et cliquez sur 'Prédire' pour voir le résultat")
-    
-    return  # Fin de la démo interactive, sections API et statistiques supprimées
+    if submitted:
+        # Map valeurs texte -> codes numériques selon le modèle
+        map_catu = {"Conducteur":1, "Passager":2, "Piéton":3, "Autre":1}
+        map_sexe = {"Masculin":1, "Féminin":2}
+        map_trajet = {
+            "Domicile-travail":1, "Domicile-école":2, "Courses":3,
+            "Professionnel":4, "Loisirs":5, "Autre":9}
+        map_catr = {"Autoroute":1, "Route nationale":2, "Route départementale":3,
+            "Voie communale":4, "Autre":9}
+        map_lum = {"Plein jour":1, "Crépuscule":2, "Nuit avec éclairage":3, "Nuit sans éclairage":4}
+        map_atm = {"Normale":1, "Pluie légère":2, "Pluie forte":3, "Neige/grêle":4,
+            "Brouillard":5, "Autre":9}
+        map_surf = {"Normale":1, "Mouillée":2, "Flaques":3, "Inondée":4,
+            "Enneigée":5, "Verglacée":6, "Autre":9}
+        map_col = {"Frontale":1, "Par l'arrière":2, "Par le côté":3, "En chaîne":4,
+            "Collisions multiples":5, "Sans collision":6}
+        map_circ = {"Sens unique":1, "Bidirectionnelle":2, "Chaussées séparées":3}
+        map_plan = {"Partie rectiligne":1, "Courbe à gauche":2, "Courbe à droite":3, "En S":4}
 
-    # Section API et intégration (obsolete)
-    st.subheader("🔌 Intégration API")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("**📝 Exemple d'appel API :**")
-        
-        api_code = '''
-import requests
+        features = {
+            "catu": map_catu.get(catu, 1),
+            "sexe": map_sexe.get(sexe, 1),
+            "trajet": map_trajet.get(trajet, 1),
+            "catr": map_catr.get(catr, 1),
+            "circ": map_circ.get(circ, 1),
+            "vosp": 0,
+            "prof": 1,
+            "plan": map_plan.get(plan, 1),
+            "surf": map_surf.get(surf, 1),
+            "situ": 1,
+            "lum": map_lum.get(lum, 1),
+            "atm": map_atm.get(atm, 1),
+            "col": map_col.get(col, 1)
+        }
 
-# Authentification
-auth_response = requests.post(
-    "http://localhost:8000/token",
-    data={"username": "johndoe", "password": "johnsecret"}
-)
-token = auth_response.json()["access_token"]
+        import requests
+        api_base = os.getenv("API_BASE_URL", "http://localhost:8000")
+        try:
+            api_user = os.getenv("API_USER", "johndoe")
+            api_pwd = os.getenv("API_PASSWORD", "johnsecret")
+            token_resp = requests.post(
+                f"{api_base}/auth/token",
+                data={"username": api_user, "password": api_pwd},
+                timeout=10,
+            )
+            token_resp.raise_for_status()
+            token = token_resp.json().get("access_token")
+            headers = {"Authorization": f"Bearer {token}"}
+            resp = requests.post(
+                f"{api_base}/protected/predict",
+                json=features,
+                headers=headers,
+                timeout=10,
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+            pred = int(payload.get("prediction", [0])[0])
+            confidence = payload.get("confidence")
+        except Exception as e:
+            st.error(f"Erreur lors de l'appel API : {e}")
+            pred = None
+            confidence = None
 
-# Prédiction
-headers = {"Authorization": f"Bearer {token}"}
-data = {
-    "catu": 1, "sexe": 1, "trajet": 1,
-    "catr": 3, "lum": 5, "atm": 2,
-    "surf": 2, "col": 6, "circ": 2,
-    "plan": 1, "vosp": 0, "prof": 1,
-    "situ": 1
-}
-
-response = requests.post(
-    "http://localhost:8000/protected/predict",
-    headers=headers,
-    json=data
-)
-
-prediction = response.json()["prediction"]
-print(f"Prédiction: {prediction}")
-        '''
-        
-        st.code(api_code, language='python')
-    
-    with col2:
-        st.markdown("**🌐 Endpoints Disponibles :**")
-        
-        endpoints = [
-            {"method": "POST", "endpoint": "/token", "description": "Authentification JWT"},
-            {"method": "POST", "endpoint": "/protected/predict", "description": "Prédiction unitaire"},
-            {"method": "POST", "endpoint": "/protected/predict_csv", "description": "Prédiction batch (CSV)"},
-            {"method": "GET", "endpoint": "/protected/reload", "description": "Recharger le modèle"},
-            {"method": "GET", "endpoint": "/", "description": "Health check"}
-        ]
-        
-        for ep in endpoints:
+        if pred is not None:
+            prediction_label = "Grave" if pred == 1 else "Pas Grave"
+            color = "#EF4444" if prediction_label == "Grave" else "#10B981"
+            conf_text = f"Confiance : {confidence:.1%}" if isinstance(confidence, (int, float)) else ""
             st.markdown(f"""
-            <div style="border: 1px solid #E5E7EB; border-radius: 0.25rem; padding: 0.5rem; margin-bottom: 0.5rem; background-color: white;">
-                <span style="background-color: #3B82F6; color: white; padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: bold;">{ep['method']}</span>
-                <code style="margin-left: 0.5rem;">{ep['endpoint']}</code>
-                <br><small style="color: #6B7280;">{ep['description']}</small>
-            </div>
+                <div style=\"text-align: center; padding: 2rem; background-color: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);\">
+                    <h2 style=\"color: {color}; margin: 0;\">{prediction_label}</h2>
+                    <p style=\"color: #6B7280; margin: 0.5rem 0;\">{conf_text}</p>
+                </div>
             """, unsafe_allow_html=True)
+    else:
+        st.info("Remplissez le formulaire et cliquez sur 'Prédire' pour voir le résultat")
+
+
+def show_evidently():
+    """Embed Evidently AI dashboard inside Streamlit."""
+    st.header("Rapport Evidently")
+    # Charge la configuration locale (non versionnée)
+    try:
+        with open((Path(__file__).resolve().parent.parent / "config.yaml"), "r") as f:
+            _cfg = yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        _cfg = {}
+
+    evidently_host = _cfg.get("evidently_host") or os.getenv("EVIDENTLY_BASE_URL", "http://localhost:8001")
     
-    # Statistiques d'utilisation
-    st.subheader("�� Statistiques d'Utilisation")
+    # URL du rapport Evidently
+    embed_url = evidently_host.rstrip("/") + "/drift_full_report"
     
-    # Génération de données d'utilisation simulées
-    usage_data = pd.DataFrame({
-        'Date': pd.date_range('2024-06-01', periods=30, freq='D'),
-        'Predictions': np.random.poisson(1200, 30),
-        'API_Calls': np.random.poisson(1500, 30),
-        'Response_Time': np.random.normal(85, 15, 30)
-    })
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        fig_usage = px.line(usage_data, x='Date', y='Predictions', 
-                           title="Nombre de Prédictions par Jour")
-        st.plotly_chart(fig_usage, use_container_width=True)
-    
-    with col2:
-        fig_latency = px.line(usage_data, x='Date', y='Response_Time',
-                             title="Temps de Réponse API (ms)")
-        st.plotly_chart(fig_latency, use_container_width=True)
+    # Intégrer le rapport Evidently
+    components.html(
+        f'<iframe src="{embed_url}" style="width:100%; height:100vh; border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+        height=900,
+    )
+
 
 # Sidebar avec informations additionnelles
 def _compute_per_class_f1(cm):

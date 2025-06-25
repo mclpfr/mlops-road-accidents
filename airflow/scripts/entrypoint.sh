@@ -3,20 +3,20 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-# Vérifier si l'utilisateur actuel est root
+# Check if current user is root
 if [ "$(id -u)" = "0" ]; then
-    # Configurer le groupe docker pour l'accès au socket (en tant que root)
+    # Configure docker group for socket access (as root)
     echo "Configuring Docker socket access..."
     if [ -S /var/run/docker.sock ]; then
-        # Récupérer le GID du groupe propriétaire de /var/run/docker.sock
+        # Get the GID of the group owning /var/run/docker.sock
         DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)
 
-        # Vérifier si le groupe docker existe déjà avec le bon GID
+        # Check if docker group already exists with the correct GID
         if ! getent group docker >/dev/null; then
-            # Créer le groupe docker avec le GID récupéré
+            # Create docker group with the retrieved GID
             groupadd -g ${DOCKER_GID} docker
         else
-            # Si le groupe existe mais a un GID différent, le supprimer et le recréer
+            # If group exists but has a different GID, delete and recreate it
             current_gid=$(getent group docker | cut -d: -f3)
             if [ "$current_gid" != "$DOCKER_GID" ]; then
                 groupdel docker
@@ -24,7 +24,7 @@ if [ "$(id -u)" = "0" ]; then
             fi
         fi
 
-        # Ajouter l'utilisateur airflow au groupe docker
+        # Add airflow user to docker group
         usermod -aG docker airflow
         echo "User airflow added to docker group (GID: ${DOCKER_GID})"
     else
@@ -34,16 +34,35 @@ else
     echo "Not running as root, skipping Docker socket configuration"
 fi
 
-# Ne pas changer d'utilisateur, exécuter en tant que root
-# Cela est cohérent avec notre configuration dans docker-compose.yml
+if [ -n "$AIRFLOW_ADMIN_PASSWORD" ]; then
+    ADMIN_PWD="$AIRFLOW_ADMIN_PASSWORD"
+else
+    CONFIG_FILE="/opt/project/config.yaml"
+    if [ -f "$CONFIG_FILE" ]; then
+        ADMIN_PWD=$(python - <<'PY'
+import yaml, sys, os
+cfg = {}
+try:
+    with open(sys.argv[1], 'r') as f:
+        cfg = yaml.safe_load(f) or {}
+except Exception:
+    pass
+print(cfg.get('airflow', {}).get('admin_password', 'admin'))
+PY
+        "$CONFIG_FILE")
+    else
+        ADMIN_PWD="admin"
+    fi
+fi
+export ADMIN_PWD
 
     set -e
 
-    # Afficher la version d'Airflow pour débogage
+    # Display Airflow version for debugging
     echo 'Checking Airflow installation:'
     su -c "airflow version" airflow
 
-    # Fonction pour attendre que PostgreSQL soit prêt
+    # Function to wait for PostgreSQL to be ready
     wait_for_postgres() {
         local host="$1"
         local port="$2"
@@ -69,7 +88,7 @@ fi
         echo "PostgreSQL is ready!"
     }
 
-    # Extraire les informations de connexion de la chaîne de connexion
+    # Extract connection information from connection string
     if [ -n "$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" ]; then
         conn_string=$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
         host=$(echo $conn_string | sed -n 's/.*@\([^:]*\).*/\1/p')
@@ -82,7 +101,7 @@ fi
         wait_for_postgres "$host" "$port" "$user" "$password" "$db"
     fi
 
-    # Initialiser la base de données Airflow
+    # Initialize Airflow database
     echo 'Initializing Airflow database...'
     set +e
     su -c "/home/airflow/.local/bin/airflow db init" airflow
@@ -94,10 +113,10 @@ fi
         exit $db_init_exit_code
     fi
 
-    # Créer un utilisateur administrateur si nécessaire
+    # Create admin user if needed
     echo "Creating admin user if it doesn't exist..."
     set +e
-    su -c "airflow users list | grep -q '^admin$' || airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com" airflow
+    su -c "airflow users list --output table | awk '{print $2}' | grep -q '^admin$' || airflow users create --username admin --password "$ADMIN_PWD" --firstname Admin --lastname User --role Admin --email admin@example.com" airflow
     admin_user_exit_code=$?
     set -e
     echo "Admin user creation/check command exited with code: $admin_user_exit_code"
@@ -106,16 +125,28 @@ fi
         exit $admin_user_exit_code
     fi
 
-    # Créer l'utilisateur airflow pour l'API si nécessaire
+    # Create airflow API user if needed
     echo "Creating airflow API user if it doesn't exist..."
     set +e # Désactiver temporairement l'arrêt sur erreur
-    su -c "airflow users list | grep -q '^airflow$' || airflow users create --username airflow --password airflow --firstname Airflow --lastname API --role Admin --email airflow@example.com" airflow
+    su -c "airflow users list --output table | awk '{print $2}' | grep -q '^airflow$' || airflow users create --username airflow --password airflow --firstname Airflow --lastname API --role Admin --email airflow@example.com" airflow
     exit_code=$?
     set -e # Réactiver l'arrêt sur erreur
     echo "User creation/check command for 'airflow' user exited with code: $exit_code"
     if [ $exit_code -ne 0 ]; then
         echo "ERROR: Failed to create or check airflow API user. Exiting."
         exit $exit_code
+    fi
+
+    # Créer l'utilisateur readonly en lecture seule si nécessaire
+    echo "Creating readonly user if it doesn't exist..."
+    set +e
+    su -c "airflow users list --output table | awk '{print $2}' | grep -q '^readonly$' || airflow users create --username readonly --password readonly --firstname Read --lastname Only --role Viewer --email readonly@example.com" airflow
+    readonly_exit_code=$?
+    set -e
+    echo "User creation/check command for 'readonly' user exited with code: $readonly_exit_code"
+    if [ $readonly_exit_code -ne 0 ]; then
+        echo "ERROR: Failed to create or check readonly user. Exiting."
+        exit $readonly_exit_code
     fi
 
     echo 'Airflow initialization completed successfully!'
@@ -125,7 +156,7 @@ fi
         echo "Executing command as airflow user: $@"
         # Utiliser le chemin complet pour les commandes Airflow
         if [ "$1" = "webserver" ]; then
-            set -x # Activer le traçage
+            set -x # Enable tracing
             exec su -c "/home/airflow/.local/bin/airflow webserver" airflow
         elif [ "$1" = "scheduler" ]; then
             exec su -c "/home/airflow/.local/bin/airflow scheduler" airflow

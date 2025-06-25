@@ -2,6 +2,8 @@ data_extraction:
   year: "2023"
   url: "https://www.data.gouv.fr/en/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/"
 
+evidently_host: "http://<host-ip>:8001"
+
 mlflow:
   tracking_uri: "https://dagshub.com/USERNAME/REPOSITORY.mlflow"
   username: "USERNAME"
