@@ -1,5 +1,3 @@
-version: '3.8'
-
 x-user-info: &user-info
   USER_ID: "1000"
   GROUP_ID: "1000"
@@ -249,9 +247,15 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: grafana_service
+    restart: always
     ports:
-      - "3000:3000"
+      - 3000:3000
+    networks:
+      - default
     environment:
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_SECURITY_COOKIE_SAMESITE=lax
+      - GF_SECURITY_X_FRAME_OPTIONS=allow-from-all
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
@@ -307,7 +311,10 @@ services:
         mkdir -p /opt/project/evidently/reference && \
         chown -R root:0 /opt/project/evidently/reference && \
         chmod -R 775 /opt/project/evidently/reference;
-        echo 'INFO: Permissions set for /opt/project/evidently/reference.';
+        echo 'INFO: Setting up permissions for config.yaml...';
+        touch /opt/project/config.yaml && \
+        chmod 666 /opt/project/config.yaml;
+        echo 'INFO: Permissions set for config.yaml.';
         echo 'INFO: Executing original Airflow entrypoint ( /opt/airflow/scripts/entrypoint.sh ) with command: version';
         exec /opt/airflow/scripts/entrypoint.sh version
       "

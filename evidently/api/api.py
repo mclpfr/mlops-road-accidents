@@ -1,14 +1,13 @@
 import sys
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import PlainTextResponse, HTMLResponse
+from fastapi import FastAPI, HTTPException, Body
+from fastapi.responses import PlainTextResponse, HTMLResponse, JSONResponse
 import pandas as pd
 import numpy as np
-from evidently import Report
-from evidently.presets import DataDriftPreset
 import os
 from datetime import datetime
 import tempfile
-from simple_report import generate_simple_html_report
+import json
+from typing import Optional, Dict, Any
 
 app = FastAPI()
 
@@ -18,6 +17,74 @@ CURRENT_DATA_DIR = "/app/current/"
 # Global override for the noise factor applied during drift calculation.
 # Allows simulating a constant drift visible in Prometheus.
 NOISE_OVERRIDE = None  # None = no override, otherwise float (>0)
+
+@app.post("/config/noise")
+async def set_noise_override(payload: Dict[str, Any] = Body(...)):
+    """
+    Configure the noise override factor for drift simulation.
+    Send an empty payload to reset to no noise.
+    Send {"noise": 0.8} to set noise to 0.8 (high drift).
+    """
+    global NOISE_OVERRIDE
+    
+    # Si le payload est vide, réinitialiser le bruit
+    if not payload or len(payload) == 0:
+        NOISE_OVERRIDE = None
+        return JSONResponse({"status": "success", "message": "Noise override reset to None", "noise": None})
+    
+    # Si le payload contient une clé 'noise', utiliser cette valeur
+    if "noise" in payload:
+        try:
+            noise_value = float(payload["noise"])
+            NOISE_OVERRIDE = noise_value
+            return JSONResponse({
+                "status": "success", 
+                "message": f"Noise override set to {noise_value}", 
+                "noise": noise_value
+            })
+        except (ValueError, TypeError) as e:
+            return JSONResponse({
+                "status": "error", 
+                "message": f"Invalid noise value: {str(e)}"
+            }, status_code=400)
+    
+    # Si le payload ne contient pas de clé 'noise'
+    return JSONResponse({
+        "status": "error", 
+        "message": "Missing 'noise' parameter in payload"
+    }, status_code=400)
+
+@app.get("/config/noise")
+async def get_noise_override():
+    """
+    Get the current noise override factor.
+    """
+    return JSONResponse({
+        "status": "success", 
+        "noise": NOISE_OVERRIDE
+    })
+
+@app.get("/health")
+async def health_check():
+    """
+    Simple health check endpoint.
+    """
+    return JSONResponse({"status": "ok"})
+
+@app.get("/")
+async def root():
+    """
+    Root endpoint with API information.
+    """
+    return JSONResponse({
+        "name": "Evidently Drift Control API",
+        "version": "1.0.0",
+        "endpoints": [
+            "/config/noise",
+            "/health",
+            "/"
+        ]
+    })
 
 def _get_latest_file(directory, prefix):
     print(f"--- _get_latest_file: Searching in '{directory}' for prefix '{prefix}' ---")

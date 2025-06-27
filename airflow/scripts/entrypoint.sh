@@ -37,21 +37,31 @@ fi
 if [ -n "$AIRFLOW_ADMIN_PASSWORD" ]; then
     ADMIN_PWD="$AIRFLOW_ADMIN_PASSWORD"
 else
+    # Default admin password if not set in environment
+    ADMIN_PWD="admin"
+    
+    # Try to read from config file if it exists
     CONFIG_FILE="/opt/project/config.yaml"
-    if [ -f "$CONFIG_FILE" ]; then
-        ADMIN_PWD=$(python - <<'PY'
+    if [ -f "$CONFIG_FILE" ] && [ -r "$CONFIG_FILE" ]; then
+        # Check if python yaml module is available
+        if python -c "import yaml" 2>/dev/null; then
+            # Read password from config file
+            ADMIN_PWD=$(python - <<'PY'
 import yaml, sys, os
 cfg = {}
 try:
     with open(sys.argv[1], 'r') as f:
         cfg = yaml.safe_load(f) or {}
-except Exception:
-    pass
+except Exception as e:
+    print(f"Error reading config: {e}", file=sys.stderr)
 print(cfg.get('airflow', {}).get('admin_password', 'admin'))
 PY
-        "$CONFIG_FILE")
+            "$CONFIG_FILE")
+        else
+            echo "Warning: Python yaml module not available, using default admin password"
+        fi
     else
-        ADMIN_PWD="admin"
+        echo "Warning: Config file $CONFIG_FILE not found or not readable, using default admin password"
     fi
 fi
 export ADMIN_PWD
@@ -127,41 +137,79 @@ export ADMIN_PWD
 
     # Create airflow API user if needed
     echo "Creating airflow API user if it doesn't exist..."
-    set +e # Désactiver temporairement l'arrêt sur erreur
+    set +e # Temporarily disable exit on error
     su -c "airflow users list --output table | awk '{print $2}' | grep -q '^airflow$' || airflow users create --username airflow --password airflow --firstname Airflow --lastname API --role Admin --email airflow@example.com" airflow
     exit_code=$?
-    set -e # Réactiver l'arrêt sur erreur
+    set -e # Re-enable exit on error
     echo "User creation/check command for 'airflow' user exited with code: $exit_code"
     if [ $exit_code -ne 0 ]; then
         echo "ERROR: Failed to create or check airflow API user. Exiting."
         exit $exit_code
     fi
 
-    # Créer l'utilisateur readonly en lecture seule si nécessaire
-    echo "Creating readonly user if it doesn't exist..."
+    # Create a custom "Viewer" role with read-only permissions if needed
+    echo "Creating custom Viewer role if it doesn't exist..."
     set +e
-    su -c "airflow users list --output table | awk '{print $2}' | grep -q '^readonly$' || airflow users create --username readonly --password readonly --firstname Read --lastname Only --role Viewer --email readonly@example.com" airflow
-    readonly_exit_code=$?
-    set -e
-    echo "User creation/check command for 'readonly' user exited with code: $readonly_exit_code"
-    if [ $readonly_exit_code -ne 0 ]; then
-        echo "ERROR: Failed to create or check readonly user. Exiting."
-        exit $readonly_exit_code
+    # Check if the role already exists
+    su -c "airflow roles list | grep -q 'Viewer'" airflow
+    role_exists=$?
+    if [ $role_exists -ne 0 ]; then
+        echo "Creating Viewer role with read-only permissions..."
+        # Create the Viewer role
+        su -c "airflow roles create Viewer" airflow
+        
+        # Add read-only permissions
+        su -c "airflow roles add-permissions Viewer menu.browse" airflow
+        su -c "airflow roles add-permissions Viewer menu.docs" airflow
+        su -c "airflow roles add-permissions Viewer menu.dags" airflow
+        su -c "airflow roles add-permissions Viewer dags.read" airflow
+        su -c "airflow roles add-permissions Viewer website.get_dag_runs" airflow
+        su -c "airflow roles add-permissions Viewer website.get_task_instances" airflow
+        su -c "airflow roles add-permissions Viewer website.get_dag" airflow
+        su -c "airflow roles add-permissions Viewer website.get_task" airflow
+        su -c "airflow roles add-permissions Viewer website.get_dag_code" airflow
+        su -c "airflow roles add-permissions Viewer website.get_task_logs" airflow
+        su -c "airflow roles add-permissions Viewer website.log" airflow
+    else
+        echo "Viewer role already exists."
     fi
+    set -e
+    
+    # Create/Update the 'readonly' user and assign the 'Viewer' role
+    echo "Checking for 'readonly' user..."
+    set +e
+
+    # Check if user exists
+    if ! su -c "airflow users list | grep -q 'readonly'" airflow; then
+        echo "User 'readonly' does not exist. Creating..."
+        # Create the user directly with the Viewer role
+        su -c "airflow users create --username readonly --password readonly --firstname Read --lastname Only --role Viewer --email readonly@example.com" airflow
+        echo "'readonly' user created successfully with 'Viewer' role."
+    else
+        echo "User 'readonly' already exists. Ensuring 'Viewer' role is assigned."
+        # Add the Viewer role. If the user already has the role, this command will fail.
+        # We add '|| true' to ensure that this failure does not stop the script.
+        su -c "airflow users add-role --username readonly --role Viewer" airflow || true
+        echo "'Viewer' role ensured for user 'readonly'."
+    fi
+
+    # Reset error checking
+    set -e
+    echo "'readonly' user setup complete."
 
     echo 'Airflow initialization completed successfully!'
 
-    # Exécuter la commande fournie en argument en tant qu'utilisateur airflow
+    # Execute the command provided as argument as airflow user
     if [ "$#" -gt 0 ]; then
         echo "Executing command as airflow user: $@"
-        # Utiliser le chemin complet pour les commandes Airflow
+        # Use the full path for Airflow commands
         if [ "$1" = "webserver" ]; then
             set -x # Enable tracing
             exec su -c "/home/airflow/.local/bin/airflow webserver" airflow
         elif [ "$1" = "scheduler" ]; then
             exec su -c "/home/airflow/.local/bin/airflow scheduler" airflow
         else
-            # Pour les autres commandes, les passer telles quelles
+            # For other commands, pass them as is
             exec su -c "/home/airflow/.local/bin/airflow $*" airflow
         fi
     else

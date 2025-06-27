@@ -1125,17 +1125,33 @@ def show_airflow():
 
 def show_monitoring(drift_data):
     import requests
-    # Retrieve Grafana host from environment
-    grafana_host = os.getenv("GRAFANA_HOST", "195.35.48.95")
-    grafana_url = f"http://{grafana_host}:3000/d/api_monitoring_dashboard_v2/api?orgId=1"
+    from streamlit.components.v1 import html
     
-    # Build embed URL with kiosk mode
-    embed_url = grafana_url + ("&" if "?" in grafana_url else "?") + "kiosk&theme=light"
-
+    st.header("Monitoring du Système")
+    
+    # Pas d'affichage des données de drift ici - supprimé à la demande de l'utilisateur
+    
+    # Afficher les données brutes (masquées par défaut)
+    if not drift_data.empty:
+        with st.expander("Voir les données brutes"):
+            st.dataframe(drift_data)
+    else:
+        st.warning("Aucune donnée de drift disponible.")
+    
+    # Section de contrôle du drift
     st.markdown("### Contrôle du Drift Artificiel")
     col1, col2 = st.columns(2)
+    
+    # Vérifier si l'API de drift est accessible
+    drift_api_available = False
+    try:
+        response = requests.get("http://localhost:8001/health", timeout=1)
+        drift_api_available = response.status_code == 200
+    except Exception:
+        drift_api_available = False
+    
     with col1:
-        if st.button("🚨 Forcer le drift", help="Ajoute du bruit aux données pour simuler un drift."):
+        if st.button("🚨 Forcer le drift", help="Ajoute du bruit aux données pour simuler un drift.", disabled=not drift_api_available):
             try:
                 response = requests.post("http://localhost:8001/config/noise", json={"noise": 0.8}, timeout=3)
                 if response.status_code == 200:
@@ -1144,8 +1160,9 @@ def show_monitoring(drift_data):
                     st.error(f"Erreur lors de la requête: {response.status_code} - {response.text}")
             except Exception as e:
                 st.error(f"Erreur lors de la connexion à l'API: {e}")
+    
     with col2:
-        if st.button("🔄 Réinitialiser le drift", help="Réinitialise le drift (bruit) artificiel."):
+        if st.button("🔄 Réinitialiser le drift", help="Réinitialise le drift (bruit) artificiel.", disabled=not drift_api_available):
             try:
                 response = requests.post("http://localhost:8001/config/noise", json={}, timeout=3)
                 if response.status_code == 200:
@@ -1154,12 +1171,62 @@ def show_monitoring(drift_data):
                     st.error(f"Erreur lors de la requête: {response.status_code} - {response.text}")
             except Exception as e:
                 st.error(f"Erreur lors de la connexion à l'API: {e}")
-
-    # Display the iframe, making it tall to fill the page
-    components.html(
-        f'<iframe src="{embed_url}" style="width:100%; height:100vh; border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
-        height=900,
-    )
+    
+    if not drift_api_available:
+        st.warning("⚠️ L'API de contrôle de drift n'est pas accessible. Les boutons sont désactivés.")
+    
+    # Grafana Dashboard (si disponible)
+    
+    # Utiliser l'URL du dashboard public
+    grafana_host = os.getenv("GRAFANA_HOST", "localhost")
+    
+    # URL du dashboard standard (nécessite authentification)
+    # grafana_url = f"http://{grafana_host}:3000/d/api_monitoring_dashboard_v2/api?orgId=1"
+    
+    # URL du dashboard public (pas besoin d'authentification)
+    grafana_url = f"http://{grafana_host}:3000/d/api_monitoring_dashboard_v2/api"
+    
+    # Vérifier si Grafana est accessible
+    grafana_available = False
+    try:
+        response = requests.get(f"http://{grafana_host}:3000/api/health", timeout=2)
+        grafana_available = response.status_code == 200
+    except Exception:
+        grafana_available = False
+    
+    if grafana_available:
+        # Build embed URL with kiosk mode
+        embed_url = grafana_url + ("&" if "?" in grafana_url else "?") + "kiosk&theme=light"
+        
+        
+        # Afficher le dashboard Grafana dans un iframe
+        components.html(
+            f'<iframe src="{embed_url}" style="width:100%; height:80vh; border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+            height=600,
+        )
+        
+        # Ajouter un bouton pour ouvrir dans un nouvel onglet (option alternative)
+    else:
+        st.error("⚠️ Le dashboard Grafana n'est pas accessible. Veuillez vérifier que Grafana est en cours d'exécution.")
+        
+        # Afficher un message avec des instructions pour démarrer Grafana
+        st.info("""
+        Pour démarrer Grafana, exécutez la commande suivante :
+        ```
+        sudo docker-compose up -d grafana
+        ```
+        
+        Si le problème persiste, vérifiez les logs avec :
+        ```
+        sudo docker-compose logs grafana
+        ```
+        
+        Vous pouvez également essayer de redémarrer le service :
+        ```
+        sudo docker-compose restart grafana
+        ```
+        """)
+    
     return
 
 def show_interactive_demo():

@@ -21,6 +21,10 @@ RUN if ! getent group docker > /dev/null; then \
     fi && \
     usermod -aG docker airflow
 
+# Create project directory and set permissions
+RUN mkdir -p /opt/project && \
+    chmod -R 777 /opt/project
+
 COPY --chown=5000:5000 airflow/scripts/ /opt/airflow/scripts/
 RUN chmod +x /opt/airflow/scripts/entrypoint.sh && \
     ls -l /opt/airflow/scripts/entrypoint.sh
@@ -28,7 +32,8 @@ RUN chmod +x /opt/airflow/scripts/entrypoint.sh && \
 USER airflow
 
 COPY airflow/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
+    pip install --no-cache-dir pyyaml==6.0
 
 ENTRYPOINT ["/opt/airflow/scripts/entrypoint.sh"]
 

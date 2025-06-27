@@ -25,3 +25,4 @@ plotly>=5.0.0
 seaborn>=0.13.0
 matplotlib>=3.7.0
 evidently>=0.7.8
+streamlit
