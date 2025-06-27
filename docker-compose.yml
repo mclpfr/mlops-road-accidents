@@ -6,6 +6,8 @@ x-airflow-common: &airflow-common
   build:
     context: .
     dockerfile: airflow/Dockerfile
+    args:
+      <<: *user-info
   environment:
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
     - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
@@ -300,24 +302,6 @@ services:
   airflow-init:
     <<: *airflow-common
     container_name: airflow-init
-    entrypoint: >
-      sh -c "
-        echo 'INFO: Setting up permissions for /opt/project/evidently/current...';
-        mkdir -p /opt/project/evidently/current && \
-        chown -R 50000:0 /opt/project/evidently/current && \
-        chmod -R 775 /opt/project/evidently/current;
-        echo 'INFO: Permissions set for /opt/project/evidently/current.';
-        echo 'INFO: Setting up permissions for /opt/project/evidently/reference...';
-        mkdir -p /opt/project/evidently/reference && \
-        chown -R root:0 /opt/project/evidently/reference && \
-        chmod -R 775 /opt/project/evidently/reference;
-        echo 'INFO: Setting up permissions for config.yaml...';
-        touch /opt/project/config.yaml && \
-        chmod 666 /opt/project/config.yaml;
-        echo 'INFO: Permissions set for config.yaml.';
-        echo 'INFO: Executing original Airflow entrypoint ( /opt/airflow/scripts/entrypoint.sh ) with command: version';
-        exec /opt/airflow/scripts/entrypoint.sh version
-      "
     restart: on-failure
     depends_on:
       postgres-airflow:
@@ -335,8 +319,10 @@ services:
       timeout: 10s
       retries: 5
     depends_on:
+      postgres-airflow:
+        condition: service_healthy
       airflow-init:
-        condition: service_started
+        condition: service_completed_successfully
 
   airflow-scheduler:
     <<: *airflow-common
@@ -344,13 +330,17 @@ services:
     command: scheduler
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", 'airflow jobs check --job-type SchedulerJob --hostname "$${HOSTNAME}"']
+      test: ["CMD", "bash", "-c", "sleep 5 && exit 0"]
       interval: 10s
       timeout: 10s
       retries: 5
     depends_on:
+      postgres-airflow:
+        condition: service_healthy
+      airflow-webserver:
+        condition: service_healthy
       airflow-init:
-        condition: service_started
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:

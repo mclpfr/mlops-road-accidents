@@ -16,7 +16,7 @@ route:
 receivers:
 - name: 'airflow_webhook'
   webhook_configs:
-  - url: 'http://evidently-api:8001/trigger_airflow_from_alert'
+  - url: 'http://localhost:8001/trigger_airflow_from_alert'
     send_resolved: false  
     http_config:
       basic_auth:

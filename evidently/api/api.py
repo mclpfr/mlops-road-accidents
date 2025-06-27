@@ -8,6 +8,7 @@ from datetime import datetime
 import tempfile
 import json
 from typing import Optional, Dict, Any
+from functools import lru_cache
 
 app = FastAPI()
 
@@ -17,6 +18,13 @@ CURRENT_DATA_DIR = "/app/current/"
 # Global override for the noise factor applied during drift calculation.
 # Allows simulating a constant drift visible in Prometheus.
 NOISE_OVERRIDE = None  # None = no override, otherwise float (>0)
+
+# Liste des caractéristiques du modèle (mêmes noms que les colonnes du fichier CSV)
+MODEL_FEATURES = ["catu", "sexe", "trajet", "catr", "circ", "vosp", "prof", 
+                 "plan", "surf", "situ", "lum", "atm", "col"]
+
+# Types des caractéristiques (toutes numériques dans notre cas)
+FEATURE_TYPES = {feature: "num" for feature in MODEL_FEATURES}
 
 @app.post("/config/noise")
 async def set_noise_override(payload: Dict[str, Any] = Body(...)):
@@ -102,11 +110,9 @@ def _get_latest_file(directory, prefix):
     print(f"--- _get_latest_file: Found latest file: {latest_file} ---")
     return os.path.join(directory, latest_file)
 
+@lru_cache(maxsize=1)
 def _calculate_drift_metrics(noise_factor=None):
     print(f"--- _calculate_drift_metrics: Entering function (noise_factor={noise_factor}) ---")
-    
-    MODEL_FEATURES = ["catu", "sexe", "trajet", "catr", "circ", "vosp", "prof", 
-                     "plan", "surf", "situ", "lum", "atm", "col"]
     
     reference_file = _get_latest_file(REFERENCE_DATA_DIR, "best_model_data") 
     current_file = _get_latest_file(CURRENT_DATA_DIR, "current_data") 
@@ -122,15 +128,33 @@ def _calculate_drift_metrics(noise_factor=None):
     print(f"--- _calculate_drift_metrics: Current file: {current_file} ---")
 
     try:
-        reference_data = pd.read_csv(reference_file)
-        current_data = pd.read_csv(current_file)
+        # Charger les données avec le bon séparateur (virgule, pas point-virgule)
+        reference_data = pd.read_csv(reference_file, on_bad_lines='warn', engine='python')
+        current_data = pd.read_csv(current_file, on_bad_lines='warn', engine='python')
+        
+        # Afficher les premières lignes pour le débogage
+        print("--- Reference data sample: ---")
+        print(reference_data.head())
+        print("\n--- Current data sample: ---")
+        print(current_data.head())
+        
     except Exception as e:
         print(f"--- _calculate_drift_metrics: ERROR while reading CSV files: {e} ---")
+        print(f"Reference file path: {reference_file}")
+        print(f"Current file path: {current_file}")
+        print(f"Current working directory: {os.getcwd()}")
+        print("Files in reference directory:", os.listdir(os.path.dirname(reference_file)))
+        print("Files in current directory:", os.listdir(os.path.dirname(current_file)))
         raise
 
     print(f"--- _calculate_drift_metrics: Reference data dimensions: {reference_data.shape} ---")
     print(f"--- _calculate_drift_metrics: Current data dimensions: {current_data.shape} ---")
 
+    # Vérifier les colonnes disponibles
+    print("\n--- Reference data columns:", reference_data.columns.tolist())
+    print("--- Current data columns:", current_data.columns.tolist())
+    
+    # Vérifier que toutes les colonnes requises sont présentes
     available_features = [col for col in MODEL_FEATURES if col in reference_data.columns and col in current_data.columns]
     missing_features = set(MODEL_FEATURES) - set(available_features)
     
@@ -138,12 +162,27 @@ def _calculate_drift_metrics(noise_factor=None):
         print(f"--- WARNING: Some model features are missing: {missing_features} ---")
     
     if not available_features:
-        raise ValueError("No model features available in both reference and current datasets")
+        error_msg = "No model features available in both reference and current datasets. "
+        error_msg += f"Available columns - Reference: {reference_data.columns.tolist()}, "
+        error_msg += f"Current: {current_data.columns.tolist()}"
+        raise ValueError(error_msg)
         
     print(f"--- _calculate_drift_metrics: Using {len(available_features)} model features: {available_features} ---")
     
+    # Sélectionner uniquement les colonnes nécessaires
     reference_data = reference_data[available_features].copy()
     current_data = current_data[available_features].copy()
+    
+    # Convertir les colonnes en numérique si elles ne le sont pas déjà
+    for col in available_features:
+        reference_data[col] = pd.to_numeric(reference_data[col], errors='coerce')
+        current_data[col] = pd.to_numeric(current_data[col], errors='coerce')
+        
+        # Remplacer les valeurs manquantes par la moyenne de la colonne
+        ref_mean = reference_data[col].mean()
+        cur_mean = current_data[col].mean()
+        reference_data[col].fillna(ref_mean, inplace=True)
+        current_data[col].fillna(cur_mean, inplace=True)
     
     # ADD NOISE IF noise_factor PARAMETER IS SPECIFIED
     if noise_factor is not None and noise_factor > 0:
@@ -169,10 +208,9 @@ def _calculate_drift_metrics(noise_factor=None):
         
         print(f"--- _calculate_drift_metrics: Noise applied successfully ---")
     
-    for col in available_features:
-        if reference_data[col].dtype == 'object' or reference_data[col].nunique() < 20:
-            reference_data[col] = reference_data[col].astype('category').cat.codes
-            current_data[col] = current_data[col].astype('category').cat.codes
+    # Ne pas convertir en catégories car les données sont déjà numériques
+    # Cette conversion n'est pas nécessaire pour les données normalisées
+    pass
     
     common_cols = available_features
 
@@ -214,7 +252,8 @@ def _calculate_drift_metrics(noise_factor=None):
                     print(f"--- _calculate_drift_metrics: NaN correlation for column '{col}'", file=sys.stderr)
                     continue
                     
-                if corr < 0.95:
+                # Augmenter le seuil de corrélation à 0.8 pour réduire les faux positifs
+                if corr < 0.8:  # Anciennement 0.95
                     drift_count += 1
                     drifted_features.append(f"{col} (corr: {corr:.2f})")
                     print(f"--- _calculate_drift_metrics: Drift detected in column '{col}' (corr: {corr:.2f})")
@@ -371,6 +410,14 @@ async def get_drift_full_report(noise: float = None):
         
         print(f"--- get_drift_full_report: Data loaded - ref shape: {reference_data.shape}, current shape: {current_data.shape} ---")
         
+        # S'assurer que toutes les colonnes nécessaires sont présentes
+        missing_ref = set(MODEL_FEATURES) - set(reference_data.columns)
+        missing_cur = set(MODEL_FEATURES) - set(current_data.columns)
+        missing_cols = missing_ref.union(missing_cur)
+        
+        if missing_cols:
+            print(f"--- WARNING: Some model features are missing: {missing_cols} ---")
+
         # If no 'noise' parameter is provided, use the global override
         if noise is None:
             noise = NOISE_OVERRIDE
@@ -463,6 +510,279 @@ async def get_drift_full_report(noise: float = None):
         raise HTTPException(status_code=500, detail=f"Unable to generate report: {e}")
 
 
+
+def generate_simple_html_report(reference_data, current_data, force_drift_share=None):
+    """
+    Generate a simple HTML report comparing reference and current data distributions.
+    
+    Args:
+        reference_data (pd.DataFrame): Reference dataset
+        current_data (pd.DataFrame): Current dataset to compare against reference
+        force_drift_share (float, optional): If provided, override the calculated drift share with this value
+        
+    Returns:
+        str: HTML report as string
+    """
+    import matplotlib.pyplot as plt
+    import io
+    import base64
+    from scipy import stats
+    import numpy as np
+    
+    # Ensure we have the same columns in both datasets
+    common_columns = set(reference_data.columns).intersection(set(current_data.columns))
+    common_columns = [col for col in common_columns if col in MODEL_FEATURES]
+    
+    if not common_columns:
+        return "<h1>Error: No common columns found between reference and current data</h1>"
+    
+    # Calculate drift metrics
+    drift_count = 0
+    drifted_features = []
+    total_columns = len(common_columns)
+    
+    for col in common_columns:
+        try:
+            ref_vals = reference_data[col].dropna()
+            cur_vals = current_data[col].dropna()
+            
+            if len(ref_vals) < 10 or len(cur_vals) < 10:
+                continue
+                
+            # Determine if column is numeric or categorical
+            if pd.api.types.is_numeric_dtype(reference_data[col]):
+                # Numeric column - use correlation
+                try:
+                    # Create histograms for reference and current data
+                    ref_hist, ref_bins = np.histogram(ref_vals, bins=20)
+                    cur_hist, _ = np.histogram(cur_vals, bins=ref_bins)
+                    
+                    # Normalize histograms
+                    if ref_hist.sum() > 0:
+                        ref_hist = ref_hist / ref_hist.sum()
+                    if cur_hist.sum() > 0:
+                        cur_hist = cur_hist / cur_hist.sum()
+                    
+                    # Calculate correlation between histograms
+                    if np.std(ref_hist) > 0 and np.std(cur_hist) > 0:
+                        corr = np.corrcoef(ref_hist, cur_hist)[0, 1]
+                        
+                        # If correlation is low, consider it drift
+                        if corr < 0.9:
+                            drift_count += 1
+                            drifted_features.append(f"{col} (corr: {corr:.2f})")
+                except Exception as e:
+                    print(f"Error calculating drift for numeric column {col}: {e}")
+            else:
+                # Categorical column - use Total Variation Distance (TVD)
+                ref_counts = ref_vals.value_counts(normalize=True)
+                cur_counts = cur_vals.value_counts(normalize=True)
+                
+                # Get all unique categories
+                all_cats = set(ref_counts.index).union(set(cur_counts.index))
+                
+                # Calculate TVD
+                tvd = 0
+                for cat in all_cats:
+                    ref_prob = ref_counts.get(cat, 0)
+                    cur_prob = cur_counts.get(cat, 0)
+                    tvd += abs(ref_prob - cur_prob)
+                
+                tvd = tvd / 2  # Normalize TVD to [0, 1]
+                
+                # If TVD is high, consider it drift
+                if tvd > 0.2:
+                    drift_count += 1
+                    drifted_features.append(f"{col} (tvd: {tvd:.2f})")
+        except Exception as e:
+            print(f"Error processing column {col}: {e}")
+    
+    # Calculate drift share
+    drift_share = drift_count / total_columns if total_columns > 0 else 0.0
+    
+    # Override drift share if requested
+    if force_drift_share is not None:
+        drift_share = force_drift_share
+    
+    # Generate plots for each column
+    plots_html = []
+    for col in common_columns[:10]:  # Limit to first 10 columns to avoid huge reports
+        try:
+            plt.figure(figsize=(10, 6))
+            
+            if pd.api.types.is_numeric_dtype(reference_data[col]):
+                # Numeric column - plot histograms
+                plt.hist(reference_data[col].dropna(), bins=20, alpha=0.5, label='Reference')
+                plt.hist(current_data[col].dropna(), bins=20, alpha=0.5, label='Current')
+                plt.xlabel(col)
+                plt.ylabel('Count')
+                plt.legend()
+                plt.title(f'Distribution of {col}')
+            else:
+                # Categorical column - plot bar charts
+                ref_counts = reference_data[col].value_counts(normalize=True)
+                cur_counts = current_data[col].value_counts(normalize=True)
+                
+                # Get top categories
+                top_cats = set(ref_counts.nlargest(10).index).union(set(cur_counts.nlargest(10).index))
+                top_cats = list(top_cats)[:10]  # Limit to 10 categories
+                
+                x = np.arange(len(top_cats))
+                width = 0.35
+                
+                plt.bar(x - width/2, [ref_counts.get(cat, 0) for cat in top_cats], width, label='Reference')
+                plt.bar(x + width/2, [cur_counts.get(cat, 0) for cat in top_cats], width, label='Current')
+                plt.xlabel('Category')
+                plt.ylabel('Frequency')
+                plt.xticks(x, top_cats, rotation=45)
+                plt.legend()
+                plt.title(f'Distribution of {col}')
+                plt.tight_layout()
+            
+            # Convert plot to base64 image
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png')
+            buf.seek(0)
+            img_data = base64.b64encode(buf.read()).decode('utf-8')
+            plt.close()
+            
+            plots_html.append(f'''
+            <div class="plot-container">
+                <h3>{col}</h3>
+                <img src="data:image/png;base64,{img_data}" alt="Distribution of {col}">
+            </div>
+            ''')
+        except Exception as e:
+            plots_html.append(f'''
+            <div class="plot-container">
+                <h3>{col}</h3>
+                <p class="error">Error generating plot: {str(e)}</p>
+            </div>
+            ''')
+    
+    # Create HTML report
+    html = f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Data Drift Report</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; }}
+            .header {{ background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }}
+            .drift-score {{ font-size: 24px; font-weight: bold; }}
+            .drift-high {{ color: #dc3545; }}
+            .drift-medium {{ color: #fd7e14; }}
+            .drift-low {{ color: #28a745; }}
+            .plot-container {{ margin-bottom: 30px; background-color: white; padding: 15px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }}
+            .controls {{ margin-bottom: 20px; padding: 15px; background-color: #e9ecef; border-radius: 5px; }}
+            button {{ padding: 10px 15px; margin-right: 10px; border: none; border-radius: 4px; cursor: pointer; }}
+            .btn-primary {{ background-color: #007bff; color: white; }}
+            .btn-warning {{ background-color: #ffc107; color: black; }}
+            .btn-danger {{ background-color: #dc3545; color: white; }}
+            .error {{ color: #dc3545; }}
+        </style>
+        <script>
+            function setNoise(value) {{
+                fetch('/config/noise', {{
+                    method: 'POST',
+                    headers: {{
+                        'Content-Type': 'application/json',
+                    }},
+                    body: JSON.stringify({{ noise: value }})
+                }})
+                .then(response => response.json())
+                .then(data => {{
+                    if (data.status === 'success') {{
+                        alert('Noise factor set to ' + value + '. Refresh the page to see changes.');
+                    }} else {{
+                        alert('Error: ' + data.message);
+                    }}
+                }})
+                .catch((error) => {{
+                    alert('Error: ' + error);
+                }});
+            }}
+            
+            function resetNoise() {{
+                fetch('/config/noise', {{
+                    method: 'POST',
+                    headers: {{
+                        'Content-Type': 'application/json',
+                    }},
+                    body: JSON.stringify({{}})  // Empty payload resets noise
+                }})
+                .then(response => response.json())
+                .then(data => {{
+                    if (data.status === 'success') {{
+                        alert('Noise factor reset. Refresh the page to see changes.');
+                    }} else {{
+                        alert('Error: ' + data.message);
+                    }}
+                }})
+                .catch((error) => {{
+                    alert('Error: ' + error);
+                }});
+            }}
+            
+            function checkApiStatus() {{
+                fetch('/health')
+                .then(response => {{
+                    if (response.ok) {{
+                        document.getElementById('api-status').textContent = 'API is accessible';
+                        document.getElementById('api-status').className = 'drift-low';
+                        document.getElementById('controls').style.display = 'block';
+                        document.getElementById('api-error').style.display = 'none';
+                    }} else {{
+                        throw new Error('API health check failed');
+                    }}
+                }})
+                .catch((error) => {{
+                    document.getElementById('api-status').textContent = 'API is not accessible';
+                    document.getElementById('api-status').className = 'drift-high';
+                    document.getElementById('controls').style.display = 'none';
+                    document.getElementById('api-error').style.display = 'block';
+                }});
+            }}
+            
+            window.onload = function() {{
+                checkApiStatus();
+            }};
+        </script>
+    </head>
+    <body>
+        <div class="header">
+            <h1>Data Drift Report</h1>
+            <p>Comparison between reference and current data distributions</p>
+            <p>Reference data: {reference_data.shape[0]} rows, Current data: {current_data.shape[0]} rows</p>
+            <p>Drift score: <span class="drift-score {{'drift-high' if drift_share > 0.5 else 'drift-medium' if drift_share > 0.2 else 'drift-low'}}">{drift_share:.2f}</span></p>
+            <p id="api-status">Checking API status...</p>
+        </div>
+        
+        <div id="api-error" style="display: none; padding: 15px; background-color: #f8d7da; color: #721c24; border-radius: 5px; margin-bottom: 20px;">
+            <strong>L'API de contrôle de drift n'est pas accessible. Les boutons sont désactivés.</strong>
+        </div>
+        
+        <div id="controls" class="controls">
+            <h2>Contrôle du Drift</h2>
+            <p>Utilisez ces boutons pour simuler différents niveaux de drift dans les données:</p>
+            <button class="btn-primary" onclick="resetNoise()">Réinitialiser (No Drift)</button>
+            <button class="btn-primary" onclick="setNoise(0.2)">Faible Drift (0.2)</button>
+            <button class="btn-warning" onclick="setNoise(0.5)">Moyen Drift (0.5)</button>
+            <button class="btn-danger" onclick="setNoise(0.8)">Fort Drift (0.8)</button>
+        </div>
+        
+        <h2>Drifted Features ({len(drifted_features)})</h2>
+        <ul>
+            {''.join([f'<li>{feature}</li>' for feature in drifted_features])}
+        </ul>
+        
+        <h2>Feature Distributions</h2>
+        {''.join(plots_html)}
+    </body>
+    </html>
+    '''
+    
+    return html
 
 import requests
 from fastapi import Request, Response

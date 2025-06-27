@@ -39,7 +39,7 @@ common_mounts = [
 # Task 1: Data extraction
 extract_data_daily = DockerOperator(
     task_id='extract_data_daily',
-    image='mlops-road-accidents_extract_data',
+    image='mlops-road-accidents-extract_data',
     command='python extract_data.py',
     docker_url='unix://var/run/docker.sock',
     network_mode='mlops-road-accidents_default',
@@ -52,7 +52,7 @@ extract_data_daily = DockerOperator(
 # Task 2: Synthetic data generation
 synthet_data_daily = DockerOperator(
     task_id='synthet_data_daily',
-    image='mlops-road-accidents_synthet_data',
+    image='mlops-road-accidents-synthet_data',
     command='python synthet_data.py',
     docker_url='unix://var/run/docker.sock',
     network_mode='mlops-road-accidents_default',
@@ -65,7 +65,7 @@ synthet_data_daily = DockerOperator(
 # Task 3: Data preparation
 prepare_data_daily = DockerOperator(
     task_id='prepare_data_daily',
-    image='mlops-road-accidents_prepare_data',
+    image='mlops-road-accidents-prepare_data',
     command='python prepare_data.py',
     docker_url='unix://var/run/docker.sock',
     network_mode='mlops-road-accidents_default',

@@ -3,6 +3,7 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
+
 # Check if current user is root
 if [ "$(id -u)" = "0" ]; then
     # Configure docker group for socket access (as root)
