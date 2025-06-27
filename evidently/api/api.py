@@ -12,8 +12,11 @@ from functools import lru_cache
 
 app = FastAPI()
 
-REFERENCE_DATA_DIR = "/app/reference/"
-CURRENT_DATA_DIR = "/app/current/"
+import os
+
+# Chemins dans le conteneur où les volumes sont montés
+REFERENCE_DATA_DIR = "/app/reference"  # Sans le / final pour éviter les problèmes de chemin
+CURRENT_DATA_DIR = "/app/current"
 
 # Global override for the noise factor applied during drift calculation.
 # Allows simulating a constant drift visible in Prometheus.
