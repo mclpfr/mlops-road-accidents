@@ -6206,3 +6206,1133 @@
 2025-06-26 15:26:30,295 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.08s/it]
 2025-06-26 15:26:30,296 - STDERR - ERROR - 
 2025-06-26 15:26:30,296 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.28it/s]
+2025-06-27 06:44:49,058 - STDERR - ERROR - 
+2025-06-27 06:44:49,059 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 06:44:49,091 - STDERR - ERROR - 
+2025-06-27 06:44:49,091 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 31.72it/s]
+2025-06-27 06:44:49,143 - STDERR - ERROR - 
+2025-06-27 06:44:49,143 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 23.82it/s]
+2025-06-27 06:44:49,313 - STDERR - ERROR - 
+2025-06-27 06:44:49,313 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 11.81it/s]
+2025-06-27 06:44:49,314 - STDERR - ERROR - 
+2025-06-27 06:44:49,314 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 11.81it/s]
+2025-06-27 06:44:49,318 - STDERR - ERROR - 
+2025-06-27 06:44:49,319 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:00<00:00, 11.81it/s]
+2025-06-27 06:44:49,379 - STDERR - ERROR - 
+2025-06-27 06:44:49,379 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:00<00:00, 11.81it/s]
+2025-06-27 06:44:49,437 - STDERR - ERROR - 
+2025-06-27 06:44:49,437 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:00<00:00, 16.90it/s]
+2025-06-27 06:44:49,437 - STDERR - ERROR - 
+2025-06-27 06:44:49,437 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:00<00:00, 16.90it/s]
+2025-06-27 06:44:50,679 - STDERR - ERROR - 
+2025-06-27 06:44:50,679 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:01<00:00, 16.90it/s]
+2025-06-27 06:44:51,007 - STDERR - ERROR - 
+2025-06-27 06:44:51,007 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:01<00:00,  3.13it/s]
+2025-06-27 06:44:51,007 - STDERR - ERROR - 
+2025-06-27 06:44:51,007 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:01<00:00,  3.13it/s]
+2025-06-27 06:44:51,989 - STDERR - ERROR - 
+2025-06-27 06:44:51,990 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  3.13it/s]
+2025-06-27 06:44:51,990 - STDERR - ERROR - 
+2025-06-27 06:44:51,990 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  3.07it/s]
+2025-06-27 06:44:58,889 - STDERR - ERROR - 
+2025-06-27 06:44:58,889 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 06:44:59,986 - STDERR - ERROR - 
+2025-06-27 06:44:59,987 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.10s/it]
+2025-06-27 06:44:59,987 - STDERR - ERROR - 
+2025-06-27 06:44:59,987 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.10s/it]
+2025-06-27 06:44:59,987 - STDERR - ERROR - 
+2025-06-27 06:44:59,987 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.10s/it]
+2025-06-27 06:45:05,892 - STDERR - ERROR - 
+2025-06-27 06:45:05,892 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 06:45:05,893 - STDERR - ERROR - 
+2025-06-27 06:45:05,893 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 12409.18it/s]
+2025-06-27 06:45:05,893 - STDERR - ERROR - 
+2025-06-27 06:45:05,894 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 2149.27it/s]
+2025-06-27 06:45:06,958 - STDERR - ERROR - 
+2025-06-27 06:45:06,958 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:01<00:02,  2.82it/s]
+2025-06-27 06:45:06,958 - STDERR - ERROR - 
+2025-06-27 06:45:06,958 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:01<00:02,  2.82it/s]
+2025-06-27 06:45:07,925 - STDERR - ERROR - 
+2025-06-27 06:45:07,925 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:02<00:02,  1.81it/s]
+2025-06-27 06:45:07,925 - STDERR - ERROR - 
+2025-06-27 06:45:07,926 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:02<00:02,  1.81it/s]
+2025-06-27 06:45:08,962 - STDERR - ERROR - 
+2025-06-27 06:45:08,963 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:03<00:02,  1.42it/s]
+2025-06-27 06:45:08,964 - STDERR - ERROR - 
+2025-06-27 06:45:08,964 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:03<00:02,  1.42it/s]
+2025-06-27 06:45:09,927 - STDERR - ERROR - 
+2025-06-27 06:45:09,927 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:04<00:02,  1.27it/s]
+2025-06-27 06:45:09,927 - STDERR - ERROR - 
+2025-06-27 06:45:09,927 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:04<00:02,  1.27it/s]
+2025-06-27 06:45:11,651 - STDERR - ERROR - 
+2025-06-27 06:45:11,652 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.07s/it]
+2025-06-27 06:45:11,652 - STDERR - ERROR - 
+2025-06-27 06:45:11,652 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.07s/it]
+2025-06-27 06:45:11,924 - STDERR - ERROR - 
+2025-06-27 06:45:11,925 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:06<00:00,  1.21it/s]
+2025-06-27 06:45:11,925 - STDERR - ERROR - 
+2025-06-27 06:45:11,925 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:06<00:00,  1.21it/s]
+2025-06-27 06:45:12,965 - STDERR - ERROR - 
+2025-06-27 06:45:12,965 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.12it/s]
+2025-06-27 06:45:12,965 - STDERR - ERROR - 
+2025-06-27 06:45:12,965 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.12it/s]
+2025-06-27 06:45:12,965 - STDERR - ERROR - 
+2025-06-27 06:45:12,965 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.27it/s]
+2025-06-27 06:54:22,903 - STDERR - ERROR - 
+2025-06-27 06:54:22,904 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 06:54:22,904 - STDERR - ERROR - 
+2025-06-27 06:54:22,905 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 11037.64it/s]
+2025-06-27 06:54:22,905 - STDERR - ERROR - 
+2025-06-27 06:54:22,905 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 2666.44it/s]
+2025-06-27 06:54:23,123 - STDERR - ERROR - 
+2025-06-27 06:54:23,123 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 13.72it/s]
+2025-06-27 06:54:23,123 - STDERR - ERROR - 
+2025-06-27 06:54:23,123 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 13.72it/s]
+2025-06-27 06:54:23,131 - STDERR - ERROR - 
+2025-06-27 06:54:23,131 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:00<00:00, 13.72it/s]
+2025-06-27 06:54:23,208 - STDERR - ERROR - 
+2025-06-27 06:54:23,208 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:00<00:00, 13.72it/s]
+2025-06-27 06:54:23,264 - STDERR - ERROR - 
+2025-06-27 06:54:23,264 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:00<00:00, 17.37it/s]
+2025-06-27 06:54:23,265 - STDERR - ERROR - 
+2025-06-27 06:54:23,265 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:00<00:00, 17.37it/s]
+2025-06-27 06:54:24,271 - STDERR - ERROR - 
+2025-06-27 06:54:24,271 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:01<00:00, 17.37it/s]
+2025-06-27 06:54:24,646 - STDERR - ERROR - 
+2025-06-27 06:54:24,646 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:01<00:00,  3.51it/s]
+2025-06-27 06:54:24,646 - STDERR - ERROR - 
+2025-06-27 06:54:24,646 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:01<00:00,  3.51it/s]
+2025-06-27 06:54:25,659 - STDERR - ERROR - 
+2025-06-27 06:54:25,659 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  3.51it/s]
+2025-06-27 06:54:25,659 - STDERR - ERROR - 
+2025-06-27 06:54:25,660 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  3.27it/s]
+2025-06-27 06:54:32,601 - STDERR - ERROR - 
+2025-06-27 06:54:32,601 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 06:54:33,738 - STDERR - ERROR - 
+2025-06-27 06:54:33,739 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.14s/it]
+2025-06-27 06:54:33,739 - STDERR - ERROR - 
+2025-06-27 06:54:33,739 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.14s/it]
+2025-06-27 06:54:33,739 - STDERR - ERROR - 
+2025-06-27 06:54:33,739 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.14s/it]
+2025-06-27 06:54:38,617 - STDERR - ERROR - 
+2025-06-27 06:54:38,617 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 06:54:38,617 - STDERR - ERROR - 
+2025-06-27 06:54:38,617 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 17549.39it/s]
+2025-06-27 06:54:39,648 - STDERR - ERROR - 
+2025-06-27 06:54:39,648 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:01<00:03,  1.94it/s]
+2025-06-27 06:54:39,648 - STDERR - ERROR - 
+2025-06-27 06:54:39,649 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:01<00:03,  1.94it/s]
+2025-06-27 06:54:40,646 - STDERR - ERROR - 
+2025-06-27 06:54:40,646 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:02<00:04,  1.40it/s]
+2025-06-27 06:54:40,646 - STDERR - ERROR - 
+2025-06-27 06:54:40,646 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:02<00:04,  1.40it/s]
+2025-06-27 06:54:41,647 - STDERR - ERROR - 
+2025-06-27 06:54:41,647 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:03<00:04,  1.22it/s]
+2025-06-27 06:54:41,647 - STDERR - ERROR - 
+2025-06-27 06:54:41,647 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:03<00:04,  1.22it/s]
+2025-06-27 06:54:42,642 - STDERR - ERROR - 
+2025-06-27 06:54:42,643 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:04<00:03,  1.13it/s]
+2025-06-27 06:54:42,643 - STDERR - ERROR - 
+2025-06-27 06:54:42,643 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:04<00:03,  1.13it/s]
+2025-06-27 06:54:43,620 - STDERR - ERROR - 
+2025-06-27 06:54:43,620 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:05<00:02,  1.09it/s]
+2025-06-27 06:54:43,620 - STDERR - ERROR - 
+2025-06-27 06:54:43,621 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:05<00:02,  1.09it/s]
+2025-06-27 06:54:45,209 - STDERR - ERROR - 
+2025-06-27 06:54:45,210 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:06<00:02,  1.13s/it]
+2025-06-27 06:54:45,210 - STDERR - ERROR - 
+2025-06-27 06:54:45,210 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:06<00:02,  1.13s/it]
+2025-06-27 06:54:45,634 - STDERR - ERROR - 
+2025-06-27 06:54:45,634 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:07<00:00,  1.10it/s]
+2025-06-27 06:54:45,634 - STDERR - ERROR - 
+2025-06-27 06:54:45,634 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:07<00:00,  1.10it/s]
+2025-06-27 06:54:46,661 - STDERR - ERROR - 
+2025-06-27 06:54:46,661 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:08<00:00,  1.06it/s]
+2025-06-27 06:54:46,661 - STDERR - ERROR - 
+2025-06-27 06:54:46,661 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:08<00:00,  1.06it/s]
+2025-06-27 06:54:46,661 - STDERR - ERROR - 
+2025-06-27 06:54:46,662 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:08<00:00,  1.12it/s]
+2025-06-27 06:54:50,605 - STDERR - ERROR - 
+2025-06-27 06:54:50,607 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 06:54:51,734 - STDERR - ERROR - 
+2025-06-27 06:54:51,734 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.13s/it]
+2025-06-27 06:54:51,734 - STDERR - ERROR - 
+2025-06-27 06:54:51,734 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.13s/it]
+2025-06-27 06:54:51,735 - STDERR - ERROR - 
+2025-06-27 06:54:51,735 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.13s/it]
+2025-06-27 06:54:55,595 - STDERR - ERROR - 
+2025-06-27 06:54:55,595 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 06:54:56,642 - STDERR - ERROR - 
+2025-06-27 06:54:56,642 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:01<00:08,  1.05s/it]
+2025-06-27 06:54:56,643 - STDERR - ERROR - 
+2025-06-27 06:54:56,643 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:01<00:08,  1.05s/it]
+2025-06-27 06:54:57,631 - STDERR - ERROR - 
+2025-06-27 06:54:57,631 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:02<00:07,  1.01s/it]
+2025-06-27 06:54:57,631 - STDERR - ERROR - 
+2025-06-27 06:54:57,631 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:02<00:07,  1.01s/it]
+2025-06-27 06:54:58,642 - STDERR - ERROR - 
+2025-06-27 06:54:58,643 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:03<00:06,  1.01s/it]
+2025-06-27 06:54:58,643 - STDERR - ERROR - 
+2025-06-27 06:54:58,643 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:03<00:06,  1.01s/it]
+2025-06-27 06:54:59,647 - STDERR - ERROR - 
+2025-06-27 06:54:59,650 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:04<00:05,  1.01s/it]
+2025-06-27 06:54:59,650 - STDERR - ERROR - 
+2025-06-27 06:54:59,651 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:04<00:05,  1.01s/it]
+2025-06-27 06:55:00,647 - STDERR - ERROR - 
+2025-06-27 06:55:00,651 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:05<00:04,  1.01s/it]
+2025-06-27 06:55:00,654 - STDERR - ERROR - 
+2025-06-27 06:55:00,654 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:05<00:04,  1.01s/it]
+2025-06-27 06:55:01,640 - STDERR - ERROR - 
+2025-06-27 06:55:01,640 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:06<00:03,  1.00s/it]
+2025-06-27 06:55:01,641 - STDERR - ERROR - 
+2025-06-27 06:55:01,641 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:06<00:03,  1.00s/it]
+2025-06-27 06:55:03,210 - STDERR - ERROR - 
+2025-06-27 06:55:03,210 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:07<00:02,  1.19s/it]
+2025-06-27 06:55:03,211 - STDERR - ERROR - 
+2025-06-27 06:55:03,211 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:07<00:02,  1.19s/it]
+2025-06-27 06:55:03,688 - STDERR - ERROR - 
+2025-06-27 06:55:03,688 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:08<00:00,  1.04it/s]
+2025-06-27 06:55:03,689 - STDERR - ERROR - 
+2025-06-27 06:55:03,689 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:08<00:00,  1.04it/s]
+2025-06-27 06:55:04,657 - STDERR - ERROR - 
+2025-06-27 06:55:04,657 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:09<00:00,  1.04it/s]
+2025-06-27 06:55:04,657 - STDERR - ERROR - 
+2025-06-27 06:55:04,657 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:09<00:00,  1.04it/s]
+2025-06-27 06:55:04,657 - STDERR - ERROR - 
+2025-06-27 06:55:04,658 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:09<00:00,  1.01s/it]
+2025-06-27 06:59:33,078 - STDERR - ERROR - 
+2025-06-27 06:59:33,078 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 06:59:33,093 - STDERR - ERROR - 
+2025-06-27 06:59:33,093 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 69.15it/s]
+2025-06-27 06:59:33,351 - STDERR - ERROR - 
+2025-06-27 06:59:33,351 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00,  7.35it/s]
+2025-06-27 06:59:33,351 - STDERR - ERROR - 
+2025-06-27 06:59:33,351 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00,  7.35it/s]
+2025-06-27 06:59:34,383 - STDERR - ERROR - 
+2025-06-27 06:59:34,384 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:01<00:03,  1.96it/s]
+2025-06-27 06:59:34,384 - STDERR - ERROR - 
+2025-06-27 06:59:34,384 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:01<00:03,  1.96it/s]
+2025-06-27 06:59:35,358 - STDERR - ERROR - 
+2025-06-27 06:59:35,358 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:02<00:03,  1.46it/s]
+2025-06-27 06:59:35,358 - STDERR - ERROR - 
+2025-06-27 06:59:35,358 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:02<00:03,  1.46it/s]
+2025-06-27 06:59:36,605 - STDERR - ERROR - 
+2025-06-27 06:59:36,605 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:03<00:03,  1.14it/s]
+2025-06-27 06:59:36,606 - STDERR - ERROR - 
+2025-06-27 06:59:36,606 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:03<00:03,  1.14it/s]
+2025-06-27 06:59:37,426 - STDERR - ERROR - 
+2025-06-27 06:59:37,426 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:04<00:02,  1.16it/s]
+2025-06-27 06:59:37,427 - STDERR - ERROR - 
+2025-06-27 06:59:37,427 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:04<00:02,  1.16it/s]
+2025-06-27 06:59:39,305 - STDERR - ERROR - 
+2025-06-27 06:59:39,305 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:06<00:02,  1.19s/it]
+2025-06-27 06:59:39,308 - STDERR - ERROR - 
+2025-06-27 06:59:39,308 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:06<00:02,  1.19s/it]
+2025-06-27 06:59:39,348 - STDERR - ERROR - 
+2025-06-27 06:59:39,349 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:06<00:01,  1.19s/it]
+2025-06-27 06:59:40,384 - STDERR - ERROR - 
+2025-06-27 06:59:40,385 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.14it/s]
+2025-06-27 06:59:40,385 - STDERR - ERROR - 
+2025-06-27 06:59:40,385 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.14it/s]
+2025-06-27 06:59:40,385 - STDERR - ERROR - 
+2025-06-27 06:59:40,385 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.23it/s]
+2025-06-27 06:59:48,315 - STDERR - ERROR - 
+2025-06-27 06:59:48,315 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 06:59:49,399 - STDERR - ERROR - 
+2025-06-27 06:59:49,399 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.08s/it]
+2025-06-27 06:59:49,399 - STDERR - ERROR - 
+2025-06-27 06:59:49,399 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.08s/it]
+2025-06-27 06:59:49,399 - STDERR - ERROR - 
+2025-06-27 06:59:49,399 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.08s/it]
+2025-06-27 06:59:54,304 - STDERR - ERROR - 
+2025-06-27 06:59:54,304 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 06:59:54,304 - STDERR - ERROR - 
+2025-06-27 06:59:54,304 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 20460.02it/s]
+2025-06-27 06:59:55,339 - STDERR - ERROR - 
+2025-06-27 06:59:55,341 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:01<00:03,  1.93it/s]
+2025-06-27 06:59:55,342 - STDERR - ERROR - 
+2025-06-27 06:59:55,344 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:01<00:03,  1.93it/s]
+2025-06-27 06:59:56,332 - STDERR - ERROR - 
+2025-06-27 06:59:56,332 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:02<00:04,  1.40it/s]
+2025-06-27 06:59:56,333 - STDERR - ERROR - 
+2025-06-27 06:59:56,333 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:02<00:04,  1.40it/s]
+2025-06-27 06:59:57,336 - STDERR - ERROR - 
+2025-06-27 06:59:57,338 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:03<00:04,  1.21it/s]
+2025-06-27 06:59:57,338 - STDERR - ERROR - 
+2025-06-27 06:59:57,338 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:03<00:04,  1.21it/s]
+2025-06-27 06:59:58,469 - STDERR - ERROR - 
+2025-06-27 06:59:58,469 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:04<00:03,  1.07it/s]
+2025-06-27 06:59:58,470 - STDERR - ERROR - 
+2025-06-27 06:59:58,470 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:04<00:03,  1.07it/s]
+2025-06-27 06:59:59,378 - STDERR - ERROR - 
+2025-06-27 06:59:59,379 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:05<00:02,  1.08it/s]
+2025-06-27 06:59:59,379 - STDERR - ERROR - 
+2025-06-27 06:59:59,380 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:05<00:02,  1.08it/s]
+2025-06-27 07:00:01,364 - STDERR - ERROR - 
+2025-06-27 07:00:01,364 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:07<00:02,  1.27s/it]
+2025-06-27 07:00:01,364 - STDERR - ERROR - 
+2025-06-27 07:00:01,365 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:07<00:02,  1.27s/it]
+2025-06-27 07:00:01,403 - STDERR - ERROR - 
+2025-06-27 07:00:01,403 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:07<00:01,  1.27s/it]
+2025-06-27 07:00:02,464 - STDERR - ERROR - 
+2025-06-27 07:00:02,465 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:08<00:00,  1.08it/s]
+2025-06-27 07:00:02,465 - STDERR - ERROR - 
+2025-06-27 07:00:02,465 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:08<00:00,  1.08it/s]
+2025-06-27 07:00:02,465 - STDERR - ERROR - 
+2025-06-27 07:00:02,465 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:08<00:00,  1.10it/s]
+2025-06-27 07:02:55,355 - STDERR - ERROR - 
+2025-06-27 07:02:55,355 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 07:02:55,358 - STDERR - ERROR - 
+2025-06-27 07:02:55,358 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 445.54it/s]
+2025-06-27 07:02:55,475 - STDERR - ERROR - 
+2025-06-27 07:02:55,475 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 16.77it/s]
+2025-06-27 07:02:55,476 - STDERR - ERROR - 
+2025-06-27 07:02:55,477 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 16.77it/s]
+2025-06-27 07:02:55,582 - STDERR - ERROR - 
+2025-06-27 07:02:55,583 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 16.77it/s]
+2025-06-27 07:02:55,589 - STDERR - ERROR - 
+2025-06-27 07:02:55,590 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:00<00:00, 17.17it/s]
+2025-06-27 07:02:55,590 - STDERR - ERROR - 
+2025-06-27 07:02:55,591 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:00<00:00, 17.17it/s]
+2025-06-27 07:02:55,610 - STDERR - ERROR - 
+2025-06-27 07:02:55,610 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:00<00:00, 17.17it/s]
+2025-06-27 07:02:55,713 - STDERR - ERROR - 
+2025-06-27 07:02:55,714 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:00<00:00, 16.69it/s]
+2025-06-27 07:02:55,714 - STDERR - ERROR - 
+2025-06-27 07:02:55,714 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:00<00:00, 16.69it/s]
+2025-06-27 07:02:57,191 - STDERR - ERROR - 
+2025-06-27 07:02:57,191 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:01<00:00, 16.69it/s]
+2025-06-27 07:02:57,310 - STDERR - ERROR - 
+2025-06-27 07:02:57,311 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:01<00:00,  2.84it/s]
+2025-06-27 07:02:57,311 - STDERR - ERROR - 
+2025-06-27 07:02:57,311 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:01<00:00,  2.84it/s]
+2025-06-27 07:02:58,351 - STDERR - ERROR - 
+2025-06-27 07:02:58,351 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  2.84it/s]
+2025-06-27 07:02:58,351 - STDERR - ERROR - 
+2025-06-27 07:02:58,351 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  3.00it/s]
+2025-06-27 07:03:05,410 - STDERR - ERROR - 
+2025-06-27 07:03:05,410 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 07:03:06,513 - STDERR - ERROR - 
+2025-06-27 07:03:06,513 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.10s/it]
+2025-06-27 07:03:06,513 - STDERR - ERROR - 
+2025-06-27 07:03:06,513 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.10s/it]
+2025-06-27 07:03:06,514 - STDERR - ERROR - 
+2025-06-27 07:03:06,514 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.10s/it]
+2025-06-27 07:03:12,281 - STDERR - ERROR - 
+2025-06-27 07:03:12,281 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 07:03:12,282 - STDERR - ERROR - 
+2025-06-27 07:03:12,282 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 17623.13it/s]
+2025-06-27 07:03:12,282 - STDERR - ERROR - 
+2025-06-27 07:03:12,283 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 3571.14it/s]
+2025-06-27 07:03:13,312 - STDERR - ERROR - 
+2025-06-27 07:03:13,313 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:01<00:02,  2.91it/s]
+2025-06-27 07:03:13,315 - STDERR - ERROR - 
+2025-06-27 07:03:13,315 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:01<00:02,  2.91it/s]
+2025-06-27 07:03:14,358 - STDERR - ERROR - 
+2025-06-27 07:03:14,358 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:02<00:02,  1.75it/s]
+2025-06-27 07:03:14,358 - STDERR - ERROR - 
+2025-06-27 07:03:14,359 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:02<00:02,  1.75it/s]
+2025-06-27 07:03:15,343 - STDERR - ERROR - 
+2025-06-27 07:03:15,343 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:03<00:02,  1.43it/s]
+2025-06-27 07:03:15,343 - STDERR - ERROR - 
+2025-06-27 07:03:15,344 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:03<00:02,  1.43it/s]
+2025-06-27 07:03:16,322 - STDERR - ERROR - 
+2025-06-27 07:03:16,322 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:04<00:02,  1.27it/s]
+2025-06-27 07:03:16,322 - STDERR - ERROR - 
+2025-06-27 07:03:16,322 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:04<00:02,  1.27it/s]
+2025-06-27 07:03:18,008 - STDERR - ERROR - 
+2025-06-27 07:03:18,008 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.06s/it]
+2025-06-27 07:03:18,008 - STDERR - ERROR - 
+2025-06-27 07:03:18,008 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.06s/it]
+2025-06-27 07:03:18,311 - STDERR - ERROR - 
+2025-06-27 07:03:18,311 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:06<00:00,  1.20it/s]
+2025-06-27 07:03:18,311 - STDERR - ERROR - 
+2025-06-27 07:03:18,311 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:06<00:00,  1.20it/s]
+2025-06-27 07:03:19,336 - STDERR - ERROR - 
+2025-06-27 07:03:19,336 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.12it/s]
+2025-06-27 07:03:19,336 - STDERR - ERROR - 
+2025-06-27 07:03:19,336 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.12it/s]
+2025-06-27 07:03:19,336 - STDERR - ERROR - 
+2025-06-27 07:03:19,337 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.28it/s]
+2025-06-27 07:05:16,865 - STDERR - ERROR - 
+2025-06-27 07:05:16,866 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 07:05:16,884 - STDERR - ERROR - 
+2025-06-27 07:05:16,884 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 56.33it/s]
+2025-06-27 07:05:16,888 - STDERR - ERROR - 
+2025-06-27 07:05:16,888 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 88.94it/s]
+2025-06-27 07:05:17,111 - STDERR - ERROR - 
+2025-06-27 07:05:17,112 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 12.23it/s]
+2025-06-27 07:05:17,112 - STDERR - ERROR - 
+2025-06-27 07:05:17,113 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 12.23it/s]
+2025-06-27 07:05:17,118 - STDERR - ERROR - 
+2025-06-27 07:05:17,119 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:00<00:00, 12.23it/s]
+2025-06-27 07:05:17,123 - STDERR - ERROR - 
+2025-06-27 07:05:17,123 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:00<00:00, 12.23it/s]
+2025-06-27 07:05:17,128 - STDERR - ERROR - 
+2025-06-27 07:05:17,128 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:00<00:00, 12.23it/s]
+2025-06-27 07:05:18,688 - STDERR - ERROR - 
+2025-06-27 07:05:18,688 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:01<00:00,  3.49it/s]
+2025-06-27 07:05:18,688 - STDERR - ERROR - 
+2025-06-27 07:05:18,689 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:01<00:00,  3.49it/s]
+2025-06-27 07:05:18,764 - STDERR - ERROR - 
+2025-06-27 07:05:18,765 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:01<00:00,  3.49it/s]
+2025-06-27 07:05:19,762 - STDERR - ERROR - 
+2025-06-27 07:05:19,762 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  2.73it/s]
+2025-06-27 07:05:19,763 - STDERR - ERROR - 
+2025-06-27 07:05:19,763 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  2.73it/s]
+2025-06-27 07:05:19,763 - STDERR - ERROR - 
+2025-06-27 07:05:19,763 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  3.11it/s]
+2025-06-27 07:05:26,705 - STDERR - ERROR - 
+2025-06-27 07:05:26,706 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 07:05:27,764 - STDERR - ERROR - 
+2025-06-27 07:05:27,765 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.06s/it]
+2025-06-27 07:05:27,765 - STDERR - ERROR - 
+2025-06-27 07:05:27,765 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.06s/it]
+2025-06-27 07:05:27,765 - STDERR - ERROR - 
+2025-06-27 07:05:27,765 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.06s/it]
+2025-06-27 07:05:31,717 - STDERR - ERROR - 
+2025-06-27 07:05:31,718 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 07:05:32,744 - STDERR - ERROR - 
+2025-06-27 07:05:32,745 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:01<00:08,  1.03s/it]
+2025-06-27 07:05:32,746 - STDERR - ERROR - 
+2025-06-27 07:05:32,746 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:01<00:08,  1.03s/it]
+2025-06-27 07:05:33,782 - STDERR - ERROR - 
+2025-06-27 07:05:33,783 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:02<00:07,  1.03s/it]
+2025-06-27 07:05:33,784 - STDERR - ERROR - 
+2025-06-27 07:05:33,785 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:02<00:07,  1.03s/it]
+2025-06-27 07:05:34,759 - STDERR - ERROR - 
+2025-06-27 07:05:34,759 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:03<00:06,  1.01s/it]
+2025-06-27 07:05:34,759 - STDERR - ERROR - 
+2025-06-27 07:05:34,759 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:03<00:06,  1.01s/it]
+2025-06-27 07:05:35,764 - STDERR - ERROR - 
+2025-06-27 07:05:35,765 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:04<00:05,  1.01s/it]
+2025-06-27 07:05:35,765 - STDERR - ERROR - 
+2025-06-27 07:05:35,765 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:04<00:05,  1.01s/it]
+2025-06-27 07:05:36,747 - STDERR - ERROR - 
+2025-06-27 07:05:36,748 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:05<00:03,  1.00it/s]
+2025-06-27 07:05:36,748 - STDERR - ERROR - 
+2025-06-27 07:05:36,748 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:05<00:03,  1.00it/s]
+2025-06-27 07:05:37,749 - STDERR - ERROR - 
+2025-06-27 07:05:37,750 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:06<00:02,  1.00it/s]
+2025-06-27 07:05:37,750 - STDERR - ERROR - 
+2025-06-27 07:05:37,750 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:06<00:02,  1.00it/s]
+2025-06-27 07:05:39,319 - STDERR - ERROR - 
+2025-06-27 07:05:39,319 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:07<00:02,  1.19s/it]
+2025-06-27 07:05:39,320 - STDERR - ERROR - 
+2025-06-27 07:05:39,320 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:07<00:02,  1.19s/it]
+2025-06-27 07:05:39,750 - STDERR - ERROR - 
+2025-06-27 07:05:39,750 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:08<00:00,  1.06it/s]
+2025-06-27 07:05:39,750 - STDERR - ERROR - 
+2025-06-27 07:05:39,751 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:08<00:00,  1.06it/s]
+2025-06-27 07:05:40,763 - STDERR - ERROR - 
+2025-06-27 07:05:40,764 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:09<00:00,  1.03it/s]
+2025-06-27 07:05:40,764 - STDERR - ERROR - 
+2025-06-27 07:05:40,764 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:09<00:00,  1.03it/s]
+2025-06-27 07:05:40,764 - STDERR - ERROR - 
+2025-06-27 07:05:40,764 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:09<00:00,  1.01s/it]
+2025-06-27 07:22:10,160 - STDERR - ERROR - 
+2025-06-27 07:22:10,160 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 07:22:10,571 - STDERR - ERROR - 
+2025-06-27 07:22:10,571 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  2.44it/s]
+2025-06-27 07:22:10,571 - STDERR - ERROR - 
+2025-06-27 07:22:10,571 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  2.44it/s]
+2025-06-27 07:22:10,571 - STDERR - ERROR - 
+2025-06-27 07:22:10,571 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  2.43it/s]
+2025-06-27 07:22:11,379 - STDERR - ERROR - 
+2025-06-27 07:22:11,383 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 07:22:11,424 - STDERR - ERROR - 
+2025-06-27 07:22:11,424 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 27.82it/s]
+2025-06-27 07:22:11,455 - STDERR - ERROR - 
+2025-06-27 07:22:11,457 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 29.84it/s]
+2025-06-27 07:22:12,213 - STDERR - ERROR - 
+2025-06-27 07:22:12,213 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  3.64it/s]
+2025-06-27 07:22:12,213 - STDERR - ERROR - 
+2025-06-27 07:22:12,213 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  3.64it/s]
+2025-06-27 07:22:13,172 - STDERR - ERROR - 
+2025-06-27 07:22:13,172 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.02it/s]
+2025-06-27 07:22:13,176 - STDERR - ERROR - 
+2025-06-27 07:22:13,176 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.02it/s]
+2025-06-27 07:22:14,181 - STDERR - ERROR - 
+2025-06-27 07:22:14,182 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.52it/s]
+2025-06-27 07:22:14,182 - STDERR - ERROR - 
+2025-06-27 07:22:14,183 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.52it/s]
+2025-06-27 07:22:15,159 - STDERR - ERROR - 
+2025-06-27 07:22:15,160 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.32it/s]
+2025-06-27 07:22:15,160 - STDERR - ERROR - 
+2025-06-27 07:22:15,160 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.32it/s]
+2025-06-27 07:22:16,993 - STDERR - ERROR - 
+2025-06-27 07:22:16,993 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.09s/it]
+2025-06-27 07:22:16,994 - STDERR - ERROR - 
+2025-06-27 07:22:16,994 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.09s/it]
+2025-06-27 07:22:17,173 - STDERR - ERROR - 
+2025-06-27 07:22:17,174 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.23it/s]
+2025-06-27 07:22:17,174 - STDERR - ERROR - 
+2025-06-27 07:22:17,174 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.23it/s]
+2025-06-27 07:22:18,187 - STDERR - ERROR - 
+2025-06-27 07:22:18,187 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.15it/s]
+2025-06-27 07:22:18,188 - STDERR - ERROR - 
+2025-06-27 07:22:18,188 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.15it/s]
+2025-06-27 07:22:18,188 - STDERR - ERROR - 
+2025-06-27 07:22:18,188 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.32it/s]
+2025-06-27 09:59:22,928 - STDERR - ERROR - 
+2025-06-27 09:59:22,933 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 09:59:23,272 - STDERR - ERROR - 
+2025-06-27 09:59:23,272 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  2.96it/s]
+2025-06-27 09:59:23,272 - STDERR - ERROR - 
+2025-06-27 09:59:23,272 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  2.96it/s]
+2025-06-27 09:59:23,273 - STDERR - ERROR - 
+2025-06-27 09:59:23,273 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  2.95it/s]
+2025-06-27 09:59:24,114 - STDERR - ERROR - 
+2025-06-27 09:59:24,114 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 09:59:24,139 - STDERR - ERROR - 
+2025-06-27 09:59:24,140 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 40.29it/s]
+2025-06-27 09:59:24,161 - STDERR - ERROR - 
+2025-06-27 09:59:24,162 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 43.56it/s]
+2025-06-27 09:59:25,076 - STDERR - ERROR - 
+2025-06-27 09:59:25,076 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  3.12it/s]
+2025-06-27 09:59:25,076 - STDERR - ERROR - 
+2025-06-27 09:59:25,076 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  3.12it/s]
+2025-06-27 09:59:25,947 - STDERR - ERROR - 
+2025-06-27 09:59:25,949 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.01it/s]
+2025-06-27 09:59:25,949 - STDERR - ERROR - 
+2025-06-27 09:59:25,949 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.01it/s]
+2025-06-27 09:59:26,932 - STDERR - ERROR - 
+2025-06-27 09:59:26,932 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.53it/s]
+2025-06-27 09:59:26,932 - STDERR - ERROR - 
+2025-06-27 09:59:26,932 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.53it/s]
+2025-06-27 09:59:28,054 - STDERR - ERROR - 
+2025-06-27 09:59:28,054 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.25it/s]
+2025-06-27 09:59:28,054 - STDERR - ERROR - 
+2025-06-27 09:59:28,054 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.25it/s]
+2025-06-27 09:59:29,599 - STDERR - ERROR - 
+2025-06-27 09:59:29,603 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.03s/it]
+2025-06-27 09:59:29,603 - STDERR - ERROR - 
+2025-06-27 09:59:29,604 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.03s/it]
+2025-06-27 09:59:29,920 - STDERR - ERROR - 
+2025-06-27 09:59:29,920 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.23it/s]
+2025-06-27 09:59:29,921 - STDERR - ERROR - 
+2025-06-27 09:59:29,921 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.23it/s]
+2025-06-27 09:59:30,951 - STDERR - ERROR - 
+2025-06-27 09:59:30,951 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.14it/s]
+2025-06-27 09:59:30,952 - STDERR - ERROR - 
+2025-06-27 09:59:30,952 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.14it/s]
+2025-06-27 09:59:30,952 - STDERR - ERROR - 
+2025-06-27 09:59:30,953 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.32it/s]
+2025-06-27 10:16:59,211 - STDERR - ERROR - 
+2025-06-27 10:16:59,212 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 10:16:59,617 - STDERR - ERROR - 
+2025-06-27 10:16:59,617 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  2.47it/s]
+2025-06-27 10:16:59,617 - STDERR - ERROR - 
+2025-06-27 10:16:59,617 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  2.47it/s]
+2025-06-27 10:16:59,617 - STDERR - ERROR - 
+2025-06-27 10:16:59,617 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  2.47it/s]
+2025-06-27 10:17:00,421 - STDERR - ERROR - 
+2025-06-27 10:17:00,423 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 10:17:00,426 - STDERR - ERROR - 
+2025-06-27 10:17:00,426 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 382.87it/s]
+2025-06-27 10:17:00,466 - STDERR - ERROR - 
+2025-06-27 10:17:00,466 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 46.54it/s]
+2025-06-27 10:17:01,192 - STDERR - ERROR - 
+2025-06-27 10:17:01,193 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  3.90it/s]
+2025-06-27 10:17:01,193 - STDERR - ERROR - 
+2025-06-27 10:17:01,194 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  3.90it/s]
+2025-06-27 10:17:02,161 - STDERR - ERROR - 
+2025-06-27 10:17:02,163 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.06it/s]
+2025-06-27 10:17:02,164 - STDERR - ERROR - 
+2025-06-27 10:17:02,165 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.06it/s]
+2025-06-27 10:17:03,169 - STDERR - ERROR - 
+2025-06-27 10:17:03,170 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.54it/s]
+2025-06-27 10:17:03,170 - STDERR - ERROR - 
+2025-06-27 10:17:03,172 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.54it/s]
+2025-06-27 10:17:04,153 - STDERR - ERROR - 
+2025-06-27 10:17:04,154 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.33it/s]
+2025-06-27 10:17:04,154 - STDERR - ERROR - 
+2025-06-27 10:17:04,154 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.33it/s]
+2025-06-27 10:17:05,812 - STDERR - ERROR - 
+2025-06-27 10:17:05,813 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.03s/it]
+2025-06-27 10:17:05,813 - STDERR - ERROR - 
+2025-06-27 10:17:05,813 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.03s/it]
+2025-06-27 10:17:06,269 - STDERR - ERROR - 
+2025-06-27 10:17:06,269 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.17it/s]
+2025-06-27 10:17:06,269 - STDERR - ERROR - 
+2025-06-27 10:17:06,269 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.17it/s]
+2025-06-27 10:17:07,169 - STDERR - ERROR - 
+2025-06-27 10:17:07,169 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.15it/s]
+2025-06-27 10:17:07,169 - STDERR - ERROR - 
+2025-06-27 10:17:07,169 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.15it/s]
+2025-06-27 10:17:07,170 - STDERR - ERROR - 
+2025-06-27 10:17:07,170 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.33it/s]
+2025-06-27 10:27:46,063 - STDERR - ERROR - 
+2025-06-27 10:27:46,064 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 10:27:46,361 - STDERR - ERROR - 
+2025-06-27 10:27:46,361 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.37it/s]
+2025-06-27 10:27:46,362 - STDERR - ERROR - 
+2025-06-27 10:27:46,362 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.37it/s]
+2025-06-27 10:27:46,362 - STDERR - ERROR - 
+2025-06-27 10:27:46,362 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.37it/s]
+2025-06-27 10:27:47,164 - STDERR - ERROR - 
+2025-06-27 10:27:47,166 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 10:27:47,199 - STDERR - ERROR - 
+2025-06-27 10:27:47,200 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 29.90it/s]
+2025-06-27 10:27:47,225 - STDERR - ERROR - 
+2025-06-27 10:27:47,225 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 33.75it/s]
+2025-06-27 10:27:48,082 - STDERR - ERROR - 
+2025-06-27 10:27:48,083 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  3.27it/s]
+2025-06-27 10:27:48,083 - STDERR - ERROR - 
+2025-06-27 10:27:48,083 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  3.27it/s]
+2025-06-27 10:27:49,072 - STDERR - ERROR - 
+2025-06-27 10:27:49,073 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  1.90it/s]
+2025-06-27 10:27:49,075 - STDERR - ERROR - 
+2025-06-27 10:27:49,075 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  1.90it/s]
+2025-06-27 10:27:50,075 - STDERR - ERROR - 
+2025-06-27 10:27:50,076 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.48it/s]
+2025-06-27 10:27:50,076 - STDERR - ERROR - 
+2025-06-27 10:27:50,077 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.48it/s]
+2025-06-27 10:27:51,067 - STDERR - ERROR - 
+2025-06-27 10:27:51,068 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.29it/s]
+2025-06-27 10:27:51,068 - STDERR - ERROR - 
+2025-06-27 10:27:51,068 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.29it/s]
+2025-06-27 10:27:53,088 - STDERR - ERROR - 
+2025-06-27 10:27:53,089 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.16s/it]
+2025-06-27 10:27:53,089 - STDERR - ERROR - 
+2025-06-27 10:27:53,089 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.16s/it]
+2025-06-27 10:27:53,119 - STDERR - ERROR - 
+2025-06-27 10:27:53,120 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:01,  1.16s/it]
+2025-06-27 10:27:54,077 - STDERR - ERROR - 
+2025-06-27 10:27:54,077 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.18it/s]
+2025-06-27 10:27:54,077 - STDERR - ERROR - 
+2025-06-27 10:27:54,077 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.18it/s]
+2025-06-27 10:27:54,077 - STDERR - ERROR - 
+2025-06-27 10:27:54,077 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.30it/s]
+2025-06-27 11:28:44,337 - STDERR - ERROR - 
+2025-06-27 11:28:44,337 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 11:28:44,643 - STDERR - ERROR - 
+2025-06-27 11:28:44,643 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.28it/s]
+2025-06-27 11:28:44,643 - STDERR - ERROR - 
+2025-06-27 11:28:44,644 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.28it/s]
+2025-06-27 11:28:44,644 - STDERR - ERROR - 
+2025-06-27 11:28:44,644 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.27it/s]
+2025-06-27 11:28:45,502 - STDERR - ERROR - 
+2025-06-27 11:28:45,502 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 11:28:45,524 - STDERR - ERROR - 
+2025-06-27 11:28:45,525 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 45.37it/s]
+2025-06-27 11:28:45,529 - STDERR - ERROR - 
+2025-06-27 11:28:45,529 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 74.44it/s]
+2025-06-27 11:28:46,135 - STDERR - ERROR - 
+2025-06-27 11:28:46,136 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  4.74it/s]
+2025-06-27 11:28:46,136 - STDERR - ERROR - 
+2025-06-27 11:28:46,136 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  4.74it/s]
+2025-06-27 11:28:47,128 - STDERR - ERROR - 
+2025-06-27 11:28:47,128 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.16it/s]
+2025-06-27 11:28:47,129 - STDERR - ERROR - 
+2025-06-27 11:28:47,129 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.16it/s]
+2025-06-27 11:28:48,127 - STDERR - ERROR - 
+2025-06-27 11:28:48,128 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.58it/s]
+2025-06-27 11:28:48,128 - STDERR - ERROR - 
+2025-06-27 11:28:48,128 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.58it/s]
+2025-06-27 11:28:49,114 - STDERR - ERROR - 
+2025-06-27 11:28:49,115 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.35it/s]
+2025-06-27 11:28:49,115 - STDERR - ERROR - 
+2025-06-27 11:28:49,115 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.35it/s]
+2025-06-27 11:28:50,772 - STDERR - ERROR - 
+2025-06-27 11:28:50,774 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.02s/it]
+2025-06-27 11:28:50,774 - STDERR - ERROR - 
+2025-06-27 11:28:50,774 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.02s/it]
+2025-06-27 11:28:51,141 - STDERR - ERROR - 
+2025-06-27 11:28:51,141 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.21it/s]
+2025-06-27 11:28:51,141 - STDERR - ERROR - 
+2025-06-27 11:28:51,141 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.21it/s]
+2025-06-27 11:28:52,136 - STDERR - ERROR - 
+2025-06-27 11:28:52,137 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.14it/s]
+2025-06-27 11:28:52,137 - STDERR - ERROR - 
+2025-06-27 11:28:52,137 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.14it/s]
+2025-06-27 11:28:52,137 - STDERR - ERROR - 
+2025-06-27 11:28:52,137 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.36it/s]
+2025-06-27 13:36:56,434 - STDERR - ERROR - 
+2025-06-27 13:36:56,434 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 13:36:56,756 - STDERR - ERROR - 
+2025-06-27 13:36:56,756 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.14it/s]
+2025-06-27 13:36:56,757 - STDERR - ERROR - 
+2025-06-27 13:36:56,757 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.14it/s]
+2025-06-27 13:36:56,757 - STDERR - ERROR - 
+2025-06-27 13:36:56,758 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.13it/s]
+2025-06-27 13:37:03,913 - STDERR - ERROR - 
+2025-06-27 13:37:03,914 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 13:37:03,914 - STDERR - ERROR - 
+2025-06-27 13:37:03,914 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 15087.42it/s]
+2025-06-27 13:37:04,946 - STDERR - ERROR - 
+2025-06-27 13:37:04,947 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:01<00:03,  1.94it/s]
+2025-06-27 13:37:04,947 - STDERR - ERROR - 
+2025-06-27 13:37:04,947 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:01<00:03,  1.94it/s]
+2025-06-27 13:37:06,951 - STDERR - ERROR - 
+2025-06-27 13:37:06,952 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:03<00:06,  1.14s/it]
+2025-06-27 13:37:06,953 - STDERR - ERROR - 
+2025-06-27 13:37:06,953 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:03<00:06,  1.14s/it]
+2025-06-27 13:37:07,964 - STDERR - ERROR - 
+2025-06-27 13:37:07,964 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:04<00:05,  1.09s/it]
+2025-06-27 13:37:07,964 - STDERR - ERROR - 
+2025-06-27 13:37:07,964 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:04<00:05,  1.09s/it]
+2025-06-27 13:37:08,951 - STDERR - ERROR - 
+2025-06-27 13:37:08,952 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:05<00:04,  1.05s/it]
+2025-06-27 13:37:08,952 - STDERR - ERROR - 
+2025-06-27 13:37:08,953 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:05<00:04,  1.05s/it]
+2025-06-27 13:37:09,936 - STDERR - ERROR - 
+2025-06-27 13:37:09,936 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:06<00:03,  1.03s/it]
+2025-06-27 13:37:09,937 - STDERR - ERROR - 
+2025-06-27 13:37:09,937 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:06<00:03,  1.03s/it]
+2025-06-27 13:37:12,930 - STDERR - ERROR - 
+2025-06-27 13:37:12,930 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:09<00:03,  1.66s/it]
+2025-06-27 13:37:12,931 - STDERR - ERROR - 
+2025-06-27 13:37:12,931 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:09<00:03,  1.66s/it]
+2025-06-27 13:37:13,005 - STDERR - ERROR - 
+2025-06-27 13:37:13,005 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:09<00:01,  1.66s/it]
+2025-06-27 13:37:13,980 - STDERR - ERROR - 
+2025-06-27 13:37:13,980 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:10<00:00,  1.12s/it]
+2025-06-27 13:37:13,980 - STDERR - ERROR - 
+2025-06-27 13:37:13,980 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:10<00:00,  1.12s/it]
+2025-06-27 13:37:13,981 - STDERR - ERROR - 
+2025-06-27 13:37:13,981 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:10<00:00,  1.12s/it]
+2025-06-27 14:02:52,927 - STDERR - ERROR - 
+2025-06-27 14:02:52,928 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 14:02:53,231 - STDERR - ERROR - 
+2025-06-27 14:02:53,231 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.31it/s]
+2025-06-27 14:02:53,231 - STDERR - ERROR - 
+2025-06-27 14:02:53,231 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.31it/s]
+2025-06-27 14:02:53,232 - STDERR - ERROR - 
+2025-06-27 14:02:53,232 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.30it/s]
+2025-06-27 14:02:54,193 - STDERR - ERROR - 
+2025-06-27 14:02:54,193 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 14:02:54,248 - STDERR - ERROR - 
+2025-06-27 14:02:54,248 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 18.23it/s]
+2025-06-27 14:02:54,276 - STDERR - ERROR - 
+2025-06-27 14:02:54,276 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 24.37it/s]
+2025-06-27 14:02:54,829 - STDERR - ERROR - 
+2025-06-27 14:02:54,829 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  4.72it/s]
+2025-06-27 14:02:54,829 - STDERR - ERROR - 
+2025-06-27 14:02:54,830 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  4.72it/s]
+2025-06-27 14:02:55,788 - STDERR - ERROR - 
+2025-06-27 14:02:55,788 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.21it/s]
+2025-06-27 14:02:55,789 - STDERR - ERROR - 
+2025-06-27 14:02:55,789 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.21it/s]
+2025-06-27 14:02:56,809 - STDERR - ERROR - 
+2025-06-27 14:02:56,810 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.58it/s]
+2025-06-27 14:02:56,810 - STDERR - ERROR - 
+2025-06-27 14:02:56,810 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.58it/s]
+2025-06-27 14:02:57,869 - STDERR - ERROR - 
+2025-06-27 14:02:57,869 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.31it/s]
+2025-06-27 14:02:57,869 - STDERR - ERROR - 
+2025-06-27 14:02:57,871 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.31it/s]
+2025-06-27 14:02:59,471 - STDERR - ERROR - 
+2025-06-27 14:02:59,471 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.02s/it]
+2025-06-27 14:02:59,471 - STDERR - ERROR - 
+2025-06-27 14:02:59,471 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.02s/it]
+2025-06-27 14:02:59,808 - STDERR - ERROR - 
+2025-06-27 14:02:59,808 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.23it/s]
+2025-06-27 14:02:59,808 - STDERR - ERROR - 
+2025-06-27 14:02:59,808 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.23it/s]
+2025-06-27 14:03:00,851 - STDERR - ERROR - 
+2025-06-27 14:03:00,851 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.13it/s]
+2025-06-27 14:03:00,851 - STDERR - ERROR - 
+2025-06-27 14:03:00,852 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.13it/s]
+2025-06-27 14:03:00,852 - STDERR - ERROR - 
+2025-06-27 14:03:00,852 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.35it/s]
+2025-06-27 14:25:47,492 - STDERR - ERROR - 
+2025-06-27 14:25:47,493 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 14:25:47,825 - STDERR - ERROR - 
+2025-06-27 14:25:47,826 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.03it/s]
+2025-06-27 14:25:47,826 - STDERR - ERROR - 
+2025-06-27 14:25:47,826 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.03it/s]
+2025-06-27 14:25:47,827 - STDERR - ERROR - 
+2025-06-27 14:25:47,827 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.02it/s]
+2025-06-27 14:25:48,656 - STDERR - ERROR - 
+2025-06-27 14:25:48,657 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 14:25:48,678 - STDERR - ERROR - 
+2025-06-27 14:25:48,679 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 48.59it/s]
+2025-06-27 14:25:48,696 - STDERR - ERROR - 
+2025-06-27 14:25:48,697 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 51.67it/s]
+2025-06-27 14:25:49,373 - STDERR - ERROR - 
+2025-06-27 14:25:49,373 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  4.19it/s]
+2025-06-27 14:25:49,374 - STDERR - ERROR - 
+2025-06-27 14:25:49,374 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  4.19it/s]
+2025-06-27 14:25:50,394 - STDERR - ERROR - 
+2025-06-27 14:25:50,394 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.04it/s]
+2025-06-27 14:25:50,394 - STDERR - ERROR - 
+2025-06-27 14:25:50,394 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.04it/s]
+2025-06-27 14:25:51,396 - STDERR - ERROR - 
+2025-06-27 14:25:51,397 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.53it/s]
+2025-06-27 14:25:51,397 - STDERR - ERROR - 
+2025-06-27 14:25:51,397 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.53it/s]
+2025-06-27 14:25:52,372 - STDERR - ERROR - 
+2025-06-27 14:25:52,372 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.33it/s]
+2025-06-27 14:25:52,372 - STDERR - ERROR - 
+2025-06-27 14:25:52,373 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.33it/s]
+2025-06-27 14:25:54,146 - STDERR - ERROR - 
+2025-06-27 14:25:54,146 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.07s/it]
+2025-06-27 14:25:54,146 - STDERR - ERROR - 
+2025-06-27 14:25:54,147 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.07s/it]
+2025-06-27 14:25:54,418 - STDERR - ERROR - 
+2025-06-27 14:25:54,418 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.21it/s]
+2025-06-27 14:25:54,418 - STDERR - ERROR - 
+2025-06-27 14:25:54,418 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.21it/s]
+2025-06-27 14:25:55,388 - STDERR - ERROR - 
+2025-06-27 14:25:55,388 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.15it/s]
+2025-06-27 14:25:55,388 - STDERR - ERROR - 
+2025-06-27 14:25:55,389 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.15it/s]
+2025-06-27 14:25:55,389 - STDERR - ERROR - 
+2025-06-27 14:25:55,389 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.34it/s]
+2025-06-27 14:37:49,722 - STDERR - ERROR - 
+2025-06-27 14:37:49,723 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 14:37:49,989 - STDERR - ERROR - 
+2025-06-27 14:37:49,989 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.77it/s]
+2025-06-27 14:37:49,990 - STDERR - ERROR - 
+2025-06-27 14:37:49,990 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.77it/s]
+2025-06-27 14:37:49,990 - STDERR - ERROR - 
+2025-06-27 14:37:49,990 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  3.76it/s]
+2025-06-27 14:37:50,807 - STDERR - ERROR - 
+2025-06-27 14:37:50,807 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 14:37:50,845 - STDERR - ERROR - 
+2025-06-27 14:37:50,845 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 26.80it/s]
+2025-06-27 14:37:50,856 - STDERR - ERROR - 
+2025-06-27 14:37:50,856 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 41.45it/s]
+2025-06-27 14:37:51,255 - STDERR - ERROR - 
+2025-06-27 14:37:51,256 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00,  6.70it/s]
+2025-06-27 14:37:51,256 - STDERR - ERROR - 
+2025-06-27 14:37:51,256 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00,  6.70it/s]
+2025-06-27 14:37:52,277 - STDERR - ERROR - 
+2025-06-27 14:37:52,278 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.32it/s]
+2025-06-27 14:37:52,278 - STDERR - ERROR - 
+2025-06-27 14:37:52,279 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.32it/s]
+2025-06-27 14:37:53,260 - STDERR - ERROR - 
+2025-06-27 14:37:53,261 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.65it/s]
+2025-06-27 14:37:53,261 - STDERR - ERROR - 
+2025-06-27 14:37:53,261 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.65it/s]
+2025-06-27 14:37:54,327 - STDERR - ERROR - 
+2025-06-27 14:37:54,328 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.34it/s]
+2025-06-27 14:37:54,328 - STDERR - ERROR - 
+2025-06-27 14:37:54,328 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.34it/s]
+2025-06-27 14:37:55,965 - STDERR - ERROR - 
+2025-06-27 14:37:55,965 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.02s/it]
+2025-06-27 14:37:55,966 - STDERR - ERROR - 
+2025-06-27 14:37:55,966 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.02s/it]
+2025-06-27 14:37:56,270 - STDERR - ERROR - 
+2025-06-27 14:37:56,270 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.25it/s]
+2025-06-27 14:37:56,270 - STDERR - ERROR - 
+2025-06-27 14:37:56,271 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.25it/s]
+2025-06-27 14:37:57,286 - STDERR - ERROR - 
+2025-06-27 14:37:57,286 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.15it/s]
+2025-06-27 14:37:57,286 - STDERR - ERROR - 
+2025-06-27 14:37:57,286 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.15it/s]
+2025-06-27 14:37:57,286 - STDERR - ERROR - 
+2025-06-27 14:37:57,286 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.39it/s]
+2025-06-27 15:13:08,789 - STDERR - ERROR - 
+2025-06-27 15:13:08,790 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 15:13:09,038 - STDERR - ERROR - 
+2025-06-27 15:13:09,039 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  4.08it/s]
+2025-06-27 15:13:09,040 - STDERR - ERROR - 
+2025-06-27 15:13:09,040 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  4.08it/s]
+2025-06-27 15:13:09,041 - STDERR - ERROR - 
+2025-06-27 15:13:09,041 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  4.04it/s]
+2025-06-27 15:13:09,950 - STDERR - ERROR - 
+2025-06-27 15:13:09,951 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 15:13:10,019 - STDERR - ERROR - 
+2025-06-27 15:13:10,020 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 14.81it/s]
+2025-06-27 15:13:10,028 - STDERR - ERROR - 
+2025-06-27 15:13:10,028 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 26.28it/s]
+2025-06-27 15:13:10,800 - STDERR - ERROR - 
+2025-06-27 15:13:10,800 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  3.54it/s]
+2025-06-27 15:13:10,801 - STDERR - ERROR - 
+2025-06-27 15:13:10,801 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  3.54it/s]
+2025-06-27 15:13:11,759 - STDERR - ERROR - 
+2025-06-27 15:13:11,759 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.00it/s]
+2025-06-27 15:13:11,760 - STDERR - ERROR - 
+2025-06-27 15:13:11,760 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  2.00it/s]
+2025-06-27 15:13:12,731 - STDERR - ERROR - 
+2025-06-27 15:13:12,731 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.54it/s]
+2025-06-27 15:13:12,732 - STDERR - ERROR - 
+2025-06-27 15:13:12,732 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.54it/s]
+2025-06-27 15:13:13,818 - STDERR - ERROR - 
+2025-06-27 15:13:13,819 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.27it/s]
+2025-06-27 15:13:13,819 - STDERR - ERROR - 
+2025-06-27 15:13:13,819 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.27it/s]
+2025-06-27 15:13:15,390 - STDERR - ERROR - 
+2025-06-27 15:13:15,390 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.03s/it]
+2025-06-27 15:13:15,390 - STDERR - ERROR - 
+2025-06-27 15:13:15,390 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.03s/it]
+2025-06-27 15:13:15,860 - STDERR - ERROR - 
+2025-06-27 15:13:15,860 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.17it/s]
+2025-06-27 15:13:15,860 - STDERR - ERROR - 
+2025-06-27 15:13:15,860 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.17it/s]
+2025-06-27 15:13:16,750 - STDERR - ERROR - 
+2025-06-27 15:13:16,750 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.15it/s]
+2025-06-27 15:13:16,751 - STDERR - ERROR - 
+2025-06-27 15:13:16,751 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.15it/s]
+2025-06-27 15:13:16,751 - STDERR - ERROR - 
+2025-06-27 15:13:16,751 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.32it/s]
+2025-06-27 15:18:14,362 - STDERR - ERROR - 
+2025-06-27 15:18:14,364 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 15:18:14,365 - STDERR - ERROR - 
+2025-06-27 15:18:14,365 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 13107.20it/s]
+2025-06-27 15:18:14,365 - STDERR - ERROR - 
+2025-06-27 15:18:14,365 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 4957.81it/s]
+2025-06-27 15:18:14,532 - STDERR - ERROR - 
+2025-06-27 15:18:14,533 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 17.87it/s]
+2025-06-27 15:18:14,533 - STDERR - ERROR - 
+2025-06-27 15:18:14,534 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 17.87it/s]
+2025-06-27 15:18:14,583 - STDERR - ERROR - 
+2025-06-27 15:18:14,583 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:00<00:00, 17.87it/s]
+2025-06-27 15:18:14,600 - STDERR - ERROR - 
+2025-06-27 15:18:14,600 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:00<00:00, 17.87it/s]
+2025-06-27 15:18:14,655 - STDERR - ERROR - 
+2025-06-27 15:18:14,655 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:00<00:00, 21.25it/s]
+2025-06-27 15:18:14,656 - STDERR - ERROR - 
+2025-06-27 15:18:14,656 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:00<00:00, 21.25it/s]
+2025-06-27 15:18:15,545 - STDERR - ERROR - 
+2025-06-27 15:18:15,545 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:01<00:00, 21.25it/s]
+2025-06-27 15:18:16,128 - STDERR - ERROR - 
+2025-06-27 15:18:16,128 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:01<00:00, 21.25it/s]
+2025-06-27 15:18:17,181 - STDERR - ERROR - 
+2025-06-27 15:18:17,181 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  2.44it/s]
+2025-06-27 15:18:17,182 - STDERR - ERROR - 
+2025-06-27 15:18:17,182 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  2.44it/s]
+2025-06-27 15:18:17,182 - STDERR - ERROR - 
+2025-06-27 15:18:17,182 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  3.19it/s]
+2025-06-27 15:18:24,063 - STDERR - ERROR - 
+2025-06-27 15:18:24,063 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 15:18:25,132 - STDERR - ERROR - 
+2025-06-27 15:18:25,133 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.07s/it]
+2025-06-27 15:18:25,133 - STDERR - ERROR - 
+2025-06-27 15:18:25,134 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.07s/it]
+2025-06-27 15:18:25,134 - STDERR - ERROR - 
+2025-06-27 15:18:25,134 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.07s/it]
+2025-06-27 15:18:31,081 - STDERR - ERROR - 
+2025-06-27 15:18:31,081 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 15:18:31,082 - STDERR - ERROR - 
+2025-06-27 15:18:31,082 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 18078.90it/s]
+2025-06-27 15:18:31,082 - STDERR - ERROR - 
+2025-06-27 15:18:31,082 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 8639.14it/s]
+2025-06-27 15:18:32,102 - STDERR - ERROR - 
+2025-06-27 15:18:32,102 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:01<00:02,  2.94it/s]
+2025-06-27 15:18:32,102 - STDERR - ERROR - 
+2025-06-27 15:18:32,102 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:01<00:02,  2.94it/s]
+2025-06-27 15:18:33,119 - STDERR - ERROR - 
+2025-06-27 15:18:33,119 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:02<00:02,  1.79it/s]
+2025-06-27 15:18:33,119 - STDERR - ERROR - 
+2025-06-27 15:18:33,119 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:02<00:02,  1.79it/s]
+2025-06-27 15:18:34,115 - STDERR - ERROR - 
+2025-06-27 15:18:34,116 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:03<00:02,  1.44it/s]
+2025-06-27 15:18:34,116 - STDERR - ERROR - 
+2025-06-27 15:18:34,116 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:03<00:02,  1.44it/s]
+2025-06-27 15:18:35,113 - STDERR - ERROR - 
+2025-06-27 15:18:35,113 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:04<00:02,  1.27it/s]
+2025-06-27 15:18:35,113 - STDERR - ERROR - 
+2025-06-27 15:18:35,113 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:04<00:02,  1.27it/s]
+2025-06-27 15:18:36,505 - STDERR - ERROR - 
+2025-06-27 15:18:36,505 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:01,  1.03it/s]
+2025-06-27 15:18:36,505 - STDERR - ERROR - 
+2025-06-27 15:18:36,505 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:01,  1.03it/s]
+2025-06-27 15:18:37,161 - STDERR - ERROR - 
+2025-06-27 15:18:37,161 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:06<00:00,  1.14it/s]
+2025-06-27 15:18:37,161 - STDERR - ERROR - 
+2025-06-27 15:18:37,161 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:06<00:00,  1.14it/s]
+2025-06-27 15:18:38,156 - STDERR - ERROR - 
+2025-06-27 15:18:38,156 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.09it/s]
+2025-06-27 15:18:38,156 - STDERR - ERROR - 
+2025-06-27 15:18:38,156 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.09it/s]
+2025-06-27 15:18:38,156 - STDERR - ERROR - 
+2025-06-27 15:18:38,156 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.27it/s]
+2025-06-27 15:21:23,580 - STDERR - ERROR - 
+2025-06-27 15:21:23,581 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 15:21:23,611 - STDERR - ERROR - 
+2025-06-27 15:21:23,611 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 33.82it/s]
+2025-06-27 15:21:23,629 - STDERR - ERROR - 
+2025-06-27 15:21:23,629 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 41.83it/s]
+2025-06-27 15:21:23,799 - STDERR - ERROR - 
+2025-06-27 15:21:23,799 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 13.77it/s]
+2025-06-27 15:21:23,799 - STDERR - ERROR - 
+2025-06-27 15:21:23,799 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 13.77it/s]
+2025-06-27 15:21:23,835 - STDERR - ERROR - 
+2025-06-27 15:21:23,835 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:00<00:00, 13.77it/s]
+2025-06-27 15:21:23,853 - STDERR - ERROR - 
+2025-06-27 15:21:23,853 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:00<00:00, 13.77it/s]
+2025-06-27 15:21:23,886 - STDERR - ERROR - 
+2025-06-27 15:21:23,886 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:00<00:00, 13.77it/s]
+2025-06-27 15:21:25,136 - STDERR - ERROR - 
+2025-06-27 15:21:25,137 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:01<00:00,  4.09it/s]
+2025-06-27 15:21:25,137 - STDERR - ERROR - 
+2025-06-27 15:21:25,137 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:01<00:00,  4.09it/s]
+2025-06-27 15:21:25,624 - STDERR - ERROR - 
+2025-06-27 15:21:25,625 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:02<00:00,  3.44it/s]
+2025-06-27 15:21:25,625 - STDERR - ERROR - 
+2025-06-27 15:21:25,625 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:02<00:00,  3.44it/s]
+2025-06-27 15:21:26,626 - STDERR - ERROR - 
+2025-06-27 15:21:26,627 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:03<00:00,  2.26it/s]
+2025-06-27 15:21:26,627 - STDERR - ERROR - 
+2025-06-27 15:21:26,627 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:03<00:00,  2.26it/s]
+2025-06-27 15:21:26,627 - STDERR - ERROR - 
+2025-06-27 15:21:26,627 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:03<00:00,  2.95it/s]
+2025-06-27 15:21:33,620 - STDERR - ERROR - 
+2025-06-27 15:21:33,620 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 15:21:34,598 - STDERR - ERROR - 
+2025-06-27 15:21:34,599 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  1.02it/s]
+2025-06-27 15:21:34,600 - STDERR - ERROR - 
+2025-06-27 15:21:34,600 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  1.02it/s]
+2025-06-27 15:21:34,600 - STDERR - ERROR - 
+2025-06-27 15:21:34,600 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  1.02it/s]
+2025-06-27 15:21:38,762 - STDERR - ERROR - 
+2025-06-27 15:21:38,762 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 15:21:39,598 - STDERR - ERROR - 
+2025-06-27 15:21:39,602 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:06,  1.20it/s]
+2025-06-27 15:21:39,602 - STDERR - ERROR - 
+2025-06-27 15:21:39,604 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:06,  1.20it/s]
+2025-06-27 15:21:40,585 - STDERR - ERROR - 
+2025-06-27 15:21:40,586 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:01<00:06,  1.08it/s]
+2025-06-27 15:21:40,586 - STDERR - ERROR - 
+2025-06-27 15:21:40,586 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:01<00:06,  1.08it/s]
+2025-06-27 15:21:41,582 - STDERR - ERROR - 
+2025-06-27 15:21:41,582 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:02<00:05,  1.04it/s]
+2025-06-27 15:21:41,582 - STDERR - ERROR - 
+2025-06-27 15:21:41,583 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:02<00:05,  1.04it/s]
+2025-06-27 15:21:42,604 - STDERR - ERROR - 
+2025-06-27 15:21:42,604 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:03<00:04,  1.02it/s]
+2025-06-27 15:21:42,605 - STDERR - ERROR - 
+2025-06-27 15:21:42,605 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:03<00:04,  1.02it/s]
+2025-06-27 15:21:43,617 - STDERR - ERROR - 
+2025-06-27 15:21:43,617 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:04<00:03,  1.01it/s]
+2025-06-27 15:21:43,617 - STDERR - ERROR - 
+2025-06-27 15:21:43,617 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:04<00:03,  1.01it/s]
+2025-06-27 15:21:44,586 - STDERR - ERROR - 
+2025-06-27 15:21:44,586 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:05<00:02,  1.01it/s]
+2025-06-27 15:21:44,587 - STDERR - ERROR - 
+2025-06-27 15:21:44,587 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:05<00:02,  1.01it/s]
+2025-06-27 15:21:46,288 - STDERR - ERROR - 
+2025-06-27 15:21:46,288 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:07<00:02,  1.22s/it]
+2025-06-27 15:21:46,288 - STDERR - ERROR - 
+2025-06-27 15:21:46,288 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:07<00:02,  1.22s/it]
+2025-06-27 15:21:46,601 - STDERR - ERROR - 
+2025-06-27 15:21:46,601 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:07<00:00,  1.07it/s]
+2025-06-27 15:21:46,601 - STDERR - ERROR - 
+2025-06-27 15:21:46,601 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:07<00:00,  1.07it/s]
+2025-06-27 15:21:47,626 - STDERR - ERROR - 
+2025-06-27 15:21:47,626 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:08<00:00,  1.04it/s]
+2025-06-27 15:21:47,626 - STDERR - ERROR - 
+2025-06-27 15:21:47,626 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:08<00:00,  1.04it/s]
+2025-06-27 15:21:47,626 - STDERR - ERROR - 
+2025-06-27 15:21:47,626 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:08<00:00,  1.02it/s]
+2025-06-27 15:34:55,502 - STDERR - ERROR - 
+2025-06-27 15:34:55,505 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 15:34:55,888 - STDERR - ERROR - 
+2025-06-27 15:34:55,888 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  2.62it/s]
+2025-06-27 15:34:55,888 - STDERR - ERROR - 
+2025-06-27 15:34:55,888 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  2.62it/s]
+2025-06-27 15:34:55,888 - STDERR - ERROR - 
+2025-06-27 15:34:55,888 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:00<00:00,  2.61it/s]
+2025-06-27 15:34:56,781 - STDERR - ERROR - 
+2025-06-27 15:34:56,781 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 15:34:56,823 - STDERR - ERROR - 
+2025-06-27 15:34:56,823 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 24.24it/s]
+2025-06-27 15:34:56,863 - STDERR - ERROR - 
+2025-06-27 15:34:56,865 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 24.74it/s]
+2025-06-27 15:34:57,317 - STDERR - ERROR - 
+2025-06-27 15:34:57,318 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  5.60it/s]
+2025-06-27 15:34:57,319 - STDERR - ERROR - 
+2025-06-27 15:34:57,319 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:01,  5.60it/s]
+2025-06-27 15:34:58,513 - STDERR - ERROR - 
+2025-06-27 15:34:58,513 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  1.97it/s]
+2025-06-27 15:34:58,513 - STDERR - ERROR - 
+2025-06-27 15:34:58,513 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:01<00:02,  1.97it/s]
+2025-06-27 15:34:59,341 - STDERR - ERROR - 
+2025-06-27 15:34:59,341 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.64it/s]
+2025-06-27 15:34:59,344 - STDERR - ERROR - 
+2025-06-27 15:34:59,344 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:02<00:02,  1.64it/s]
+2025-06-27 15:35:00,330 - STDERR - ERROR - 
+2025-06-27 15:35:00,330 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.38it/s]
+2025-06-27 15:35:00,330 - STDERR - ERROR - 
+2025-06-27 15:35:00,330 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:03<00:02,  1.38it/s]
+2025-06-27 15:35:02,320 - STDERR - ERROR - 
+2025-06-27 15:35:02,321 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.11s/it]
+2025-06-27 15:35:02,322 - STDERR - ERROR - 
+2025-06-27 15:35:02,322 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.11s/it]
+2025-06-27 15:35:02,555 - STDERR - ERROR - 
+2025-06-27 15:35:02,556 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.18it/s]
+2025-06-27 15:35:02,556 - STDERR - ERROR - 
+2025-06-27 15:35:02,556 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:05<00:00,  1.18it/s]
+2025-06-27 15:35:03,335 - STDERR - ERROR - 
+2025-06-27 15:35:03,335 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.21it/s]
+2025-06-27 15:35:03,336 - STDERR - ERROR - 
+2025-06-27 15:35:03,337 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.21it/s]
+2025-06-27 15:35:03,337 - STDERR - ERROR - 
+2025-06-27 15:35:03,337 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:06<00:00,  1.37it/s]
+2025-06-27 15:43:09,338 - STDERR - ERROR - 
+2025-06-27 15:43:09,338 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 15:43:09,354 - STDERR - ERROR - 
+2025-06-27 15:43:09,354 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 64.96it/s]
+2025-06-27 15:43:09,359 - STDERR - ERROR - 
+2025-06-27 15:43:09,360 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 95.25it/s]
+2025-06-27 15:43:09,581 - STDERR - ERROR - 
+2025-06-27 15:43:09,581 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 12.36it/s]
+2025-06-27 15:43:09,581 - STDERR - ERROR - 
+2025-06-27 15:43:09,582 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:00<00:00, 12.36it/s]
+2025-06-27 15:43:09,589 - STDERR - ERROR - 
+2025-06-27 15:43:09,589 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:00<00:00, 12.36it/s]
+2025-06-27 15:43:09,602 - STDERR - ERROR - 
+2025-06-27 15:43:09,602 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:00<00:00, 12.36it/s]
+2025-06-27 15:43:09,631 - STDERR - ERROR - 
+2025-06-27 15:43:09,631 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:00<00:00, 12.36it/s]
+2025-06-27 15:43:10,743 - STDERR - ERROR - 
+2025-06-27 15:43:10,743 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:01<00:00,  4.58it/s]
+2025-06-27 15:43:10,743 - STDERR - ERROR - 
+2025-06-27 15:43:10,744 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:01<00:00,  4.58it/s]
+2025-06-27 15:43:11,268 - STDERR - ERROR - 
+2025-06-27 15:43:11,269 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:01<00:00,  3.62it/s]
+2025-06-27 15:43:11,269 - STDERR - ERROR - 
+2025-06-27 15:43:11,269 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:01<00:00,  3.62it/s]
+2025-06-27 15:43:12,310 - STDERR - ERROR - 
+2025-06-27 15:43:12,310 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  2.27it/s]
+2025-06-27 15:43:12,310 - STDERR - ERROR - 
+2025-06-27 15:43:12,310 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  2.27it/s]
+2025-06-27 15:43:12,310 - STDERR - ERROR - 
+2025-06-27 15:43:12,310 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:02<00:00,  3.03it/s]
+2025-06-27 15:43:19,195 - STDERR - ERROR - 
+2025-06-27 15:43:19,195 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+2025-06-27 15:43:20,261 - STDERR - ERROR - 
+2025-06-27 15:43:20,261 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.07s/it]
+2025-06-27 15:43:20,261 - STDERR - ERROR - 
+2025-06-27 15:43:20,261 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.07s/it]
+2025-06-27 15:43:20,261 - STDERR - ERROR - 
+2025-06-27 15:43:20,262 - STDERR - ERROR - Downloading artifacts: 100%|##########| 1/1 [00:01<00:00,  1.07s/it]
+2025-06-27 15:43:26,220 - STDERR - ERROR - 
+2025-06-27 15:43:26,222 - STDERR - ERROR - Downloading artifacts:   0%|          | 0/9 [00:00<?, ?it/s]
+2025-06-27 15:43:26,222 - STDERR - ERROR - 
+2025-06-27 15:43:26,222 - STDERR - ERROR - Downloading artifacts:  11%|#1        | 1/9 [00:00<00:00, 14364.05it/s]
+2025-06-27 15:43:26,222 - STDERR - ERROR - 
+2025-06-27 15:43:26,222 - STDERR - ERROR - Downloading artifacts:  22%|##2       | 2/9 [00:00<00:00, 9098.27it/s]
+2025-06-27 15:43:27,258 - STDERR - ERROR - 
+2025-06-27 15:43:27,258 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:01<00:02,  2.90it/s]
+2025-06-27 15:43:27,258 - STDERR - ERROR - 
+2025-06-27 15:43:27,258 - STDERR - ERROR - Downloading artifacts:  33%|###3      | 3/9 [00:01<00:02,  2.90it/s]
+2025-06-27 15:43:28,486 - STDERR - ERROR - 
+2025-06-27 15:43:28,486 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:02<00:03,  1.59it/s]
+2025-06-27 15:43:28,487 - STDERR - ERROR - 
+2025-06-27 15:43:28,489 - STDERR - ERROR - Downloading artifacts:  44%|####4     | 4/9 [00:02<00:03,  1.59it/s]
+2025-06-27 15:43:29,233 - STDERR - ERROR - 
+2025-06-27 15:43:29,236 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:03<00:02,  1.50it/s]
+2025-06-27 15:43:29,236 - STDERR - ERROR - 
+2025-06-27 15:43:29,236 - STDERR - ERROR - Downloading artifacts:  56%|#####5    | 5/9 [00:03<00:02,  1.50it/s]
+2025-06-27 15:43:30,243 - STDERR - ERROR - 
+2025-06-27 15:43:30,245 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:04<00:02,  1.29it/s]
+2025-06-27 15:43:30,245 - STDERR - ERROR - 
+2025-06-27 15:43:30,246 - STDERR - ERROR - Downloading artifacts:  67%|######6   | 6/9 [00:04<00:02,  1.29it/s]
+2025-06-27 15:43:31,955 - STDERR - ERROR - 
+2025-06-27 15:43:31,956 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.06s/it]
+2025-06-27 15:43:31,956 - STDERR - ERROR - 
+2025-06-27 15:43:31,956 - STDERR - ERROR - Downloading artifacts:  78%|#######7  | 7/9 [00:05<00:02,  1.06s/it]
+2025-06-27 15:43:32,264 - STDERR - ERROR - 
+2025-06-27 15:43:32,264 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:06<00:00,  1.20it/s]
+2025-06-27 15:43:32,265 - STDERR - ERROR - 
+2025-06-27 15:43:32,265 - STDERR - ERROR - Downloading artifacts:  89%|########8 | 8/9 [00:06<00:00,  1.20it/s]
+2025-06-27 15:43:33,254 - STDERR - ERROR - 
+2025-06-27 15:43:33,254 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.14it/s]
+2025-06-27 15:43:33,254 - STDERR - ERROR - 
+2025-06-27 15:43:33,254 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.14it/s]
+2025-06-27 15:43:33,254 - STDERR - ERROR - 
+2025-06-27 15:43:33,254 - STDERR - ERROR - Downloading artifacts: 100%|##########| 9/9 [00:07<00:00,  1.28it/s]

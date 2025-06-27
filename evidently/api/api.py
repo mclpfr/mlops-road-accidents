@@ -7,8 +7,15 @@ import os
 from datetime import datetime
 import tempfile
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List, Tuple
 from functools import lru_cache
+import mlflow
+from mlflow.tracking import MlflowClient
+import logging
+
+# Configuration du logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -114,6 +121,37 @@ def _get_latest_file(directory, prefix):
     return os.path.join(directory, latest_file)
 
 @lru_cache(maxsize=1)
+def remove_best_model_tag():
+    """
+    Supprime le tag 'best_model' de tous les modèles dans MLflow.
+    """
+    try:
+        client = MlflowClient()
+        
+        # Récupérer tous les modèles enregistrés
+        registered_models = client.search_registered_models()
+        
+        for model in registered_models:
+            # Récupérer toutes les versions du modèle
+            model_versions = client.search_model_versions(f"name='{model.name}'")
+            
+            for version in model_versions:
+                # Vérifier si la version a le tag 'best_model'
+                if version.tags and "best_model" in version.tags:
+                    print(f"--- remove_best_model_tag: Suppression du tag 'best_model' de {model.name} version {version.version} ---")
+                    # Supprimer le tag 'best_model'
+                    client.set_model_version_tag(
+                        name=model.name,
+                        version=version.version,
+                        key="best_model",
+                        value=None  # La valeur est ignorée lors de la suppression
+                    )
+        
+        return True
+    except Exception as e:
+        print(f"--- remove_best_model_tag: Erreur lors de la suppression du tag 'best_model': {str(e)} ---")
+        return False
+
 def _calculate_drift_metrics(noise_factor=None):
     print(f"--- _calculate_drift_metrics: Entering function (noise_factor={noise_factor}) ---")
     
@@ -295,7 +333,16 @@ def _calculate_drift_metrics(noise_factor=None):
             "drifted_feature_list": drifted_features + [f"SIMULATED_DRIFT (noise: {noise_factor})"],
             "status": "success"
         }
+        
+        # Si le dépassement de seuil est simulé, on ne supprime pas le tag 'best_model'
+        print("--- _calculate_drift_metrics: Simulation de dérive - pas de suppression de tag 'best_model' ---")
     else:
+        # Vérifier si le seuil de dérive est dépassé (50%)
+        if drift_share > 0.5:
+            print(f"--- _calculate_drift_metrics: Dérive détectée ({drift_share*100:.2f}% > 50%) - Suppression du tag 'best_model' ---")
+            # Supprimer le tag 'best_model' de tous les modèles
+            remove_best_model_tag()
+        
         result_dict = {
             "drift_share": drift_share,
             "total_columns": total_columns,
