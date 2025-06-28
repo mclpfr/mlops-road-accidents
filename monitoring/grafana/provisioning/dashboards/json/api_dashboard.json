@@ -76,7 +76,7 @@
       "datasource": "Prometheus",
       "targets": [
         {
-          "expr": "ml_data_drift_score",
+          "expr": "data_drift_score{job=\"evidently_drift_api\"}",
           "legendFormat": "Drift Score",
           "refId": "A"
         }
