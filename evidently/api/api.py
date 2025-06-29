@@ -2,11 +2,17 @@ import os
 import logging
 import pandas as pd
 import numpy as np
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from prometheus_client import start_http_server, Gauge, generate_latest, CONTENT_TYPE_LATEST
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse, HTMLResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from scipy import stats
 import time
+import random
+import pathlib
+import requests
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -20,9 +26,29 @@ CURRENT_DATA_PATH = '/app/current/current_data.csv'
 app = FastAPI(title="Evidently Data Drift API", 
               description="API to calculate data drift between reference and current datasets")
 
+# Add CORS middleware to allow requests from any origin
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Create static directory if it doesn't exist
+static_dir = pathlib.Path(__file__).parent / "static"
+static_dir.mkdir(exist_ok=True)
+
+# Mount static files directory
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
 # Define Prometheus metrics
 data_drift_score = Gauge('data_drift_score', 'Data Drift Score between reference and current data')
 feature_drift_scores = {}  # Will be populated with feature-specific drift metrics
+
+# Flag to track if artificial drift is enabled
+ARTIFICIAL_DRIFT_ENABLED = False
+ARTIFICIAL_DRIFT_PERCENTAGE = 0.0
 
 # Initialize the app and metrics
 @app.on_event("startup")
@@ -69,6 +95,11 @@ def calculate_drift():
         feature_drift_results = {}
         num_drifted_features = 0
         
+        # Apply artificial drift if enabled
+        global ARTIFICIAL_DRIFT_ENABLED, ARTIFICIAL_DRIFT_PERCENTAGE
+        if ARTIFICIAL_DRIFT_ENABLED:
+            logger.info(f"Applying artificial drift of {ARTIFICIAL_DRIFT_PERCENTAGE*100}%")
+        
         # Calculate drift for each feature
         for column in common_columns:
             try:
@@ -92,6 +123,11 @@ def calculate_drift():
                 # KS statistic is already between 0-1, where 0 means identical distributions
                 # and 1 means completely different distributions
                 drift_score = ks_stat
+                
+                # Apply artificial drift if enabled
+                if ARTIFICIAL_DRIFT_ENABLED:
+                    # Artificially increase the drift score based on the configured percentage
+                    drift_score = min(1.0, drift_score + ARTIFICIAL_DRIFT_PERCENTAGE)
                 
                 # Determine if drift is detected (p-value < 0.05 indicates statistical significance)
                 is_drift = p_value < 0.05
@@ -155,13 +191,22 @@ def calculate_drift():
 @app.get("/")
 async def root():
     """Root endpoint with basic API info."""
-    return {
-        "message": "Evidently Data Drift API is running",
-        "endpoints": {
-            "/drift": "Calculate and return drift metrics",
-            "/metrics": "Prometheus metrics endpoint"
+    # Return the HTML page for drift control
+    html_file = pathlib.Path(__file__).parent / "static" / "index.html"
+    if html_file.exists():
+        return FileResponse(str(html_file))
+    else:
+        # Fallback to JSON response if HTML file doesn't exist
+        return {
+            "message": "Evidently Data Drift API is running",
+            "endpoints": {
+                "/drift": "Calculate and return drift metrics",
+                "/metrics": "Prometheus metrics endpoint",
+                "/force_drift": "Force artificial drift",
+                "/reset_drift": "Reset artificial drift",
+                "/drift_status": "Get current drift status"
+            }
         }
-    }
 
 @app.get("/drift")
 async def get_drift():
@@ -172,6 +217,116 @@ async def get_drift():
 async def metrics():
     """Prometheus metrics endpoint."""
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+@app.post("/force_drift")
+async def force_drift(drift_percentage: float = 0.8):
+    """Force an artificial drift with the specified percentage (0.0 to 1.0)."""
+    global ARTIFICIAL_DRIFT_ENABLED, ARTIFICIAL_DRIFT_PERCENTAGE
+    
+    # Validate input
+    if drift_percentage < 0.0 or drift_percentage > 1.0:
+        raise HTTPException(status_code=400, detail="Drift percentage must be between 0.0 and 1.0")
+    
+    # Enable artificial drift
+    ARTIFICIAL_DRIFT_ENABLED = True
+    ARTIFICIAL_DRIFT_PERCENTAGE = drift_percentage
+    
+    logger.info(f"Artificial drift enabled with {drift_percentage*100}% drift")
+    
+    # Recalculate drift immediately
+    drift_result = calculate_drift()
+    
+    return {
+        "message": f"Artificial drift of {drift_percentage*100}% has been applied",
+        "drift_enabled": ARTIFICIAL_DRIFT_ENABLED,
+        "drift_percentage": ARTIFICIAL_DRIFT_PERCENTAGE,
+        "current_drift": drift_result
+    }
+
+@app.post("/reset_drift")
+async def reset_drift():
+    """Reset any artificial drift to normal operation."""
+    global ARTIFICIAL_DRIFT_ENABLED, ARTIFICIAL_DRIFT_PERCENTAGE
+    
+    # Disable artificial drift
+    ARTIFICIAL_DRIFT_ENABLED = False
+    ARTIFICIAL_DRIFT_PERCENTAGE = 0.0
+    
+    logger.info("Artificial drift has been reset")
+    
+    # Recalculate drift immediately
+    drift_result = calculate_drift()
+    
+    return {
+        "message": "Artificial drift has been reset to normal operation",
+        "drift_enabled": ARTIFICIAL_DRIFT_ENABLED,
+        "drift_percentage": ARTIFICIAL_DRIFT_PERCENTAGE,
+        "current_drift": drift_result
+    }
+
+@app.get("/drift_status")
+async def drift_status():
+    """Get the current status of artificial drift."""
+    return {
+        "drift_enabled": ARTIFICIAL_DRIFT_ENABLED,
+        "drift_percentage": ARTIFICIAL_DRIFT_PERCENTAGE
+    }
+
+@app.post("/trigger_airflow_from_alert")
+async def trigger_airflow_from_alert(request: Request):
+    """Endpoint to receive alerts from AlertManager and trigger Airflow DAG."""
+    try:
+        # Get the alert data from the request
+        alert_data = await request.json()
+        logger.info(f"Received alert from AlertManager: {alert_data}")
+        
+        # Extract relevant information from the alert
+        alerts = alert_data.get('alerts', [])
+        if not alerts:
+            logger.warning("No alerts found in the request")
+            return JSONResponse(content={"status": "error", "message": "No alerts found"}, status_code=400)
+        
+        # Check if any of the alerts is for high data drift
+        high_drift_alerts = [alert for alert in alerts if alert.get('labels', {}).get('alertname') == 'HighDataDrift']
+        if not high_drift_alerts:
+            logger.warning("No high data drift alerts found")
+            return JSONResponse(content={"status": "error", "message": "No high data drift alerts found"}, status_code=400)
+        
+        # Trigger the Airflow DAG
+        airflow_url = "http://airflow-webserver:8080/api/v1/dags/road_accidents/dagRuns"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Basic YWlyZmxvdzphaXJmbG93"  # Base64 encoded airflow:airflow
+        }
+        payload = {
+            "conf": {
+                "alert_data": alert_data,
+                "triggered_by": "evidently_api"
+            }
+        }
+        
+        logger.info(f"Triggering Airflow DAG 'road_accidents' with payload: {payload}")
+        
+        # Make the request to Airflow API
+        response = requests.post(airflow_url, headers=headers, json=payload)
+        
+        if response.status_code in [200, 201]:
+            logger.info(f"Successfully triggered Airflow DAG. Response: {response.json()}")
+            return JSONResponse(content={
+                "status": "success", 
+                "message": "Airflow DAG triggered successfully",
+                "airflow_response": response.json()
+            })
+        else:
+            logger.error(f"Failed to trigger Airflow DAG. Status code: {response.status_code}, Response: {response.text}")
+            return JSONResponse(content={
+                "status": "error", 
+                "message": f"Failed to trigger Airflow DAG: {response.text}"
+            }, status_code=500)
+            
+    except Exception as e:
+        logger.error(f"Error processing alert webhook: {e}")
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
 # Schedule periodic drift calculation (every 5 minutes)
 @app.on_event("startup")

@@ -1145,15 +1145,19 @@ def show_monitoring(drift_data):
     # Vérifier si l'API de drift est accessible
     drift_api_available = False
     try:
-        response = requests.get("http://evidently-api:8001/health", timeout=1)
+        print("Tentative de connexion à l'API Evidently...")
+        response = requests.get("http://evidently-api:8001/health", timeout=3)
+        print(f"Réponse de l'API: {response.status_code} - {response.text}")
         drift_api_available = response.status_code == 200
-    except Exception:
+        print(f"API accessible: {drift_api_available}")
+    except Exception as e:
+        print(f"Erreur lors de la connexion à l'API: {e}")
         drift_api_available = False
     
     with col1:
         if st.button("🚨 Forcer le drift", help="Ajoute du bruit aux données pour simuler un drift.", disabled=not drift_api_available):
             try:
-                response = requests.post("http://evidently-api:8001/config/noise", json={"noise": 0.8}, timeout=3)
+                response = requests.get("http://evidently-api:8001/set_drift/0.8", timeout=3)
                 if response.status_code == 200:
                     st.success("Drift artificiel forcé (noise=0.8)")
                 else:
@@ -1164,7 +1168,7 @@ def show_monitoring(drift_data):
     with col2:
         if st.button("🔄 Réinitialiser le drift", help="Réinitialise le drift (bruit) artificiel.", disabled=not drift_api_available):
             try:
-                response = requests.post("http://evidently-api:8001/config/noise", json={}, timeout=3)
+                response = requests.get("http://evidently-api:8001/set_drift/0", timeout=3)
                 if response.status_code == 200:
                     st.success("Drift artificiel réinitialisé")
                 else:

@@ -17,10 +17,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 RUN groupadd -g ${GROUP_ID} appuser && \
     useradd -u ${USER_ID} -g appuser -s /bin/bash -m appuser && \
-    mkdir -p /app/reference /app/current && \
+    mkdir -p /app/reference /app/current /app/static && \
     chown -R ${USER_ID}:${GROUP_ID} /app
 
 COPY api.py api.py
+COPY static/ /app/static/
 
 RUN chown -R ${USER_ID}:${GROUP_ID} /app
 

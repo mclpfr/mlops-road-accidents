@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrôle du Drift Artificiel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .button-container {
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 15px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .force-drift {
+            background-color: #f44336;
+            color: white;
+        }
+        .reset-drift {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+        .warning {
+            background-color: #fffbcc;
+            border: 1px solid #e6db55;
+            color: #8a6d3b;
+        }
+        .success {
+            background-color: #dff0d8;
+            border: 1px solid #d6e9c6;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            border: 1px solid #ebccd1;
+            color: #a94442;
+        }
+    </style>
+</head>
+<body>
+    <h1>Contrôle du Drift Artificiel</h1>
+    
+    <div class="alert warning" id="api-warning">
+        <strong>Attention!</strong> L'API de contrôle de drift n'est pas accessible. Les boutons sont désactivés.
+    </div>
+    
+    <div class="button-container">
+        <button id="force-drift" class="force-drift">Forcer le drift</button>
+        <button id="reset-drift" class="reset-drift">Réinitialiser le drift</button>
+    </div>
+    
+    <div class="alert" id="status-message"></div>
+    
+    <div id="drift-status">
+        <h3>État actuel:</h3>
+        <p>Drift artificiel: <span id="drift-enabled">Non</span></p>
+        <p>Pourcentage de drift: <span id="drift-percentage">0%</span></p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const forceDriftBtn = document.getElementById('force-drift');
+            const resetDriftBtn = document.getElementById('reset-drift');
+            const apiWarning = document.getElementById('api-warning');
+            const statusMessage = document.getElementById('status-message');
+            const driftEnabled = document.getElementById('drift-enabled');
+            const driftPercentage = document.getElementById('drift-percentage');
+            
+            // Check API status on load
+            checkApiStatus();
+            
+            // Set up button event listeners
+            forceDriftBtn.addEventListener('click', function() {
+                forceDrift(0.8); // Force 80% drift
+            });
+            
+            resetDriftBtn.addEventListener('click', function() {
+                resetDrift();
+            });
+            
+            // Function to check API status
+            function checkApiStatus() {
+                fetch('/drift_status')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('API not available');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // API is available, enable buttons
+                        apiWarning.style.display = 'none';
+                        forceDriftBtn.disabled = false;
+                        resetDriftBtn.disabled = false;
+                        
+                        // Update status display
+                        updateDriftStatus(data);
+                    })
+                    .catch(error => {
+                        // API is not available, disable buttons
+                        apiWarning.style.display = 'block';
+                        forceDriftBtn.disabled = true;
+                        resetDriftBtn.disabled = true;
+                        console.error('Error checking API status:', error);
+                    });
+            }
+            
+            // Function to force drift
+            function forceDrift(percentage) {
+                fetch('/force_drift?drift_percentage=' + percentage, {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to force drift');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    showMessage('Drift artificiel de ' + (percentage * 100) + '% appliqué avec succès!', 'success');
+                    updateDriftStatus(data);
+                })
+                .catch(error => {
+                    showMessage('Erreur lors de l\'application du drift: ' + error.message, 'error');
+                    console.error('Error forcing drift:', error);
+                });
+            }
+            
+            // Function to reset drift
+            function resetDrift() {
+                fetch('/reset_drift', {
+                    method: 'POST'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to reset drift');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    showMessage('Drift réinitialisé avec succès!', 'success');
+                    updateDriftStatus(data);
+                })
+                .catch(error => {
+                    showMessage('Erreur lors de la réinitialisation du drift: ' + error.message, 'error');
+                    console.error('Error resetting drift:', error);
+                });
+            }
+            
+            // Function to update drift status display
+            function updateDriftStatus(data) {
+                driftEnabled.textContent = data.drift_enabled ? 'Oui' : 'Non';
+                driftPercentage.textContent = (data.drift_percentage * 100) + '%';
+            }
+            
+            // Function to show status messages
+            function showMessage(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.className = 'alert ' + type;
+                statusMessage.style.display = 'block';
+                
+                // Hide message after 5 seconds
+                setTimeout(function() {
+                    statusMessage.style.display = 'none';
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>
