@@ -173,7 +173,8 @@ def calculate_drift():
         # Update Prometheus metrics
         data_drift_score.set(overall_drift_score)
         
-        # Log overall drift information
+        # Log overall drift information with data_drift_score
+        logger.info(f"data_drift_score: {overall_drift_score:.4f}")
         logger.info(f"Overall data drift score: {overall_drift_score:.4f}, Drift detected: {drift_detected}")
         logger.info(f"Number of drifted features: {num_drifted_features} out of {num_features}")
         
@@ -328,7 +329,7 @@ async def trigger_airflow_from_alert(request: Request):
         logger.error(f"Error processing alert webhook: {e}")
         return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
-# Schedule periodic drift calculation (every 5 minutes)
+# Schedule periodic drift calculation (every 10 seconds)
 @app.on_event("startup")
 async def schedule_drift_calculation():
     import asyncio
@@ -341,8 +342,8 @@ async def schedule_drift_calculation():
             except Exception as e:
                 logger.error(f"Error in scheduled drift calculation: {e}")
             
-            # Wait for 5 minutes
-            await asyncio.sleep(300)
+            # Wait for 10 seconds
+            await asyncio.sleep(10)
     
     # Start the periodic task
     asyncio.create_task(periodic_drift_calculation())
