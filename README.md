@@ -342,7 +342,7 @@ Le projet utilise une approche innovante avec **génération de données synthé
 
 ### 2. Pipeline Quotidien (DAG `daily_data_processing`)
 
-![Schéma du DAG Quotidien Airflow](images/dags_Daily.jpg)
+![Schéma du DAG Quotidien Airflow](images/dags_daily.jpg)
 
 ### 3. Déclenchement Automatique
 - **Seuil de drift** : > 0.5
