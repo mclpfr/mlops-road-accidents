@@ -5,15 +5,15 @@ USER root
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
-RUN if getent group $GROUP_ID; then \
+RUN if getent group $GROUP_ID >/dev/null 2>&1; then \
         echo "Group $GROUP_ID already exists, skipping creation."; \
     else \
-        groupadd -g $GROUP_ID airflow; \
+        groupadd -g $GROUP_ID airflow || echo "Failed to create group, continuing..."; \
     fi && \
-    if id -u $USER_ID; then \
+    if id -u $USER_ID >/dev/null 2>&1; then \
         echo "User $USER_ID already exists, skipping creation."; \
     else \
-        useradd -ms /bin/bash -u $USER_ID -g $GROUP_ID airflow; \
+        useradd --no-log-init -ms /bin/bash -u $USER_ID -g $GROUP_ID airflow || echo "Failed to create user, continuing..."; \
     fi
 
 

@@ -17,11 +17,7 @@ Ce projet MLOps complet prédit la gravité des accidents de la route en France 
 
 ## Architecture du Système
 
-```
-Extraction → Données Synthétiques → Préparation → Entraînement → API → Monitoring Complet
-                                                                        ↓
-                                            Alertes Drift → Re-entraînement Automatique
-```
+![Architecture du Système](images/archi_system.jpg)
 
 ## Démarrage Rapide
 
@@ -60,22 +56,46 @@ docker-compose up --build
 # Ou en arrière-plan
 docker-compose up -d --build
 ```
+### Services Individuels
+```bash
+# 1. Extraction des données
+docker-compose up extract_data
 
+# 2. Génération de données synthétiques
+docker-compose up synthet_data
+
+# 3. Préparation des données
+docker-compose up prepare_data
+
+# 4. Entraînement du modèle
+docker-compose up train_model
+
+# 5. Import en base de données
+docker-compose up import_data
+
+# API et base de données
+docker-compose up api postgres
+
+# Monitoring complet
+docker-compose up prometheus grafana evidently-api
+
+# Orchestration
+docker-compose up airflow-webserver airflow-scheduler
+```
 ### Services Disponibles
 
 | Service | URL | Description |
 |---------|-----|-------------|
 | API Prédictions | http://localhost:8000/docs | API REST avec documentation Swagger |
-| **Grafana** | http://localhost:3000 | **4 Dashboards de monitoring** (admin/admin) |
+| Grafana | http://localhost:3000 | 4 Dashboards de monitoring |
 | Prometheus | http://localhost:9090 | Métriques système et modèle |
-| Airflow | http://localhost:8080 | Orchestration des pipelines (admin/admin) |
+| Airflow | http://localhost:8080 | Orchestration des pipelines  |
 | Evidently API | http://localhost:8001 | Service de détection de drift |
 
 ## Monitoring & Dashboards Grafana
 
 ### Accès et Configuration
 - **URL** : http://localhost:3000
-- **Identifiants** : admin/admin
 - **Sources de données** : PostgreSQL, Prometheus, Loki (pré-configurées)
 - **Actualisation** : Toutes les 5 secondes pour un monitoring temps réel
 
@@ -160,27 +180,50 @@ docker-compose up -d --build
 #### **Détection de Drift avec Evidently**
 
 **Architecture Technique :**
-```
-Nouvelles Données → Evidently API → Score Drift > 0.5 → 
-Prometheus Alerte → Alertmanager → Webhook → 
-Airflow DAG → Re-entraînement → Nouveau Modèle
-```
+
+![Architecture de Détection de Drift](images/archi_drift.jpg)
+
+**Flux de Détection de Drift :**
+1. **Collecte des Données** : 
+   - Les nouvelles données sont collectées et stockées dans `evidently/current/current_data.csv`
+   - Les données de référence (modèle de production) sont stockées dans `evidently/reference/best_model_data.csv`
+
+2. **Calcul du Drift** :
+   - Le service Evidently API compare les distributions des caractéristiques entre les données de référence et courantes
+   - Pour les variables numériques : Utilisation de la distance de Wasserstein (seuil > 0.1)
+   - Pour les variables catégorielles : Test du Khi-deux (seuil p-value < 0.05)
+   - Un score global de drift est calculé (0-1), où >0.5 indique un drift significatif
 
 **API Evidently** (`http://localhost:8001`)
 - Service FastAPI dédié au calcul de drift
-- Endpoint `/metrics` pour Prometheus (format OpenMetrics)
-- Comparaison données référence vs données courantes
+- Endpoints principaux :
+  - `POST /calculate_drift` : Calcule le drift entre les jeux de données
+  - `GET /metrics` : Retourne les métriques au format Prometheus
+  - `GET /drift_score` : Retourne le score de drift actuel
+- Format des réponses en JSON pour intégration avec d'autres services
 
 **Stockage des Données :**
 ```
 evidently/
 ├── reference/    # Données de référence (best_model_data.csv)
 ├── current/     # Données courantes (current_data.csv)
-└── api/         # Service de calcul du drift
+└── api/         # Code source du service de calcul
 ```
 
-**Méthodes de Détection :**
-- **Variables numériques** : Corrélation entre histogrammes (seuil < 0.95)
+**Métriques Surveillées :**
+- `ml_data_drift_score` : Score global de drift (0-1)
+- `ml_feature_drift{feature="NOM_DE_LA_FEATURE"}` : Score par caractéristique
+- `drift_detection_timestamp` : Dernier calcul de drift
+
+**Seuils d'Alerte :**
+- **Avertissement** : Score > 0.3
+- **Critique** : Score > 0.5 (déclenche le re-entraînement)
+
+**Méthodes de Détection Avancées :**
+- **Analyse des distributions** : Comparaison des distributions de probabilité
+- **Test de Kolmogorov-Smirnov** : Pour détecter les changements dans les distributions
+- **Distance de Jensen-Shannon** : Pour mesurer la similarité entre distributions
+- **Analyse des corrélations** : Détection des changements dans les relations entre variables
 - **Variables catégorielles** : Distance de variation totale (seuil > 0.1)
 - **Score final** : Proportion de features ayant dérivé
 
@@ -221,7 +264,7 @@ container_memory_usage_bytes           # Mémoire par conteneur
 ### Workflow de Monitoring Automatique
 
 1. **Monitoring Continu** : Les 4 dashboards actualisent leurs métriques toutes les 5 secondes
-2. **Détection de Drift** : Evidently calcule le score quotidiennement via DAG Airflow
+2. **Préparation des Données** : Airflow copie quotidiennement les données traitées dans le dossier `evidently/current/`
 3. **Alertes Automatiques** : Prometheus surveille les seuils et déclenche Alertmanager
 4. **Actions Correctives** : Webhook automatique vers Airflow pour re-entraînement
 5. **Validation** : Nouveau modèle validé et promu automatiquement si performances meilleures
@@ -294,14 +337,12 @@ Le projet utilise une approche innovante avec **génération de données synthé
 6. **Monitoring** : Détection de drift et alertes automatiques
 
 ### 1. Pipeline Principal (DAG `road_accidents`)
-```
-Extraction → Données Synthétiques → Préparation → Entraînement → Import DB → Monitoring
-```
+
+![Schéma du DAG Airflow](images/dags_road.jpg)
 
 ### 2. Pipeline Quotidien (DAG `daily_data_processing`)
-```
-Extraction Quotidienne → Données Synthétiques → Préparation → Mise à jour Evidently
-```
+
+![Schéma du DAG Quotidien Airflow](images/dags_Daily.jpg)
 
 ### 3. Déclenchement Automatique
 - **Seuil de drift** : > 0.5
@@ -444,40 +485,49 @@ git:
     token: "YOUR_TOKEN"
 ```
 
+## Intégration Continue et Déploiement (CI/CD)
+
+Le projet utilise GitHub Actions pour automatiser le processus d'intégration continue et de déploiement des images Docker. À chaque push sur la branche `main` ou lors d'une action manuelle, le workflow suivant est exécuté :
+
+### Pipeline CI/CD
+
+1. **Tests et Validation**
+   - Exécution des tests automatisés avec `pytest`
+   - Vérification de la qualité du code
+   - Validation des configurations
+
+2. **Construction des Images Docker**
+   - Construction des images pour chaque service :
+     - `extract_data`
+     - `synthet_data`
+     - `prepare_data`
+     - `train_model`
+     - `api`
+     - `postgres`
+     - `import_data`
+
+3. **Versionnement et Publication**
+   - Chaque image est taguée avec :
+     - Le numéro du run GitHub Actions (`${{ github.run_number }}`)
+     - Le tag `latest` pour la dernière version stable
+   - Les images sont automatiquement poussées vers Docker Hub
+
+### Configuration Requise
+
+Pour que le pipeline fonctionne, les secrets suivants doivent être configurés dans les paramètres du dépôt GitHub :
+
+- `DOCKER_USERNAME` : Votre nom d'utilisateur Docker Hub
+- `DOCKER_TOKEN` : Votre token d'accès Docker Hub
+- `CONFIG_YAML` : Contenu du fichier de configuration
+
+### Déclenchement du Pipeline
+
+Le pipeline se déclenche automatiquement dans les cas suivants :
+- Push sur la branche `main`
+- Pull request vers la branche `main`
+- Déclenchement manuel via l'interface GitHub Actions
+
 ## Commandes Utiles
-
-### Lancement Complet
-```bash
-# Lancement de tous les services (pipeline complet)
-docker-compose up
-```
-
-### Services Individuels
-```bash
-# 1. Extraction des données
-docker-compose up extract_data
-
-# 2. Génération de données synthétiques
-docker-compose up synthet_data
-
-# 3. Préparation des données
-docker-compose up prepare_data
-
-# 4. Entraînement du modèle
-docker-compose up train_model
-
-# 5. Import en base de données
-docker-compose up import_data
-
-# API et base de données
-docker-compose up api postgres
-
-# Monitoring complet
-docker-compose up prometheus grafana evidently-api
-
-# Orchestration
-docker-compose up airflow-webserver airflow-scheduler
-```
 
 ### Gestion DVC (Automatique)
 
