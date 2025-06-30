@@ -31,6 +31,8 @@ x-airflow-common: &airflow-common
     postgres-airflow:
       condition: service_healthy
 
+x-airflow-common-env: &airflow-common-env {}
+
 services:
   extract_data:
     build:

@@ -1311,7 +1311,7 @@ def show_interactive_demo():
 
 def show_evidently():
     """Embed Evidently AI dashboard inside Streamlit."""
-    st.header("Rapport Evidently")
+    st.header("Evidently Report")
     # Charge la configuration locale (non versionnée)
     try:
         with open((Path(__file__).resolve().parent.parent / "config.yaml"), "r") as f:
@@ -1322,13 +1322,35 @@ def show_evidently():
     evidently_host = _cfg.get("evidently_host") or os.getenv("EVIDENTLY_BASE_URL", "http://evidently-api:8001")
     
     # URL du rapport Evidently
-    embed_url = evidently_host.rstrip("/") + "/drift_full_report"
+    # URL utilisée côté navigateur (le container Streamlit voit 'evidently-api', mais le navigateur du client non)
+    public_host = os.getenv("EVIDENTLY_PUBLIC_URL") or evidently_host.replace("evidently-api", "localhost")
+    embed_url = public_host.rstrip("/") + "/drift_full_report"
     
-    # Intégrer le rapport Evidently
-    components.html(
-        f'<iframe src="{embed_url}" style="width:100%; height:100vh; border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
-        height=900,
-    )
+    # Afficher un message de chargement et un spinner
+    with st.spinner("Loading Evidently report... This may take a few moments."):
+        try:
+            # Vérifier si l'API est accessible
+            health_url = evidently_host.rstrip("/") + "/health"
+            try:
+                # Timeout court pour vérifier la disponibilité
+                response = requests.get(health_url, timeout=2)
+                if response.status_code != 200:
+                    st.error("Evidently API is not responding correctly. Please check if the service is running.")
+                    return
+            except requests.exceptions.RequestException:
+                st.error("Cannot connect to Evidently API. Please check if the service is running.")
+                st.info("Make sure the Evidently API container is running with: `docker restart evidently-api`")
+                return
+                
+            # Intégrer le rapport Evidently avec une hauteur plus grande pour éviter le défilement
+            components.html(
+                f'\u003ciframe src="{embed_url}" style="width:100%; height:120vh; border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
+                height=1200,  # Augmenter la hauteur pour éviter les problèmes de défilement
+            )
+        except Exception as e:
+            st.error(f"Error loading Evidently report: {e}")
+            st.info("Try refreshing the page or check if the Evidently API service is running.")
+            st.code("docker restart evidently-api", language="bash")
 
 
 # Sidebar avec informations additionnelles

@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from fastapi import FastAPI, HTTPException, Request, Query
 from prometheus_client import Gauge, generate_latest
-from fastapi.responses import Response, FileResponse, JSONResponse
+from fastapi.responses import Response, FileResponse, JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from scipy import stats
@@ -12,6 +12,11 @@ import pathlib
 import requests
 import json
 import asyncio
+import matplotlib.pyplot as plt
+import io
+import base64
+from matplotlib.figure import Figure
+from datetime import datetime
 
 # --- Configuration ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -156,6 +161,11 @@ async def startup_event():
     asyncio.create_task(periodic_drift_calculation())
 
 # --- API Endpoints ---
+
+@app.get("/health")
+async def health():
+    """Simple health check endpoint."""
+    return {"status": "ok"}
 @app.get("/")
 async def root():
     html_file = STATIC_DIR / "index.html"
@@ -221,6 +231,254 @@ async def trigger_airflow_from_alert(request: Request):
     except Exception as e:
         logger.error(f"Error processing alert webhook: {e}")
         return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
+
+@app.get("/drift_full_report", response_class=HTMLResponse)
+async def drift_full_report():
+    """Generate a comprehensive HTML report with all drift information."""
+    try:
+        # Get drift data
+        drift_data = calculate_drift()
+        drift_state = get_drift_state()
+        
+        # Load reference and current data for visualizations
+        # Use a sample of the data for faster processing
+        reference_data, current_data = load_data()
+        
+        # Sample data if it's large (more than 1000 rows)
+        if len(reference_data) > 1000:
+            reference_data = reference_data.sample(1000, random_state=42)
+        if len(current_data) > 1000:
+            current_data = current_data.sample(1000, random_state=42)
+        
+        # Generate HTML report
+        html_content = generate_drift_report_html(drift_data, drift_state, reference_data, current_data)
+        return HTMLResponse(content=html_content)
+    except Exception as e:
+        logger.error(f"Error generating drift report: {e}")
+        # Return a simple error page instead of raising an exception
+        error_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Error - Drift Report</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; padding: 20px; }}
+                .error-container {{ max-width: 800px; margin: 0 auto; background-color: #fff3f3; padding: 20px; border-radius: 5px; }}
+                h1 {{ color: #d32f2f; }}
+            </style>
+        </head>
+        <body>
+            <div class="error-container">
+                <h1>Error Generating Drift Report</h1>
+                <p>There was an error generating the drift report. Please try again later or contact the administrator.</p>
+                <p>Error details: {str(e)}</p>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=error_html, status_code=200)  # Return 200 instead of 500 to avoid Streamlit errors
+
+def generate_drift_report_html(drift_data, drift_state, reference_data, current_data):
+    """Generate HTML content for the drift report."""
+    # Create figures for feature distributions - only for top drifting features
+    feature_plots = {}
+    
+    # Sort features by drift score and take only top 5
+    sorted_features = sorted(
+        drift_data["feature_drift"].items(),
+        key=lambda x: x[1]["drift_score"],
+        reverse=True
+    )[:5]  # Limit to top 5 features
+    
+    for feature, data in sorted_features:
+        if feature in reference_data.columns and feature in current_data.columns:
+            try:
+                # Use a smaller figure size and fewer bins for faster rendering
+                fig = Figure(figsize=(8, 4))
+                ax = fig.subplots()
+                
+                # Side-by-side histograms so that overlapping distributions restent visibles
+                ref_values = reference_data[feature].dropna()
+                cur_values = current_data[feature].dropna()
+                bins = 15
+                # Use the same bin edges for both datasets
+                counts_ref, bin_edges = np.histogram(ref_values, bins=bins)
+                counts_cur, _ = np.histogram(cur_values, bins=bin_edges)
+
+                bar_width = (bin_edges[1] - bin_edges[0]) * 0.4  # 40 % width
+                # Center positions for bars
+                centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+                ax.bar(centers - bar_width/2, counts_ref, width=bar_width, color="#1f77b4", alpha=0.8, label="Reference")
+                ax.bar(centers + bar_width/2, counts_cur, width=bar_width, color="#ff7f0e", alpha=0.8, label="Current")
+                
+                ax.set_title(f"{feature} Distribution")
+                ax.set_xlabel(feature)
+                ax.set_ylabel("Count")
+                ax.legend()
+                
+                # Use lower DPI for faster rendering
+                buf = io.BytesIO()
+                fig.savefig(buf, format="png", dpi=72)
+                buf.seek(0)
+                img_str = base64.b64encode(buf.read()).decode("utf-8")
+                feature_plots[feature] = img_str
+            except Exception as e:
+                logger.error(f"Error generating plot for {feature}: {e}")
+    
+    # Generate HTML content
+    artificial_drift_html = ""
+    if drift_state.get("enabled", False):
+        artificial_drift_html = (
+            f"""
+            <div class="artificial-drift">
+                <h3>⚠️ Active Artificial Drift</h3>
+                <p>An artificial drift of <strong>{drift_state['percentage']*100}%</strong> is currently applied to the data.</p>
+            </div>
+            """
+        )
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Complete Drift Report</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 0; padding: 20px; }}
+            .container {{ max-width: 1200px; margin: 0 auto; }}
+            .header {{ background-color: #4b6584; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }}
+            .summary {{ background-color: #f5f6fa; padding: 20px; border-radius: 5px; margin-bottom: 20px; }}
+            .feature-card {{ background-color: white; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 15px; }}
+            .feature-header {{ display: flex; justify-content: space-between; align-items: center; }}
+            .drift-high {{ color: #e74c3c; font-weight: bold; }}
+            .drift-medium {{ color: #f39c12; font-weight: bold; }}
+            .drift-low {{ color: #27ae60; font-weight: bold; }}
+            .status-indicator {{ display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; }}
+            .status-red {{ background-color: #e74c3c; }}
+            .status-yellow {{ background-color: #f39c12; }}
+            .status-green {{ background-color: #27ae60; }}
+            .metric {{ margin-bottom: 10px; }}
+            .plot {{ margin-top: 15px; width: 100%; max-width: 800px; }}
+            .tabs {{ display: flex; margin-bottom: 20px; }}
+            .tab {{ padding: 10px 20px; cursor: pointer; background-color: #f5f6fa; border: 1px solid #ddd; border-bottom: none; }}
+            .tab.active {{ background-color: white; border-bottom: 1px solid white; }}
+            .tab-content {{ display: none; }}
+            .tab-content.active {{ display: block; }}
+            .artificial-drift {{ background-color: #fdedec; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #e74c3c; }}
+            .timestamp {{ color: #7f8c8d; font-size: 0.9em; margin-top: 5px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Complete Drift Report</h1>
+                <p class="timestamp">Generated on {datetime.now().strftime('%d/%m/%Y at %H:%M:%S')}</p>
+            </div>
+            
+            {artificial_drift_html}
+            
+            <div class="summary">
+                <h2>Drift Summary</h2>
+                <div class="metric">
+                    <strong>Global Drift Score:</strong> 
+                    <span class="{"drift-high" if drift_data["drift_score"] > 0.3 else "drift-medium" if drift_data["drift_score"] > 0.1 else "drift-low"}">
+                        {drift_data["drift_score"]:.4f}
+                    </span>
+                </div>
+                <div class="metric">
+                    <strong>Drift Detected:</strong> 
+                    <span class="{"drift-high" if drift_data["drift_detected"] else "drift-low"}">
+                        {"Yes" if drift_data["drift_detected"] else "No"}
+                    </span>
+                </div>
+                <div class="metric">
+                    <strong>Features with Drift:</strong> {drift_data["drifted_features_count"]} out of {drift_data["total_features_analyzed"]}
+                </div>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="openTab(event, 'features')">Features</div>
+                <div class="tab" onclick="openTab(event, 'data')">Data</div>
+            </div>
+            
+            <div id="features" class="tab-content active">
+                <h2>Feature Analysis</h2>
+                
+    """
+    
+    # Add feature cards
+    for feature, data in drift_data["feature_drift"].items():
+        drift_score = data["drift_score"]
+        drift_class = "drift-high" if drift_score > 0.3 else "drift-medium" if drift_score > 0.1 else "drift-low"
+        status_class = "status-red" if drift_score > 0.3 else "status-yellow" if drift_score > 0.1 else "status-green"
+        
+        html += f"""
+                <div class="feature-card">
+                    <div class="feature-header">
+                        <h3><span class="status-indicator {status_class}"></span> {feature}</h3>
+                        <span class="{drift_class}">Score: {drift_score:.4f}</span>
+                    </div>
+                    <div class="metric">
+                        <strong>p-value:</strong> {data["p_value"]:.6f}
+                    </div>
+                    <div class="metric">
+                        <strong>Drift Detected:</strong> {"Yes" if data["drift_detected"] else "No"}
+                    </div>
+        """
+        
+        if feature in feature_plots:
+            html += f"""
+                    <div class="plot">
+                        <img src="data:image/png;base64,{feature_plots[feature]}" alt="{feature} Distribution" style="width:100%">
+                    </div>
+            """
+            
+        html += "</div>\n"
+    
+    html += f"""
+            </div>
+            
+            <div id="data" class="tab-content">
+                <h2>Data Overview</h2>
+                <h3>Reference Data</h3>
+                <div style="overflow-x:auto;">
+                    {reference_data.head(10).to_html(classes="table table-striped", border=0)}
+                </div>
+                
+                <h3>Current Data</h3>
+                <div style="overflow-x:auto;">
+                    {current_data.head(10).to_html(classes="table table-striped", border=0)}
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            function openTab(evt, tabName) {{
+                var i, tabcontent, tablinks;
+                
+                // Hide all tab content
+                tabcontent = document.getElementsByClassName("tab-content");
+                for (i = 0; i < tabcontent.length; i++) {{
+                    tabcontent[i].className = tabcontent[i].className.replace(" active", "");
+                }}
+                
+                // Remove active class from all tabs
+                tablinks = document.getElementsByClassName("tab");
+                for (i = 0; i < tablinks.length; i++) {{
+                    tablinks[i].className = tablinks[i].className.replace(" active", "");
+                }}
+                
+                // Show the selected tab content and add active class to the button
+                document.getElementById(tabName).className += " active";
+                evt.currentTarget.className += " active";
+            }}
+        </script>
+    </body>
+    </html>
+    """
+    
+    return html
 
 if __name__ == "__main__":
     import uvicorn
