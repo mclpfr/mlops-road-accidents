@@ -1143,7 +1143,8 @@ def show_monitoring(drift_data):
     except FileNotFoundError:
         _cfg_local = {}
 
-    evidently_host = _cfg_local.get("evidently_host") or os.getenv("EVIDENTLY_BASE_URL", "http://localhost:8001")
+    # Use the container name instead of localhost for Docker networking
+    evidently_host = _cfg_local.get("evidently_host") or os.getenv("EVIDENTLY_BASE_URL", "http://evidently-api:8001")
     evidently_host = evidently_host.rstrip("/")
     health_url = f"{evidently_host}/health"
     set_drift_url = f"{evidently_host}/set_drift"
@@ -1158,7 +1159,7 @@ def show_monitoring(drift_data):
     with col1:
         if st.button("🚨 Forcer le drift", help="Ajoute du bruit aux données pour simuler un drift."):
             try:
-                response = requests.post(f"{evidently_host}/force_drift", json={"drift_percentage": 0.8}, timeout=5)
+                response = requests.get(f"{evidently_host}/force_drift", params={"drift_percentage": 0.8}, timeout=5)
                 if response.status_code == 200:
                     st.success("Drift artificiel forcé (noise=0.8)")
                 else:
@@ -1169,7 +1170,7 @@ def show_monitoring(drift_data):
     with col2:
         if st.button("🔄 Réinitialiser le drift", help="Réinitialise le drift (bruit) artificiel."):
             try:
-                response = requests.post(f"{evidently_host}/reset_drift", timeout=5)
+                response = requests.get(f"{evidently_host}/reset_drift", timeout=5)
                 if response.status_code == 200:
                     st.success("Drift artificiel réinitialisé")
                 else:
@@ -1177,13 +1178,10 @@ def show_monitoring(drift_data):
             except Exception as e:
                 st.error(f"Erreur lors de la connexion à l'API: {e}")
     
-
-    
     # URL du dashboard Grafana (utilise l'URL de base configurée dans l'environnement)
     grafana_base = os.getenv("GRAFANA_BASE_URL", "http://localhost:3000")
     
     # Utiliser le dashboard API standard au lieu d'un dashboard public
-    # Le dashboard "API" est configuré dans le fichier api_dashboard.json
     dashboard_url = f"{grafana_base}/d/api_monitoring_dashboard_v2/api?orgId=1&refresh=5s&from=now-1h&to=now"
     
     # Intégrer le dashboard dans un iframe
@@ -1321,7 +1319,7 @@ def show_evidently():
     except FileNotFoundError:
         _cfg = {}
 
-    evidently_host = _cfg.get("evidently_host") or os.getenv("EVIDENTLY_BASE_URL", "http://localhost:8001")
+    evidently_host = _cfg.get("evidently_host") or os.getenv("EVIDENTLY_BASE_URL", "http://evidently-api:8001")
     
     # URL du rapport Evidently
     embed_url = evidently_host.rstrip("/") + "/drift_full_report"

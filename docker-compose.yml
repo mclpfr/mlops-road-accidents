@@ -182,7 +182,7 @@ services:
     environment:
       - AIRFLOW_BASE_URL=http://localhost:8080
       - GRAFANA_BASE_URL=http://localhost:3000
-      - EVIDENTLY_BASE_URL=http://localhost:8001
+      - EVIDENTLY_BASE_URL=http://evidently-api:8001
     volumes:
       - ./:/app
     depends_on:

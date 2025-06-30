@@ -2,13 +2,13 @@ groups:
 - name: DataDriftAlerts
   rules:
   - alert: HighDataDrift
-    expr: ml_data_drift_score > 0.5
-    for: 5s  # Duration for which the condition must be true before firing the alert
+    expr: data_drift_score > 0.5
+    for: 5s 
     labels:
       severity: critical
       service: evidently-api
     annotations:
       summary: "High data drift detected ({{ $value | printf \"%.2f\" }})"
       description: "The data drift score ({{ $value | printf \"%.2f\" }}) has exceeded the threshold of 0.5. The 'road_accidents' DAG needs to be triggered to retrain the model and update reference data."
-      metric_name: "{{ $labels.job }}" # Helps identify the source job
-      metric_instance: "{{ $labels.instance }}" # Helps identify the specific instance
+      metric_name: "{{ $labels.job }}"
+      metric_instance: "{{ $labels.instance }}"
