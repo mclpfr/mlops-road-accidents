@@ -10,7 +10,6 @@ x-airflow-common: &airflow-common
       <<: *user-info
   environment:
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-    # Ensure root user (used in some images and healthchecks) can import Airflow installed in the airflow user's site-packages
     - PYTHONPATH=/home/airflow/.local/lib/python3.8/site-packages
     - AIRFLOW_ADMIN_PASSWORD=admin
     - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
@@ -218,7 +217,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./monitoring/prometheus/:/etc/prometheus/  # Monte tout le répertoire
+      - ./monitoring/prometheus/:/etc/prometheus/  
       - prometheus_data:/prometheus
     command: 
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -327,6 +326,11 @@ services:
     <<: *airflow-common
     container_name: airflow-init
     restart: on-failure
+    healthcheck:
+      test: ["CMD", "airflow", "db", "check-migrations"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
     depends_on:
       postgres-airflow:
         condition: service_healthy
@@ -346,7 +350,7 @@ services:
       postgres-airflow:
         condition: service_healthy
       airflow-init:
-        condition: service_completed_successfully
+        condition: service_healthy
 
   airflow-scheduler:
     <<: *airflow-common
@@ -364,7 +368,12 @@ services:
       airflow-webserver:
         condition: service_healthy
       airflow-init:
-        condition: service_completed_successfully
+        condition: service_healthy
+    environment:
+      <<: *airflow-common-env
+      AIRFLOW__CORE__KILLED_TASK_CLEANUP_TIME: 60
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__SCHEDULER__SCHEDULER_HEARTBEAT_SEC: 5
 
 networks:
   default:
