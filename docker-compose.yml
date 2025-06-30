@@ -172,6 +172,24 @@ services:
     depends_on:
       - train_model
 
+  streamlit:
+    container_name: streamlit
+    build:
+      context: .
+      dockerfile: streamlit/app/Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      - AIRFLOW_BASE_URL=http://localhost:8080
+      - GRAFANA_BASE_URL=http://localhost:3000
+      - EVIDENTLY_BASE_URL=http://localhost:8001
+    volumes:
+      - ./:/app
+    depends_on:
+      - airflow-webserver
+      - grafana
+      - evidently-api
+
   evidently-api:                       
     container_name: evidently-api
     build:                                                
