@@ -1268,7 +1268,7 @@ def show_interactive_demo():
         }
 
         import requests
-        api_base = os.getenv("API_BASE_URL", "http://localhost:8000")
+        api_base = os.getenv("API_BASE_URL", "http://api_service:8000")
         try:
             api_user = os.getenv("API_USER", "johndoe")
             api_pwd = os.getenv("API_PASSWORD", "johnsecret")
@@ -1288,8 +1288,10 @@ def show_interactive_demo():
             )
             resp.raise_for_status()
             payload = resp.json()
+            logging.getLogger(__name__).info("API response: %s", payload)  # log formerly displayed to UI
             pred = int(payload.get("prediction", [0])[0])
             confidence = payload.get("confidence")
+            logging.getLogger(__name__).info("Raw confidence value: %s (%s)", confidence, type(confidence))  # log formerly displayed to UI
         except Exception as e:
             st.error(f"Erreur lors de l'appel API : {e}")
             pred = None
@@ -1298,11 +1300,16 @@ def show_interactive_demo():
         if pred is not None:
             prediction_label = "Grave" if pred == 1 else "Pas Grave"
             color = "#EF4444" if prediction_label == "Grave" else "#10B981"
-            conf_text = f"Confiance : {confidence:.1%}" if isinstance(confidence, (int, float)) else ""
+            conf_percentage = confidence * 100 if isinstance(confidence, (int, float)) else 0
             st.markdown(f"""
                 <div style=\"text-align: center; padding: 2rem; background-color: white; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);\">
                     <h2 style=\"color: {color}; margin: 0;\">{prediction_label}</h2>
-                    <p style=\"color: #6B7280; margin: 0.5rem 0;\">{conf_text}</p>
+                    <div style=\"margin: 1rem 0;\">
+                        <div style=\"height: 6px; background: #E5E7EB; border-radius: 3px; overflow: hidden; margin-bottom: 0.5rem;\">
+                            <div style=\"height: 100%; width: {conf_percentage:.1f}%; background: {color};\"></div>
+                        </div>
+                        <p style=\"color: #6B7280; margin: 0; font-size: 0.9rem;\">{conf_percentage:.1f}% de confiance</p>
+                    </div>
                 </div>
             """, unsafe_allow_html=True)
     else:

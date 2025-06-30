@@ -8,6 +8,7 @@ import yaml
 import pandas as pd
 import mlflow
 import mlflow.sklearn
+import numpy as np
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError, Field
@@ -163,8 +164,20 @@ async def predict(data: InputData, current_user: User = Depends(get_current_user
         target = "grav"
         X = pd.get_dummies(df[model_features])
         y = df[target].apply(lambda x: 0 if x in [3, 4] else 1)
+        # Get both prediction and probabilities
         y_pred = model_use.predict(X)
-        return {"user": current_user.username, "prediction": y_pred.tolist()}
+        y_proba = model_use.predict_proba(X)
+
+        # Handle potential NaN values that would be encoded as `null` in JSON
+        # and displayed as 0 % in the Streamlit front-end.
+        proba_row = np.nan_to_num(y_proba[0], nan=0.0, posinf=0.0, neginf=0.0)
+        confidence = float(np.max(proba_row))
+        
+        return {
+            "user": current_user.username, 
+            "prediction": y_pred.tolist(),
+            "confidence": confidence
+        }
 
     except ValidationError as e:
         raise HTTPException(status_code=422, detail=e.errors()) from e
