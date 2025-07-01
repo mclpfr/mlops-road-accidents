@@ -40,8 +40,11 @@ RUN if ! getent group docker > /dev/null; then \
 RUN mkdir -p /opt/project && \
     chmod -R 777 /opt/project
 
+# Copy configuration files
+COPY --chown=$USER_ID:$GROUP_ID airflow/airflow.cfg /opt/airflow/airflow.cfg
 COPY --chown=$USER_ID:$GROUP_ID airflow/scripts/ /opt/airflow/scripts/
 RUN chmod +x /opt/airflow/scripts/entrypoint.sh && \
+    chmod 644 /opt/airflow/airflow.cfg && \
     ls -l /opt/airflow/scripts/entrypoint.sh
 
 USER airflow

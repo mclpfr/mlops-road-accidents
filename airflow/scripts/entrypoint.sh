@@ -112,15 +112,28 @@ export ADMIN_PWD
         wait_for_postgres "$host" "$port" "$user" "$password" "$db"
     fi
 
-    # Initialize Airflow database
-    echo 'Initializing Airflow database...'
+    # Initialize Airflow database with PostgreSQL
+    echo 'Initializing Airflow database with PostgreSQL...'
     set +e
-    su -c "/home/airflow/.local/bin/airflow db init" airflow
+    
+    # Ensure we're using PostgreSQL
+    if [ -z "$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN" ]; then
+        echo "ERROR: AIRFLOW__DATABASE__SQL_ALCHEMY_CONN is not set. Please configure PostgreSQL connection."
+        exit 1
+    fi
+    
+    # Wait for PostgreSQL to be ready
+    wait_for_postgres "postgres-airflow" "5432" "airflow" "airflow" "airflow"
+    
+    # Initialize the database
+    echo 'Running database migrations...'
+    su -c "airflow db migrate" airflow
     db_init_exit_code=$?
     set -e
-    echo "DB init command exited with code: $db_init_exit_code"
+    
+    echo "DB migrate command exited with code: $db_init_exit_code"
     if [ $db_init_exit_code -ne 0 ]; then
-        echo "ERROR: airflow db init failed. Exiting."
+        echo "ERROR: airflow db migrate failed. Exiting."
         exit $db_init_exit_code
     fi
 

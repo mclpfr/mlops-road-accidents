@@ -88,14 +88,8 @@ services:
     command: >
       sh -c "/app/wait-for-postgres.sh postgres 5432 && python import_data.py"
     environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=road_accidents
-      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
-      - MLFLOW_TRACKING_USERNAME=${MLFLOW_TRACKING_USERNAME}
-      - MLFLOW_TRACKING_PASSWORD=${MLFLOW_TRACKING_PASSWORD}
     volumes:
       - ./data:/app/data
       - ./models:/app/models
@@ -120,12 +114,6 @@ services:
         rm -f /app/models/train_model.done;
         su -c 'python train_model.py' appuser
       "
-    environment:
-      - DVC_REMOTE=${DVC_REMOTE}
-      - DVC_REMOTE_URL=${DVC_REMOTE_URL}
-      - DVC_ENDPOINT_URL=${DVC_ENDPOINT_URL}
-      - DVC_USERNAME=${DVC_USERNAME}
-      - DVC_PASSWORD=${DVC_PASSWORD}
     volumes:
       - ./data:/app/data:rw
       - ./models:/app/models:rw
@@ -344,10 +332,11 @@ services:
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-      interval: 10s
+      test: ["CMD-SHELL", "curl --fail http://localhost:8080/health || exit 1"]
+      interval: 15s
       timeout: 10s
-      retries: 5
+      retries: 3
+      start_period: 30s
     depends_on:
       postgres-airflow:
         condition: service_healthy
@@ -375,7 +364,8 @@ services:
       <<: *airflow-common-env
       AIRFLOW__CORE__KILLED_TASK_CLEANUP_TIME: 60
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__SCHEDULER__SCHEDULER_HEARTBEAT_SEC: 5
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
+      AIRFLOW__CORE__SCHEDULER__SCHEDULER_HEARTBEAT_SEC: 5
 
 networks:
   default:
