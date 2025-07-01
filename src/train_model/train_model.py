@@ -122,7 +122,32 @@ def train_model(config_path="config.yaml"):
         if not os.path.exists(data_path):
             logger.error(f"Data file {data_path} not found.")
             raise FileNotFoundError(f"Data file {data_path} not found.")
-        data = pd.read_csv(data_path, low_memory=False)
+            
+        # Vérification de la taille du fichier
+        file_size = os.path.getsize(data_path)
+        logger.info(f"File size: {file_size} bytes")
+        
+        # Essai avec différents encodages
+        encodings = [None, 'utf-8', 'latin1', 'iso-8859-1', 'cp1252']
+        data = None
+        
+        for encoding in encodings:
+            try:
+                logger.info(f"Trying to read with encoding: {encoding}")
+                data = pd.read_csv(data_path, low_memory=False, encoding=encoding)
+                logger.info(f"Successfully read data with encoding: {encoding}")
+                logger.info(f"Data shape: {data.shape}")
+                if not data.empty:
+                    logger.info(f"Columns: {data.columns.tolist()}")
+                    logger.info(f"First row: {data.iloc[0].to_dict()}")
+                    break
+            except Exception as e:
+                logger.warning(f"Failed to read with encoding {encoding}: {str(e)}")
+        
+        if data is None or data.empty:
+            raise ValueError(f"Failed to read data file {data_path} with any encoding")
+            
+        logger.info(f"Successfully loaded {len(data)} rows")
 
         features = ["catu", "sexe", "trajet", "catr", "circ", "vosp", "prof", "plan", "surf", "situ", "lum", "atm", "col"]
         target = "grav"
