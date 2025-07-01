@@ -17,9 +17,12 @@ x-airflow-common: &airflow-common
     - AIRFLOW__CORE__LOAD_EXAMPLES=False
     - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
     - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
-    - AIRFLOW__WEBSERVER__RBAC=True
+    - AIRFLOW__WEBSERVER__RBAC=False
+    - AIRFLOW__WEBSERVER__AUTHENTICATE=False
+    # Dummy key (non-empty, non-default) to satisfy Airflow >=2.7 security check
+    - AIRFLOW__WEBSERVER__SECRET_KEY=mydummysecret123
     - AIRFLOW_HOME=/opt/airflow
-    - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+    - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.deny_all
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
@@ -359,6 +362,7 @@ services:
         condition: service_healthy
     environment:
       <<: *airflow-common-env
+      AIRFLOW_ADMIN_PASSWORD: admin
       AIRFLOW__CORE__KILLED_TASK_CLEANUP_TIME: 60
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
