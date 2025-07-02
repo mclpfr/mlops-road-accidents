@@ -153,6 +153,12 @@ def load_local_model():
     st.error("Aucun modèle n'a pu être chargé (MLflow ou local).")
     return None
 
+def display_logs_infra():
+    st.header("📊 Logs Infra")
+    st.markdown("Dashboard Grafana pour le monitoring des logs de l'infrastructure.")
+    components.iframe("http://localhost:3000/public-dashboards/02e51b65ea8f4e8b83098ad46397b6b4?orgId=1&refresh=10s", height=800, scrolling=True)
+
+
 # Page configuration
 st.set_page_config(
     page_title="MLOps Project - Road Accidents",
@@ -389,6 +395,10 @@ def get_best_model_metrics():
         logging.getLogger(__name__).warning(f"Metrics MLflow non disponibles : {e}")
         st.warning("Métriques MLflow non disponibles pour le moment. Merci de réessayer plus tard.")
         return None
+
+# --- Main App ---
+
+display_logs_infra()
 
 @st.cache_data(ttl=600)
 def fetch_best_model_info():

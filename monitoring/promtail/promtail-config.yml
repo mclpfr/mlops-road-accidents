@@ -1,29 +1,36 @@
 server:
   http_listen_port: 9080
   grpc_listen_port: 0
+  log_level: debug
+  log_format: logfmt
 
 positions:
-  filename: /tmp/positions.yaml
+  filename: /tmp/promtail-positions.yaml
 
 clients:
-  - url: http://loki:3100/loki/api/v1/push
+  - url: http://localhost:3100/loki/api/v1/push
+    backoff_config:
+      max_period: 5s
+      max_retries: 20
+    external_labels:
+      host: '${HOSTNAME}'
+    timeout: 10s
 
 scrape_configs:
-  - job_name: DOCKER_SCRAPE_SERVICE_API 
+  - job_name: docker
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
-        filters:
-          - name: name 
-            values: ["api_service"] 
+
     relabel_configs:
-      - source_labels: ['__meta_docker_container_name']
-        regex: '/(.*)'
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         target_label: 'container'
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'service'
       - source_labels: ['__meta_docker_container_log_stream']
         target_label: 'logstream'
-      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
-        target_label: 'service' 
-      - action: replace
-        target_label: job
-        replacement: api 
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/([^_]+)_[^_]+_[0-9]+'
+        target_label: 'job'
+      - action: labelmap
+        regex: __meta_docker_container_label_(.+)
