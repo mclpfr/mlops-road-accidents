@@ -1,0 +1,18 @@
+cookie:
+  expiry_days: 30
+  key: streamlit_auth_key
+  name: streamlit_auth_cookie
+credentials:
+  usernames:
+    admin:
+      email: admin@example.com
+      name: Administrator
+      password: $2b$12$xsz.oD5o66zt.63mSeYfk.1wp3xfKA.02vcGguG3ITBfVFPitxP16
+      role: admin
+    user:
+      email: user@example.com
+      name: Standard user
+      password: $2b$12$ijreYwVQVDKyVXrKDBFnOulmQLvhH.IHEZEBQ1FqwtQ9NrMQ7F4M6
+      role: user
+preauthorized:
+  emails: []

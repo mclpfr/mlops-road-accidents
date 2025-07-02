@@ -1,4 +1,4 @@
-# Advanced log configuration - Disable ALL debug messages
+# Configuration avancée des logs - Désactiver TOUS les messages de débogage
 import os
 import sys
 import logging
@@ -153,7 +153,7 @@ def load_local_model():
     st.error("Aucun modèle n'a pu être chargé (MLflow ou local).")
     return None
 
-# Page configuration
+# Configuration de la page
 st.set_page_config(
     page_title="MLOps Project - Road Accidents",
     page_icon="🚗",
@@ -1542,13 +1542,13 @@ def add_footer():
 if __name__ == "__main__":
     authenticator = get_authenticator()
 
-    # The login form is displayed in the main column
+    # Le formulaire de connexion est affiché dans la colonne principale
     authenticator.login('main', key='login_main')
 
     if st.session_state["authentication_status"]:
         # Le contenu de l'application est affiché après une connexion réussie
         with st.sidebar:
-            st.write(f'Bienvenue *{st.session_state["name"]}*')
+            st.write(f'Welcome *{st.session_state["name"]}*')
             authenticator.logout('Logout', 'main')
 
         # Récupération du rôle de l'utilisateur
