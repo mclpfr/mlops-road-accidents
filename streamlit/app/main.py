@@ -880,7 +880,7 @@ def show_data_analysis(class_distribution):
         st.dataframe(features_df, hide_index=True, use_container_width=True)
     
     with col2:
-        st.markdown("**🔧 Pipeline de Preprocessing :**")
+        st.markdown("**Pipeline de Preprocessing :**")
         
         preprocessing_steps = [
             "✅ Sélection des 13 variables explicatives pertinentes",
@@ -1088,7 +1088,7 @@ def show_mlops_pipeline(pipeline_steps):
         st.dataframe(services_df, hide_index=True, use_container_width=True)
     
     with col2:
-        st.subheader("📋 Fonctionnalités MLOps")
+        st.subheader("Fonctionnalités MLOps")
         
         mlops_features = [
             "✅ **Versioning** : DVC pour données et modèles",
@@ -1374,53 +1374,17 @@ def show_evidently():
             st.error(f"Une erreur inattendue est survenue lors du chargement du rapport Evidently : {e}")
 
 
-# Authentication - Using a custom approach to avoid key conflicts
+# Authentication temporarily disabled - Auto-login as user
 if 'authentication_status' not in st.session_state:
-    st.session_state['authentication_status'] = None
-    st.session_state['username'] = None
-    st.session_state['name'] = None
+    st.session_state['authentication_status'] = True
+    st.session_state['username'] = 'user'
+    st.session_state['name'] = 'Utilisateur Standard'
 
-# Creating a custom login form
-if st.session_state['authentication_status'] != True:
-    with st.form(key="login_form"):
-        st.subheader("Connexion")
-        username = st.text_input("Nom d'utilisateur", key="username_input")
-        password = st.text_input("Mot de passe", type="password", key="password_input")
-        submit_button = st.form_submit_button("Se connecter")
-        
-        if submit_button:
-            # Chargement de la configuration d'authentification
-            config = load_auth_config()
-            credentials = config['credentials']
-            
-            # Credentials verification
-            if username in credentials['usernames']:
-                stored_password = credentials['usernames'][username]['password']
-                if bcrypt.checkpw(password.encode(), stored_password.encode()):
-                    st.session_state['authentication_status'] = True
-                    st.session_state['username'] = username
-                    st.session_state['name'] = credentials['usernames'][username]['name']
-                    st.rerun()
-                else:
-                    st.session_state['authentication_status'] = False
-                    st.error('Identifiant/mot de passe incorrect')
-                    st.stop()
-            else:
-                st.session_state['authentication_status'] = False
-                st.error('Identifiant/mot de passe incorrect')
-                st.stop()
-    
-    # Stop execution if user is not logged in
-    if st.session_state['authentication_status'] != True:
-        st.stop()
-
-# Récupération du rôle de l'utilisateur
-user_role = get_user_role(st.session_state['username'])
+# Get user role
+user_role = 'user'
 
 # Menu de navigation
-menu_items = ["Vue d'ensemble", "Analyse des données", "Démonstration interactive"]
-if user_role == 'admin':
-    menu_items.extend(["Analyse du modèle", "Pipeline MLOps", "Monitoring", "Evidently AI"])
+menu_items = ["Vue d'ensemble", "Analyse des données", "Analyse du modèle", "Démonstration interactive"]
 
 # Sidebar avec informations additionnelles
 def _compute_per_class_f1(cm):
@@ -1531,40 +1495,23 @@ def add_footer():
     """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
-    authenticator = get_authenticator()
+    # Auto-login as admin
+    st.session_state['role'] = 'admin'
 
-    # The login form is displayed in the main column
-    authenticator.login('main', key='login_main')
+    # Get accident count at startup
+    accidents_count = 0
+    try:
+        result = fetch_data_from_db("SELECT COUNT(*) as count FROM accidents")
+        if not result.empty and 'count' in result.columns:
+            accidents_count = int(result.iloc[0]['count'])
+    except Exception as e:
+        st.sidebar.error(f"Erreur de connexion DB: {e}")
 
-    if st.session_state["authentication_status"]:
-        # The application content is displayed after successful login
-        with st.sidebar:
-            st.write(f'Welcome *{st.session_state["name"]}*')
-            authenticator.logout('Logout', 'main')
+    # Ajout des informations sidebar
+    add_sidebar_info(accidents_count)
 
-        # Get user role
-        user_role = get_user_role(st.session_state['username'])
-        st.session_state['role'] = user_role
+    # Application principale
+    main(accidents_count)
 
-        # Get accident count at startup
-        accidents_count = 0
-        try:
-            result = fetch_data_from_db("SELECT COUNT(*) as count FROM accidents")
-            if not result.empty and 'count' in result.columns:
-                accidents_count = int(result.iloc[0]['count'])
-        except Exception as e:
-            st.sidebar.error(f"Erreur de connexion DB: {e}")
-
-        # Ajout des informations sidebar
-        add_sidebar_info(accidents_count)
-
-        # Application principale
-        main(accidents_count)
-
-        # Footer
-        add_footer()
-
-    elif st.session_state["authentication_status"] is False:
-        st.error('Username/password is incorrect')
-    elif st.session_state["authentication_status"] is None:
-        st.warning('Please enter your username and password')
+    # Footer
+    add_footer()
