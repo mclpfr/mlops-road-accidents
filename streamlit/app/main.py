@@ -1176,7 +1176,7 @@ def show_mlops_pipeline(pipeline_steps):
 
             services_data.append({
                 'Service': service_name,
-                'Port': config['port'],
+                'Port': str(config['port']),
                 'Status': status,
                 'CPU': cpu,
                 'Memory': memory

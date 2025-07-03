@@ -22,6 +22,10 @@ x-airflow-common: &airflow-common
     - AIRFLOW__WEBSERVER__SECRET_KEY=mydummysecret123
     - AIRFLOW_HOME=/opt/airflow
     - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.deny_all
+    - AIRFLOW__CORE__PARALLELISM=8
+    - AIRFLOW__CORE__DAG_CONCURRENCY=8
+    - AIRFLOW__WEBSERVER__WORKERS=2
+    - AIRFLOW__SCHEDULER__MAX_THREADS=2
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
@@ -29,6 +33,14 @@ x-airflow-common: &airflow-common
     - airflow_logs:/opt/airflow/logs
     - ./.:/opt/project
   user: "airflow"
+  deploy:
+    resources:
+      limits:
+        cpus: '2.0'
+        memory: 4G
+      reservations:
+        cpus: '0.5'
+        memory: 1G
   depends_on:
     postgres-airflow:
       condition: service_healthy
@@ -48,6 +60,14 @@ services:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml
     working_dir: /app
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
 
   synthet_data:
     build:
@@ -61,6 +81,14 @@ services:
       - ./data:/app/data
       - ./config.yaml:/app/config.yaml
     working_dir: /app
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
     depends_on:
       - extract_data
 
@@ -77,6 +105,14 @@ services:
       - ./config.yaml:/app/config.yaml
       - ./models:/app/models
     working_dir: /app
+    deploy:
+      resources:
+        limits:
+          cpus: '0.8'
+          memory: 1G
+        reservations:
+          cpus: '0.2'
+          memory: 256M
     depends_on:
       - synthet_data
       
@@ -98,6 +134,14 @@ services:
       - ./config.yaml:/app/config.yaml
       - ./src/import_data/wait-for-postgres.sh:/app/wait-for-postgres.sh
     working_dir: /app
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,6 +170,14 @@ services:
       - ./src/prepare_data:/app/src/prepare_data:ro
       - ./src/synthet_data:/app/src/synthet_data:ro
     working_dir: /app
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 3G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
     depends_on:
       - prepare_data
       - synthet_data
@@ -149,6 +201,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.3'
+          memory: 512M
 
   api:
     container_name: api_service
@@ -175,6 +235,14 @@ services:
     labels:
       - "logging=promtail"
       - "logging_job=api"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.8'
+          memory: 1G
+        reservations:
+          cpus: '0.2'
+          memory: 256M
     depends_on:
       - train_model
 
@@ -192,6 +260,14 @@ services:
     volumes:
       - ./:/app
       - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.2'
+          memory: 256M
     depends_on:
       - airflow-webserver
       - grafana
@@ -216,6 +292,14 @@ services:
       - EVIDENTLY_PROJECT_NAME=Road Accidents MLOps
       - EVIDENTLY_PROJECT_DESCRIPTION=Monitoring dashboard for road accident prediction model
     restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '0.8'
+          memory: 1G
+        reservations:
+          cpus: '0.2'
+          memory: 256M
     networks:
       - default
 
@@ -233,6 +317,14 @@ services:
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
       - '--web.enable-lifecycle'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.1'
+          memory: 256M
     depends_on:
       - api
       - evidently-api
@@ -252,6 +344,14 @@ services:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
     networks:
       - default
 
@@ -266,6 +366,14 @@ services:
     command: -config.file=/etc/loki/local-config.yaml
     volumes:
       - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.1'
+          memory: 256M
 
   promtail:
     image: grafana/promtail:2.9.0
@@ -287,6 +395,14 @@ services:
     environment:
       - HOSTNAME=${HOSTNAME}
       - HOST_IP=${HOST_IP}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
     depends_on:
       - loki
 
@@ -313,6 +429,14 @@ services:
       - ./monitoring/grafana/provisioning/dashboards/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
       - ./monitoring/grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json
       - grafana_data:/var/lib/grafana
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.2'
+          memory: 256M
     depends_on:
       - prometheus
       - alertmanager
@@ -329,6 +453,14 @@ services:
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
 
   postgres-airflow:
     image: postgres:13
@@ -345,6 +477,14 @@ services:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.3'
+          memory: 512M
       
   airflow-init:
     <<: *airflow-common
@@ -356,6 +496,14 @@ services:
       interval: 10s
       timeout: 10s
       retries: 10
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.2'
+          memory: 512M
     depends_on:
       postgres-airflow:
         condition: service_healthy
@@ -368,10 +516,18 @@ services:
       - "8080:8080"
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:8080/health || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      interval: 30s
+      timeout: 20s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
     depends_on:
       postgres-airflow:
         condition: service_healthy
@@ -383,9 +539,18 @@ services:
     restart: always
     healthcheck:
       test: ["CMD", "airflow", "jobs", "check", "--job-type", "SchedulerJob", "--hostname", "$${HOSTNAME}"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
+      interval: 30s
+      timeout: 30s
+      retries: 10
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
     depends_on:
       postgres-airflow:
         condition: service_healthy
