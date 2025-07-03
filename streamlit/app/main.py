@@ -153,13 +153,7 @@ def load_local_model():
     st.error("Aucun modèle n'a pu être chargé (MLflow ou local).")
     return None
 
-def display_logs_infra():
-    st.header("📊 Logs Infra")
-    st.markdown("Dashboard Grafana pour le monitoring des logs de l'infrastructure.")
-    components.iframe("http://localhost:3000/public-dashboards/02e51b65ea8f4e8b83098ad46397b6b4?orgId=1&refresh=10s", height=800, scrolling=True)
-
-
-# Page configuration
+# Configuration de la page
 st.set_page_config(
     page_title="MLOps Project - Road Accidents",
     page_icon="🚗",
@@ -169,18 +163,18 @@ st.set_page_config(
 
 
 
-@st.cache_data(ttl=600)  # Mettre en cache les résultats pendant 10 minutes
+@st.cache_data(ttl=600)  # Cache results for 10 minutes
 def fetch_data_from_db(query: str):
     """
     Connect to the Neon-hosted PostgreSQL database and execute the provided SQL query.
     Returns a Pandas DataFrame.
     """
     try:
-        # Utilisation de psycopg2 directement pour plus de contrôle sur la connexion
+        # Using psycopg2 directly for more connection control
         import psycopg2
         from psycopg2.extras import RealDictCursor
         
-        # Paramètres de connexion
+        # Connection parameters
         conn_params = {
             "host": "ep-misty-violet-a9kyobqv-pooler.gwc.azure.neon.tech",
             "database": "road_accidents",
@@ -199,7 +193,7 @@ def fetch_data_from_db(query: str):
             cursor.execute(query)
             
             # Fetching results
-            if cursor.description:  # Vérifie si la requête retourne des résultats
+            if cursor.description:  # Check if the query returns results
                 results = cursor.fetchall()
                 df = pd.DataFrame(results)
             else:
@@ -331,11 +325,11 @@ def get_class_distribution():
     """
     df_counts = fetch_data_from_db(query)
 
-    # Si la requête échoue ou retourne vide, renvoyer un DataFrame vide
+    # If the query fails or returns empty, return an empty DataFrame
     if df_counts.empty or "grav" not in df_counts.columns:
         return pd.DataFrame()
 
-    # Définition d'une règle simple : grav = 2 (Tué) => Grave, sinon Pas Grave
+    # Simple rule definition: grav = 2 (Killed) => Severe, otherwise Not Severe
     grave_count = int(df_counts[df_counts["grav"] == 2]["count"].sum())
     pas_grave_count = int(df_counts[df_counts["grav"] != 2]["count"].sum())
 
@@ -367,7 +361,7 @@ def get_best_model_metrics():
         run = client.get_run(best_version.run_id)
         metrics = run.data.metrics
         
-        # --- Normalisation des métriques MLflow ---
+        # --- MLflow metrics normalization ---
         metrics_lower = {k.lower(): v for k, v in metrics.items()}
         metric_map = {
             "accuracy": "Accuracy",
@@ -396,10 +390,6 @@ def get_best_model_metrics():
         st.warning("Métriques MLflow non disponibles pour le moment. Merci de réessayer plus tard.")
         return None
 
-# --- Main App ---
-
-display_logs_infra()
-
 @st.cache_data(ttl=600)
 def fetch_best_model_info():
     """Retrieve from MLflow the hyper-parameters and the confusion matrix of the model tagged 'best_model'.
@@ -411,7 +401,7 @@ def fetch_best_model_info():
         client = MlflowClient()
         model_name = "accident-severity-predictor"
 
-        # Recherche de la version la plus récente avec le tag 'best_model'
+        # Find the most recent version with the 'best_model' tag
         best_version = None
         for mv in client.search_model_versions(f"name='{model_name}'"):
             if mv.tags and "best_model" in mv.tags:
@@ -423,7 +413,7 @@ def fetch_best_model_info():
         run_id = best_version.run_id
         run = client.get_run(run_id)
 
-        # Hyperparamètres
+        # Hyperparameters
         params = run.data.params
         hyperparam_keys = [
             'n_estimators', 'max_depth', 'min_samples_split',
@@ -434,7 +424,7 @@ def fetch_best_model_info():
         if not hyperparams_dict and params:
             hyperparams_dict = params
 
-        # On vérifie d'abord s'il y a une image de matrice de confusion sauvegardée
+        # First, check if there's a saved confusion matrix image
         cm_artifact = None
         try:
             # Recherche de l'image de la matrice de confusion
@@ -446,7 +436,7 @@ def fetch_best_model_info():
                     st.info(f"Matrice de confusion chargée depuis l'artefact: {local_path}")
                     break
                     
-            # Si pas d'image, on vérifie les anciens formats (npy, json, csv)
+            # If no image, check older formats (npy, json, csv)
             if 'confusion_matrix_img' not in st.session_state:
                 for art in client.list_artifacts(run_id):
                     if "confusion" in art.path.lower():
@@ -470,11 +460,11 @@ def fetch_best_model_info():
         if cm_artifact is not None and not hasattr(st.session_state, 'confusion_matrix_img'):
             st.session_state.confusion_matrix = cm_artifact
 
-        # Chargement du modèle
+        # Load the model
         model_uri = f"models:/{model_name}/{best_version.version}"
         model = mlflow.sklearn.load_model(model_uri)
 
-        # Chargement des données préparées pour calculer la matrice de confusion
+        # Load prepared data to calculate the confusion matrix
         year = os.getenv("DATA_YEAR", "2023")
         candidate_paths = [
             f"data/processed/prepared_accidents_{year}.csv",
@@ -485,12 +475,12 @@ def fetch_best_model_info():
         data_path = next((p for p in candidate_paths if os.path.exists(p)), None)
         if data_path is None:
             st.warning(f"Aucun fichier de données trouvé dans les chemins : {candidate_paths}")
-            return hyperparams_dict, None  # Pas de données -> Pas de matrice
+            return hyperparams_dict, None  # No data -> No matrix
 
         st.info(f"Chargement des données depuis : {data_path}")
         
         try:
-            import pandas as pd  # Import local pour éviter cycles
+            import pandas as pd  # Local import to avoid cycles
             df = pd.read_csv(data_path)
             st.info(f"Données chargées avec succès. Colonnes : {df.columns.tolist()}")
             
@@ -521,7 +511,7 @@ def fetch_best_model_info():
             st.session_state.confusion_matrix = cm  # Sauvegarde dans la session
             st.info(f"Matrice de confusion calculée :\n{cm}")
             
-            # Vérification des métriques de base
+            # Basic metrics verification
             from sklearn.metrics import accuracy_score
             accuracy = accuracy_score(y_test, y_pred)
             st.info(f"Précision (accuracy) du modèle : {accuracy:.4f}")
@@ -541,7 +531,7 @@ def fetch_best_model_info():
 @st.cache_data(ttl=300)
 def create_sample_data():
     """Retrieve real statistics from the database or provide a fallback."""
-    # Distribution réelle des classes
+    # Actual class distribution
     class_distribution = get_class_distribution()
 
     # Fallback si la DB n'est pas accessible
@@ -553,8 +543,8 @@ def create_sample_data():
             "Nombre": [30675, 16559],
         })
 
-    # Placeholder pour les autres jeux de données (à remplacer plus tard si nécessaire)
-        # Récupération des vraies métriques depuis MLflow
+    # Placeholder for other datasets (to be replaced later if needed)
+        # Get actual metrics from MLflow
     model_metrics = get_best_model_metrics()
     if not model_metrics:
         model_metrics = {
@@ -564,14 +554,14 @@ def create_sample_data():
             "F1-Score": 0.842,
         }
 
-    # Données de drift factices (pour conserver les visuels existants)
+    # Mock drift data (to maintain existing visualizations)
     dates = pd.date_range(start="2024-01-01", end="2024-06-01", freq="ME")
     drift_data = pd.DataFrame({
         "Date": dates,
         "Drift_Score": [0.12, 0.15, 0.32, 0.45, 0.28][: len(dates)],
     })
 
-    # Étapes de pipeline factices
+    # Mock pipeline steps
     pipeline_steps = [
         {"Step": "Extract Data", "Status": "completed", "Duration": "2min", "Icon": "✅"},
         {"Step": "Synthetic Data", "Status": "completed", "Duration": "1min", "Icon": "✅"},
@@ -586,17 +576,18 @@ def create_sample_data():
 def main(accidents_count):
     st.sidebar.title("Navigation")
 
-    # Initialisation de l'état de session pour la page sélectionnée
+    # Initialize session state for the selected page
     if 'selected_page' not in st.session_state:
         st.session_state.selected_page = "Vue d'ensemble"
 
-    # Définition des pages accessibles par rôle
+    # Define pages accessible by role
     all_pages = [
         "Vue d'ensemble",
         "Analyse des données",
         "Analyse du modèle",
         "Démo interactive",
         "Monitoring du modèle",
+        "Logs Infra",
         "Pipeline MLOps",
         "MLflow UI",
         "Airflow UI",
@@ -608,19 +599,19 @@ def main(accidents_count):
         "Démo interactive"
     ]
 
-    # Sélection des pages en fonction du rôle
+    # Page selection based on role
     pages = all_pages if st.session_state.get('role') == 'admin' else user_pages
 
-    # Si la page sélectionnée n'est plus accessible, on redirige vers la première page disponible
+    # If the selected page is no longer accessible, redirect to the first available page
     if st.session_state.selected_page not in pages:
         st.session_state.selected_page = next(iter(pages))
 
-    # Création des boutons de navigation
+    # Create navigation buttons
     for page in pages:
         if st.sidebar.button(f"{page}", key=page):
             st.session_state.selected_page = page
 
-    # Affichage de la page sélectionnée
+    # Display the selected page
     if st.session_state.selected_page == "Vue d'ensemble":
         model_metrics = get_best_model_metrics()
         show_overview(model_metrics, accidents_count)
@@ -635,6 +626,8 @@ def main(accidents_count):
     elif st.session_state.selected_page == "Monitoring du modèle":
         drift_data = None  # Placeholder
         show_monitoring(drift_data)
+    elif st.session_state.selected_page == "Logs Infra":
+        show_logs_infra()
     elif st.session_state.selected_page == "Pipeline MLOps":
         pipeline_steps = {}  # Placeholder
         show_mlops_pipeline(pipeline_steps)
@@ -648,8 +641,8 @@ def main(accidents_count):
 def show_overview(model_metrics, accidents_count):
     st.header("Vue d'ensemble du Projet")
 
-    # Métriques principales
-    # Récupération des infos du modèle depuis MLflow
+    # Key metrics
+    # Get model info from MLflow
     overview_info = get_best_model_overview()
     model_type = overview_info.get("model_type", "N/A") if overview_info else "N/A"
     model_version = overview_info.get("version", "N/A") if overview_info else "N/A"
@@ -659,37 +652,37 @@ def show_overview(model_metrics, accidents_count):
 
     col1, col2, col3, col4 = st.columns(4)
 
-    # 1. Nom du modèle
+    # 1. Model name
     with col1:
         st.markdown(f"""
         <div class="metric-card danger-card">
-            <h3 style="margin: 0; color: #991B1B;">Nom du modèle</h3>
+            <h3 style="margin: 0; color: #991B1B;">Model Name</h3>
             <h2 style="margin: 0.5rem 0; color: #EF4444; font-size: 1.3rem;">{model_name}</h2>
-            <p style="margin: 0; color: #6B7280;">Enregistré dans MLflow</p>
+            <p style="margin: 0; color: #6B7280;">Registered in MLflow</p>
         </div>
         """, unsafe_allow_html=True)
 
-    # 2. Type de modèle
+    # 2. Model type
     with col2:
         st.markdown(f"""
         <div class="metric-card success-card">
-            <h3 style="margin: 0; color: #065F46;">Type de modèle</h3>
+            <h3 style="margin: 0; color: #065F46;">Model Type</h3>
             <h2 style="margin: 0.5rem 0; color: #10B981; font-size: 1.3rem;">{model_type}</h2>
             <p style="margin: 0; color: #6B7280;">Accuracy: {accuracy_display}</p>
         </div>
         """, unsafe_allow_html=True)
 
-    # 3. Version du modèle
+    # 3. Model version
     with col3:
         st.markdown(f"""
         <div class="metric-card warning-card">
             <h3 style="margin: 0; color: #92400E;">Version</h3>
             <h2 style="margin: 0.5rem 0; color: #F59E0B;">{model_version}</h2>
-            <p style="margin: 0; color: #6B7280;">Modèle best_model</p>
+            <p style="margin: 0; color: #6B7280;">best_model</p>
         </div>
         """, unsafe_allow_html=True)
 
-    # 4. Accidents analysés
+    # 4. Analyzed accidents
     with col4:
         if accidents_count > 0:
             formatted_count = f"{accidents_count:,}".replace(",", " ")
@@ -712,7 +705,7 @@ def show_overview(model_metrics, accidents_count):
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Métriques de performance détaillées
+    # Detailed performance metrics
     st.markdown("---")
     st.subheader("Métriques de Performance")
     
@@ -726,7 +719,7 @@ def show_overview(model_metrics, accidents_count):
     f1_pas, f1_grave = _compute_per_class_f1(cm)   
     prec_pas, prec_grave, rec_pas, rec_grave = _compute_per_class_pr_rc(cm)
     
-    # Affichage des métriques dans des colonnes
+    # Display metrics in columns
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -748,11 +741,11 @@ def show_overview(model_metrics, accidents_count):
     st.markdown("---")
     st.subheader("Architecture du Système")
     
-    # Réinitialisation des colonnes pour la section d'architecture
+    # Reset columns for the architecture section
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        # Diagramme d'architecture simplifié
+        # Simplified architecture diagram
         architecture_data = {
             'Couche': ['Interface', 'API', 'ML Pipeline', 'Data Storage', 'Monitoring'],
             'Technologies': [
@@ -788,7 +781,7 @@ def show_overview(model_metrics, accidents_count):
             "Pandas", "NumPy", "Plotly", "Evidently"
         ]
         
-        # Affichage des compétences sous forme de tags
+        # Display skills as tags
         skills_html = ""
         for skill in skills:
             skills_html += f'<span class="skill-tag">{skill}</span>'
@@ -802,10 +795,10 @@ def show_overview(model_metrics, accidents_count):
 def show_data_analysis(class_distribution):
     st.header("Analyse des Données & Feature Engineering")
     
-    # Aperçu du jeu de données
+    # Dataset overview
     st.subheader("Aperçu des données")
     try:
-        # Récupération des 10 premières lignes de la table accidents
+        # Get the first 10 rows from the accidents table
         query = """
         SELECT * 
         FROM accidents 
@@ -838,13 +831,13 @@ def show_data_analysis(class_distribution):
         st.subheader("Statistiques des Classes")
         st.dataframe(class_distribution, hide_index=True, use_container_width=True)
         
-        # Construire dynamiquement la description du déséquilibre
+        # Dynamically build the imbalance description
         pas_grave_pct = class_distribution.loc[class_distribution['Classe'] == 'Pas Grave', 'Pourcentage'].values
         grave_pct = class_distribution.loc[class_distribution['Classe'] == 'Grave', 'Pourcentage'].values
         if len(pas_grave_pct) and len(grave_pct):
             imbalance_note = f"Dataset déséquilibré ({pas_grave_pct[0]:.0f}/{grave_pct[0]:.0f})"
         else:
-            # Valeur par défaut si les pourcentages ne sont pas disponibles
+            # Default value if percentages are not available
             imbalance_note = "Dataset déséquilibré"
 
         st.markdown(f"""
@@ -905,13 +898,13 @@ def show_data_analysis(class_distribution):
 def show_model_analysis(model_metrics):
     st.header("Modélisation & Performance ML")
     
-    # Performance du modèle actuel
+    # Current model performance
     col1, col2 = st.columns(2)
     
     with col1:
         st.subheader("Métriques de Performance")
         
-        # Graphique en barres des métriques
+        # Metrics bar chart
         metrics_df = pd.DataFrame({
             'Métrique': list(model_metrics.keys()),
             'Score': list(model_metrics.values())
@@ -932,17 +925,17 @@ def show_model_analysis(model_metrics):
     with col2:
         st.subheader("Comparaison des Algorithmes")
         
-        # Récupération de l'accuracy actuelle depuis les métriques du modèle
+        # Get current accuracy from model metrics
         current_accuracy = model_metrics.get('Accuracy', 0.85)  # Valeur par défaut si non trouvée
         
-        # Tableau de comparaison avec les valeurs réelles
+        # Comparison table with actual values
         algo_comparison = {
             'Algorithme': ['Random Forest', 'XGBoost', 'SVM', 'Logistic Regression'],
             'Accuracy': [
-                round(current_accuracy, 3),  # Notre modèle actuel
-                round(current_accuracy * 0.996, 3),  # XGBoost légèrement inférieur
+                round(current_accuracy, 3),  # Our current model
+                round(current_accuracy * 0.996, 3),  # Slightly lower XGBoost
                 round(current_accuracy * 0.968, 3),  # SVM un peu moins bon
-                round(current_accuracy * 0.928, 3)   # Régression logistique la moins performante
+                round(current_accuracy * 0.928, 3)   # Least performant logistic regression
             ],
             'Temps d\'entraînement': ['8min', '12min', '25min', '2min'],
             'Sélectionné': ['✅', '❌', '❌', '❌']
@@ -953,13 +946,13 @@ def show_model_analysis(model_metrics):
         
         st.success("**RandomForest sélectionné** pour son excellent équilibre performance/temps d'entraînement")
     
-    # Hyperparamètres et détails
+    # Hyperparameters and details
     col1, col2 = st.columns(2)
     
     with col1:
         st.subheader("Hyperparamètres Optimaux")
         
-        # Récupération depuis MLflow
+        # Get from MLflow
         hyperparams_dict, cm_mlflow = fetch_best_model_info()
         if hyperparams_dict:
             hyper_df = pd.DataFrame({
@@ -982,7 +975,7 @@ def show_model_analysis(model_metrics):
         
         # Affiche un indicateur de chargement pendant le calcul
         with st.spinner('Chargement de la matrice de confusion...'):
-            # Vérifie d'abord s'il y a une image de matrice sauvegardée
+            # First check if there's a saved matrix image
             if hasattr(st.session_state, 'confusion_matrix_img'):
                 st.success("Matrice de confusion chargée depuis MLflow ✔️")
                 # Affiche directement l'image
@@ -990,10 +983,10 @@ def show_model_analysis(model_metrics):
                          caption='Matrice de Confusion du Meilleur Modèle',
                          use_container_width=True)
                 
-                # Affiche les métriques détaillées si disponibles
+                # Display detailed metrics if available
                 if hasattr(st.session_state, 'confusion_matrix'):
                     cm = st.session_state.confusion_matrix
-                    if cm is not None and cm.size == 4:  # Vérifie que c'est une matrice 2x2
+                    if cm is not None and cm.size == 4:  # Check if it's a 2x2 matrix
                         tn, fp, fn, tp = cm.ravel()
                         st.info(f"""
                         **Détail des prédictions :**
@@ -1009,7 +1002,7 @@ def show_model_analysis(model_metrics):
                 cm = st.session_state.confusion_matrix
                 
                 # Affiche les métriques détaillées
-                if cm.size == 4:  # Vérifie que c'est une matrice 2x2
+                if cm.size == 4:  # Check if it's a 2x2 matrix
                     tn, fp, fn, tp = cm.ravel()
                     st.info(f"""
                     **Détail des prédictions :**
@@ -1019,7 +1012,7 @@ def show_model_analysis(model_metrics):
                     - Vrais Positifs (Correctement classés comme 'Grave') : {tp}
                     """)
                 
-                # Création du graphique
+                # Create the chart
                 fig_conf = px.imshow(
                     cm,
                     text_auto=True,
@@ -1058,7 +1051,7 @@ def show_model_analysis(model_metrics):
 def show_mlops_pipeline(pipeline_steps):
     st.header("Pipeline MLOps & Infrastructure")
     
-    # État du pipeline
+    # Pipeline status
     st.subheader("État Actuel du Pipeline")
     
     for step in pipeline_steps:
@@ -1069,7 +1062,7 @@ def show_mlops_pipeline(pipeline_steps):
             <div style="flex-grow: 1;">
                 <strong>{step['Step']}</strong>
                 <br>
-                <small style="color: #6B7280;">Durée: {step['Duration']}</small>
+                <small style="color: #6B7280;">Duration: {step['Duration']}</small>
             </div>
             <span style="color: #6B7280; font-size: 0.875rem;">{step['Status'].upper()}</span>
         </div>
@@ -1110,32 +1103,6 @@ def show_mlops_pipeline(pipeline_steps):
         
         for feature in mlops_features:
             st.markdown(feature)
-    
-    # Timeline du déploiement
-    st.subheader("Timeline de Déploiement")
-    
-    timeline_data = pd.DataFrame({
-        'Date': pd.date_range('2024-01-01', periods=6, freq='M'),
-        'Milestone': [
-            'Setup Infrastructure',
-            'Data Pipeline',
-            'Model Training',
-            'API Development', 
-            'Monitoring Setup',
-            'Production Deploy'
-        ],
-        'Status': ['Complete', 'Complete', 'Complete', 'Complete', 'Complete', 'In Progress']
-    })
-    
-    fig_timeline = px.timeline(
-        timeline_data,
-        x_start='Date',
-        x_end='Date',
-        y='Milestone',
-        color='Status',
-        title="Roadmap de Développement MLOps"
-    )
-    st.plotly_chart(fig_timeline, use_container_width=True)
 
 def show_mlflow():
     """Provides a link to the MLflow Experiment Tracking UI on DagsHub."""
@@ -1167,13 +1134,13 @@ def show_monitoring(drift_data):
     
     st.header("Monitoring du Système")
     
-    # Pas d'affichage des données de drift ici - supprimé à la demande de l'utilisateur
+    # No drift data display here - removed as per user request
     
-    # Section de contrôle du drift
-    st.markdown("### Contrôle du Drift Artificiel")
+    # Drift control section
+    st.markdown("### Artificial Drift Control")
     col1, col2 = st.columns(2)
     
-    # Configuration de l'API Evidently (host paramétrable via config.yaml ou variable d'environnement)
+    # Evidently API configuration (host configurable via config.yaml or environment variable)
     cfg_path = Path(__file__).resolve().parent.parent / "config.yaml"
     try:
         with open(cfg_path, "r") as f:
@@ -1187,7 +1154,7 @@ def show_monitoring(drift_data):
     health_url = f"{evidently_host}/health"
     set_drift_url = f"{evidently_host}/set_drift"
 
-    # Tentative de vérification de l'API (facultative, les boutons restent actifs même si l'API ne répond pas)
+    # Attempt to verify API (optional, buttons remain active even if API doesn't respond)
     try:
         response = requests.get(health_url, timeout=3)
         drift_api_available = response.status_code == 200
@@ -1216,19 +1183,19 @@ def show_monitoring(drift_data):
             except Exception as e:
                 st.error(f"Erreur lors de la connexion à l'API: {e}")
     
-    # URL du dashboard Grafana (utilise l'URL de base configurée dans l'environnement)
+    # Grafana dashboard URL (uses base URL configured in environment)
     grafana_base = os.getenv("GRAFANA_BASE_URL", "http://localhost:3000")
     
     # Utiliser le dashboard API standard au lieu d'un dashboard public
     dashboard_url = f"{grafana_base}/d/api_monitoring_dashboard_v2/api?orgId=1&refresh=5s&from=now-1h&to=now"
     
-    # Intégrer le dashboard dans un iframe
+    # Embed dashboard in an iframe
     components.html(
         f'<iframe src="{dashboard_url}&kiosk&theme=light" style="width:100%; height:80vh; border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
         height=600,
     )
     
-    # Afficher un message avec des instructions pour démarrer Grafana
+    # Display message with instructions to start Grafana
     st.info("""
     Pour démarrer Grafana, exécutez la commande suivante :
     ```
@@ -1271,7 +1238,7 @@ def show_interactive_demo():
         submitted = st.form_submit_button("Prédire la Gravité", type="primary")
 
     if submitted:
-        # Map valeurs texte -> codes numériques selon le modèle
+        # Map text values to numeric codes according to the model
         map_catu = {"Conducteur":1, "Passager":2, "Piéton":3, "Autre":1}
         map_sexe = {"Masculin":1, "Féminin":2}
         map_trajet = {
@@ -1354,15 +1321,29 @@ def show_interactive_demo():
         st.info("Remplissez le formulaire et cliquez sur 'Prédire' pour voir le résultat")
 
 
+
+def show_logs_infra():
+    # URL du dashboard public Grafana
+    grafana_url = "http://localhost:3000/public-dashboards/02e51b65ea8f4e8b83098ad46397b6b4"
+    
+    # Afficher l'iframe intégré
+    st.components.v1.iframe(
+        src=grafana_url,
+        width=1200,
+        height=800,
+        scrolling=True
+    )
+
+
 def show_evidently():
     """Embed Evidently AI dashboard inside Streamlit."""
     st.header("Evidently Report")
 
-    # L'URL pour la communication interne est récupérée depuis les variables d'environnement,
+    # The URL for internal communication is retrieved from environment variables,
     # ce qui est la bonne pratique avec Docker.
     internal_host = os.getenv("EVIDENTLY_BASE_URL", "http://evidently-api:8001")
     
-    # L'URL pour l'accès public (via le navigateur) peut être différente.
+    # The URL for public access (via browser) may be different.
     public_host = os.getenv("EVIDENTLY_PUBLIC_URL", "http://localhost:8001")
     
     embed_url = public_host.rstrip("/") + "/drift_full_report"
@@ -1370,14 +1351,14 @@ def show_evidently():
 
     with st.spinner("Loading Evidently report... This may take a few moments."):
         try:
-            # On vérifie la disponibilité de l'API Evidently en utilisant son adresse interne.
-            # C'est la communication de container à container.
+            # We check the availability of the Evidently API using its internal address.
+            # This is container-to-container communication.
             response = requests.get(health_url, timeout=5)
-            response.raise_for_status()  # Lève une exception pour les codes d'erreur HTTP (4xx ou 5xx).
+            response.raise_for_status()  # Raises an exception for HTTP error codes (4xx or 5xx).
 
             st.info(f"Si le rapport ne s'affiche pas, [cliquez ici pour l'ouvrir dans un nouvel onglet]({embed_url}).")
             
-            # L'iframe utilise l'URL publique, car c'est le navigateur du client qui fait la requête.
+            # The iframe uses the public URL, as it's the client's browser making the request.
             components.html(
                 f'<iframe src="{embed_url}" style="width:100%; height:120vh; border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
                 height=1200,
@@ -1393,13 +1374,13 @@ def show_evidently():
             st.error(f"Une erreur inattendue est survenue lors du chargement du rapport Evidently : {e}")
 
 
-# Authentification - Utilisation d'une approche personnalisée pour éviter les conflits de clés
+# Authentication - Using a custom approach to avoid key conflicts
 if 'authentication_status' not in st.session_state:
     st.session_state['authentication_status'] = None
     st.session_state['username'] = None
     st.session_state['name'] = None
 
-# Création d'un formulaire de connexion personnalisé
+# Creating a custom login form
 if st.session_state['authentication_status'] != True:
     with st.form(key="login_form"):
         st.subheader("Connexion")
@@ -1412,7 +1393,7 @@ if st.session_state['authentication_status'] != True:
             config = load_auth_config()
             credentials = config['credentials']
             
-            # Vérification des identifiants
+            # Credentials verification
             if username in credentials['usernames']:
                 stored_password = credentials['usernames'][username]['password']
                 if bcrypt.checkpw(password.encode(), stored_password.encode()):
@@ -1429,7 +1410,7 @@ if st.session_state['authentication_status'] != True:
                 st.error('Identifiant/mot de passe incorrect')
                 st.stop()
     
-    # Arrêt de l'exécution si l'utilisateur n'est pas connecté
+    # Stop execution if user is not logged in
     if st.session_state['authentication_status'] != True:
         st.stop()
 
@@ -1488,7 +1469,7 @@ def add_sidebar_info(accidents_count):
     st.sidebar.subheader("Informations Projet")
     
     
-    # Récupération des métriques MLflow et calcul des F1-score par classe
+    # Get MLflow metrics and calculate F1-scores per class
     metrics_dict = get_best_model_metrics() or {}
     overall_accuracy = round((metrics_dict.get("Accuracy", 0)*100) if metrics_dict.get("Accuracy",0)<=1 else metrics_dict.get("Accuracy",0), 1)
     overall_precision = round((metrics_dict.get("Precision", 0)*100) if metrics_dict.get("Precision",0)<=1 else metrics_dict.get("Precision",0), 1)
@@ -1505,7 +1486,7 @@ def add_sidebar_info(accidents_count):
     f1_pas = "N/A" if f1_pas is None else f1_pas
     f1_grave = "N/A" if f1_grave is None else f1_grave
     
-    # Formatage du nombre avec des espaces comme séparateurs de milliers
+    # Format number with spaces as thousand separators
     formatted_count = f"{accidents_count:,}".replace(",", " ")
     
     st.sidebar.markdown(f"""
@@ -1556,16 +1537,16 @@ if __name__ == "__main__":
     authenticator.login('main', key='login_main')
 
     if st.session_state["authentication_status"]:
-        # Le contenu de l'application est affiché après une connexion réussie
+        # The application content is displayed after successful login
         with st.sidebar:
-            st.write(f'Bienvenue *{st.session_state["name"]}*')
+            st.write(f'Welcome *{st.session_state["name"]}*')
             authenticator.logout('Logout', 'main')
 
-        # Récupération du rôle de l'utilisateur
+        # Get user role
         user_role = get_user_role(st.session_state['username'])
         st.session_state['role'] = user_role
 
-        # Récupération du nombre d'accidents au démarrage
+        # Get accident count at startup
         accidents_count = 0
         try:
             result = fetch_data_from_db("SELECT COUNT(*) as count FROM accidents")

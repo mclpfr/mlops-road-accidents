@@ -21,7 +21,7 @@
   "panels": [
     {
       "datasource": "Loki",
-      "description": "Affiche les logs en temps réel de tous les conteneurs",
+      "description": "Displays real-time logs for all containers",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -94,12 +94,12 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "{container=~\"$container\", service=~\"$service\"}",
+          "expr": "{container=~\".+\"}",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Logs des conteneurs",
+      "title": "Container logs",
       "type": "logs"
     },
     {
@@ -197,54 +197,7 @@
   "style": "dark",
   "tags": ["logs", "containers", "monitoring"],
   "templating": {
-    "list": [
-      {
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "loki",
-          "uid": "Loki"
-        },
-        "hide": 0,
-        "includeAll": true,
-        "allValue": ".+",
-        "label": "Container",
-        "multi": true,
-        "name": "container",
-        "options": [],
-        "query": "label_values(container)",
-        "refresh": 1,
-        "skipUrlSync": false,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "loki",
-          "uid": "Loki"
-        },
-        "hide": 0,
-        "includeAll": true,
-        "allValue": ".+",
-        "label": "Service",
-        "multi": true,
-        "name": "service",
-        "options": [],
-        "query": "label_values(service)",
-        "refresh": 1,
-        "skipUrlSync": false,
-        "sort": 1,
-        "type": "query"
-      }
-    ]
+    "list": []
   },
   "time": {
     "from": "now-1h",
@@ -255,7 +208,7 @@
     "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
   },
   "timezone": "browser",
-  "title": "Container Logs",
+  "title": "Container logs",
   "uid": "container-logs-dashboard",
   "version": 1,
   "weekStart": ""

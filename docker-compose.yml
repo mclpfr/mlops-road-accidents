@@ -19,7 +19,6 @@ x-airflow-common: &airflow-common
     - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
     - AIRFLOW__WEBSERVER__RBAC=False
     - AIRFLOW__WEBSERVER__AUTHENTICATE=False
-    # Dummy key (non-empty, non-default) to satisfy Airflow >=2.7 security check
     - AIRFLOW__WEBSERVER__SECRET_KEY=mydummysecret123
     - AIRFLOW_HOME=/opt/airflow
     - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.deny_all
@@ -259,7 +258,6 @@ services:
       - USER_ID=1000
       - GROUP_ID=1000
       - HOSTNAME=${HOSTNAME}
-    network_mode: "host"
     pid: "host"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -270,6 +268,8 @@ services:
       - "-config.file=/etc/promtail/config.yml"
       - "-client.external-labels=host=${HOSTNAME}"
     restart: unless-stopped
+    networks:
+      - default
     depends_on:
       - loki
 
