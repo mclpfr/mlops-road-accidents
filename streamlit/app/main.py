@@ -3,6 +3,10 @@ import os
 import sys
 import logging
 from logging.handlers import RotatingFileHandler
+import pandas as pd
+import requests
+import docker
+import socket
 
 # Create logs directory if it doesn't exist
 log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
@@ -1076,15 +1080,109 @@ def show_mlops_pipeline(pipeline_steps):
     with col1:
         st.subheader("Services Infrastructure")
         
-        services = {
-            'Service': ['MLflow', 'PostgreSQL', 'FastAPI', 'Prometheus', 'Grafana', 'Airflow'],
-            'Port': [5000, 5432, 8000, 9090, 3000, 8080],
-            'Status': ['🟢 Running', '🟢 Running', '🟢 Running', '🟢 Running', '🟢 Running', '🟢 Running'],
-            'CPU': ['12%', '8%', '15%', '5%', '7%', '10%'],
-            'Memory': ['245MB', '512MB', '128MB', '89MB', '156MB', '324MB']
+        services_config = {
+            'MLflow': {
+                'container_name': None, # External
+                'port': 'N/A',
+                'health_check_url': 'https://dagshub.com/mclpfr/mlops-road-accidents.mlflow',
+                'check_type': 'http'
+            },
+            'PostgreSQL': {
+                'container_name': 'postgres_service',
+                'port': 5432,
+                'hostname': 'postgres_service',
+                'check_type': 'tcp'
+            },
+            'FastAPI': {
+                'container_name': 'api_service',
+                'port': 8000,
+                'health_check_url': 'http://api_service:8000/docs',
+                'check_type': 'http'
+            },
+            'Prometheus': {
+                'container_name': 'prometheus_service',
+                'port': 9090,
+                'health_check_url': 'http://prometheus_service:9090/-/healthy',
+                'check_type': 'http'
+            },
+            'Grafana': {
+                'container_name': 'grafana_service',
+                'port': 3000,
+                'health_check_url': 'http://grafana_service:3000/api/health',
+                'check_type': 'http'
+            },
+            'Airflow': {
+                'container_name': 'airflow-webserver',
+                'port': 8080,
+                'health_check_url': 'http://airflow-webserver:8080/health',
+                'check_type': 'http'
+            },
+            'Evidently': {
+                'container_name': 'evidently-api',
+                'port': 8001,
+                'health_check_url': 'http://evidently-api:8001/health',
+                'check_type': 'http'
+            }
         }
-        
-        services_df = pd.DataFrame(services)
+
+        def get_http_status(url):
+            if not url:
+                return "⚪ Unknown"
+            try:
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200 or response.history:
+                    return "🟢 Running"
+            except requests.exceptions.RequestException:
+                pass
+            return "🔴 Stopped"
+
+        def check_tcp_service(hostname, port):
+            try:
+                with socket.create_connection((hostname, port), timeout=3):
+                    return "🟢 Running"
+            except (socket.timeout, socket.error):
+                return "🔴 Stopped"
+
+        def get_container_stats(container_name):
+            try:
+                client = docker.from_env()
+                container = client.containers.get(container_name)
+                stats = container.stats(stream=False)
+                
+                cpu_delta = stats['cpu_stats']['cpu_usage']['total_usage'] - stats['precpu_stats']['cpu_usage']['total_usage']
+                system_cpu_delta = stats['cpu_stats']['system_cpu_usage'] - stats['precpu_stats']['system_cpu_usage']
+                number_cpus = stats['cpu_stats']['online_cpus']
+                cpu_usage = (cpu_delta / system_cpu_delta) * number_cpus * 100.0 if system_cpu_delta > 0 else 0
+                
+                memory_usage = stats['memory_stats']['usage'] / (1024 * 1024)
+                
+                return f"{cpu_usage:.2f}%", f"{memory_usage:.2f}MB"
+            except docker.errors.NotFound:
+                return "N/A", "N/A"
+            except Exception:
+                return "Error", "Error"
+
+        services_data = []
+        for service_name, config in services_config.items():
+            status = "⚪ Unknown"
+            if config['check_type'] == 'http':
+                status = get_http_status(config.get('health_check_url'))
+            elif config['check_type'] == 'tcp':
+                status = check_tcp_service(config.get('hostname'), config.get('port'))
+
+            cpu, memory = "Externe", "Externe"
+            if config['container_name']:
+                cpu, memory = get_container_stats(config['container_name'])
+
+            services_data.append({
+                'Service': service_name,
+                'Port': config['port'],
+                'Status': status,
+                'CPU': cpu,
+                'Memory': memory
+            })
+
+        services_df = pd.DataFrame(services_data)
         st.dataframe(services_df, hide_index=True, use_container_width=True)
     
     with col2:
