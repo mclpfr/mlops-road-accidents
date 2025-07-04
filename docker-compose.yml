@@ -210,11 +210,11 @@ services:
           cpus: '0.3'
           memory: 512M
 
-  api:
-    container_name: api_service
+  auth_api:
+    container_name: auth_api_service
     build:
       context: .
-      dockerfile: src/api/Dockerfile
+      dockerfile: src/auth_api/Dockerfile
     environment:
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=INFO
@@ -245,6 +245,42 @@ services:
           memory: 256M
     depends_on:
       - train_model
+
+  predict_api:
+    container_name: predict_api_service
+    build:
+      context: .
+      dockerfile: src/predict_api/Dockerfile
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+    ports:
+      - "8001:8001"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "api"
+        labels: "logging"
+        env: "logging_job"
+    labels:
+      - "logging=promtail"
+      - "logging_job=api"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.8'
+          memory: 1G
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    depends_on:
+      - auth_api
 
   streamlit:
     container_name: streamlit
