@@ -1,5 +1,4 @@
-from fastapi import FastAPI
-from fastapi import Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -9,7 +8,7 @@ from typing import Optional
 from prometheus_fastapi_instrumentator import Instrumentator
 
 
-app = FastAPI()
+router = APIRouter()
 
 # Instrumentation Prometheus
 Instrumentator().instrument(app).expose(app)
@@ -89,11 +88,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return user
 
-@app.get("/")
+@router.get("/")
 def verify_api():
     return {"message": "Bienvenue ! L'API est fonctionnelle."}
 
-@app.post("/token", response_model=Token)
+@router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     user = authenticate_user(fake_users_db, form_data.username, form_data.password)
     if not user:
@@ -108,10 +107,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.get("/me", response_model=User)
+@router.get("/me", response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
