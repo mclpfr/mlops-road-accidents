@@ -29,7 +29,7 @@ COPY src/api/main.py .
 COPY src/api/predict_api.py .
 
 # Exposer le port sur lequel l'application va tourner
-EXPOSE 8001
+EXPOSE 8000
 
 # Commande pour lancer l'application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
