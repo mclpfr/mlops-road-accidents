@@ -25,8 +25,8 @@ RUN mkdir -p /app/data /app/data/out
 COPY config.yaml .
 
 # Copier le reste de l'application
-COPY src/api/main.py .
-COPY src/api/predict_api.py .
+COPY src/predict_api/main.py .
+COPY src/predict_api/predict_api.py .
 
 # Exposer le port sur lequel l'application va tourner
 EXPOSE 8000

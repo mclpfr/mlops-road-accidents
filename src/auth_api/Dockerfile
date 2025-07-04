@@ -25,8 +25,8 @@ RUN mkdir -p /app/data /app/data/out
 COPY config.yaml .
 
 # Copier le reste de l'application
-COPY src/api/main.py .
-COPY src/api/auth_api.py .
+COPY src/auth_api/main.py .
+COPY src/auth_api/auth_api.py .
 
 # Exposer le port sur lequel l'application va tourner
 EXPOSE 7999
