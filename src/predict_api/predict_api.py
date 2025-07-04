@@ -9,10 +9,13 @@ import pandas as pd
 import mlflow
 import mlflow.sklearn
 import numpy as np
+from fastapi import FastAPI
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError, Field
 from typing import Literal
+from prometheus_fastapi_instrumentator import Instrumentator
+
 
 # Essayer d'importer depuis auth_api, sinon utiliser auth_api_stub
 try:
@@ -29,9 +32,12 @@ except ImportError:
         async def get_current_user(token: str = None):
             return User()
 
-router = APIRouter()
+app = FastAPI()
 
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
+
+# Instrumentation Prometheus
+Instrumentator().instrument(app).expose(app)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -142,7 +148,7 @@ def find_best_model(config_path="config.yaml"):
 
 model_use, model_version_use = find_best_model(config_path="config.yaml")
 
-@router.post("/predict")
+@app.post("/predict")
 async def predict(data: InputData, current_user: User = Depends(get_current_user)):
     try:
         df = pd.DataFrame([data.model_dump()])
@@ -184,7 +190,7 @@ async def predict(data: InputData, current_user: User = Depends(get_current_user
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
-@router.post("/predict_csv")
+@app.post("/predict_csv")
 async def predict_csv(file_request: UploadFile = File(), current_user: User = Depends(get_current_user)):
     try:
         contents = await file_request.read()
@@ -227,7 +233,7 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
-@router.get("/reload")
+@app.get("/reload")
 async def reload_model(current_user: User = Depends(get_current_user)):
     global model_use, model_version_use
     model_up, model_version_up = find_best_model(config_path="config.yaml")
@@ -237,3 +243,7 @@ async def reload_model(current_user: User = Depends(get_current_user)):
         return {"user": current_user.username, "message": "Mise à jour d'un nouveau modèle effectué."}
     else:
         return {"user": current_user.username, "message": "Il n'y a pas de mise à jour d'un nouveau modèle."}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
