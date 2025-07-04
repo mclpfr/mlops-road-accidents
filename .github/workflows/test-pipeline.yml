@@ -109,24 +109,45 @@ jobs:
             exit 1
           fi
 
-      - name: Build API Docker image
-        run: docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t api_service -f src/api/Dockerfile .
+      - name: Build AUTH_API Docker image
+        run: docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t auth_api_service -f src/auth_api/Dockerfile .
 
-      - name: Run API container
+      - name: Run AUTH_API container
         run: |
-          docker run -d --name api_service -p 8000:8000 \
+          docker run -d --name auth_api_service -p 7999:7999 \
             -v $(pwd)/models:/app/models \
             -v $(pwd)/data:/app/data \
-            api_service
+            auth_api_service
 
-      - name: Wait for API to be ready
+      - name: Wait for AUTH_API to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -s http://localhost:7999/docs; then
+              echo "API is up!"
+              break
+            fi
+            echo "Waiting for AUTH_API..."
+            sleep 2
+          done
+
+      - name: Build PREDICT_API Docker image
+        run: docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t predict_api_service -f src/predict_api/Dockerfile .
+
+      - name: Run PREDICT_API container
+        run: |
+          docker run -d --name predict_api_service -p 8000:8000 \
+            -v $(pwd)/models:/app/models \
+            -v $(pwd)/data:/app/data \
+            predict_api_service
+
+      - name: Wait for PREDICT_API to be ready
         run: |
           for i in {1..30}; do
             if curl -s http://localhost:8000/docs; then
               echo "API is up!"
               break
             fi
-            echo "Waiting for API..."
+            echo "Waiting for PREDICT_API..."
             sleep 2
           done
 
