@@ -110,13 +110,13 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 
 def test_missing_jwt_token():
     '''Test de l'authentification JWT : jeton manquant'''
-    response = requests.post(PREDICT_URL, json={}, timeout=10)
+    response = requests.post(LOGIN_URL, json={}, timeout=10)
     assert response.status_code == 401
 
 def test_invalid_jwt_token():
     '''Test de l'authentification JWT : jeton invalide'''
     headers = {"Authorization": "Bearer invalid_token"}
-    response = requests.post(PREDICT_URL, headers=headers, json={}, timeout=10)
+    response = requests.post(LOGIN_URL, headers=headers, json={}, timeout=10)
     assert response.status_code == 401
 
 def test_expired_jwt_token():
@@ -124,7 +124,7 @@ def test_expired_jwt_token():
     data = {"sub": "johndoe"}
     token = create_access_token(data, expires_delta=timedelta(seconds=-1))
     headers = {"Authorization": f"Bearer {token}"}
-    response = requests.post(PREDICT_URL, headers=headers, json={}, timeout=10)
+    response = requests.post(LOGIN_URL, headers=headers, json={}, timeout=10)
     assert response.status_code == 401
 
 def test_valid_jwt_token():
@@ -132,7 +132,7 @@ def test_valid_jwt_token():
     data = {"sub": "johndoe"}
     token = create_access_token(data)
     headers = {"Authorization": f"Bearer {token}"}
-    response = requests.post(PREDICT_URL, headers=headers, json={}, timeout=10)
+    response = requests.post(LOGIN_URL, headers=headers, json={}, timeout=10)
     assert response.status_code != 401
 
 def test_login_success():
