@@ -607,4 +607,5 @@ docker-compose up train_model
 
 **Marco LOPES** - MLOps & DevOps Engineer
 - LinkedIn: [linkedin.com/in/marco-lopes-084063336](https://www.linkedin.com/in/marco-lopes-084063336/)
-**Francis CHIN**
+
+**Francis CHIN** - MLOps & Data Scientist
