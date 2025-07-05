@@ -13,7 +13,6 @@ from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError, Field
 from typing import Literal
-from prometheus_fastapi_instrumentator import Instrumentator
 
 
 # Essayer d'importer depuis auth_api, sinon utiliser auth_api_stub
@@ -34,9 +33,6 @@ except ImportError:
 router = APIRouter()
 
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-
-# Instrumentation Prometheus
-Instrumentator().instrument(app).expose(app)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -5,13 +5,9 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from prometheus_fastapi_instrumentator import Instrumentator
 
 
 router = APIRouter()
-
-# Instrumentation Prometheus
-Instrumentator().instrument(app).expose(app)
 
 # Configuration de la sécurité
 JWT_SECRET_KEY = "key"
