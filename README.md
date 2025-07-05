@@ -10,7 +10,7 @@ Ce projet MLOps complet prédit la gravité des accidents de la route en France 
 - **Pipeline automatisé** : Extraction, données synthétiques, préparation, entraînement et déploiement automatiques
 - **Monitoring complet** : 
   - Détection de drift des données avec Evidently
-  - Surveillance des performances API en temps réel
+  - Surveillance des performances APIs en temps réel
   - Dashboards de monitoring système et métier
   - Re-entraînement automatique sur alerte de drift
 - **API REST** : Service de prédiction sécurisé avec authentification JWT
@@ -74,7 +74,7 @@ docker-compose up train_model
 docker-compose up import_data
 
 # API et base de données
-docker-compose up api postgres
+docker-compose up auth_api predict_api postgres
 
 # Monitoring complet
 docker-compose up prometheus grafana evidently-api
@@ -86,6 +86,7 @@ docker-compose up airflow-webserver airflow-scheduler
 
 | Service | URL | Description |
 |---------|-----|-------------|
+| API Authentification | http://localhost:7999/docs | API REST avec documentation Swagger |
 | API Prédictions | http://localhost:8000/docs | API REST avec documentation Swagger |
 | Grafana | http://localhost:3000 | 4 Dashboards de monitoring |
 | Prometheus | http://localhost:9090 | Métriques système et modèle |
@@ -352,8 +353,8 @@ Le projet utilise une approche innovante avec **génération de données synthé
 
 ### Authentification
 ```bash
-curl -X POST http://localhost:8000/auth/token \
-  -d "username=johndoe&password=johnsecret"
+curl -X POST http://localhost:7999/auth/token \
+  -d "username=user1&password=pass1"
 ```
 
 ### Prédiction Unitaire
@@ -384,7 +385,8 @@ curl -X POST http://localhost:8000/protected/predict_csv \
 pytest tests/ -v
 
 # Test de l'API (après démarrage)
-pytest tests/test_api.py -v
+pytest tests/test_auth_api.py -v
+pytest tests/test_predict_api.py -v
 
 # Vérification des données
 pytest tests/test_check_data_*.py -v
@@ -413,7 +415,8 @@ mlops-road-accidents/
 │   ├── synthet_data/        # Génération de données synthétiques (50/50)
 │   ├── prepare_data/        # Préparation et feature engineering
 │   ├── train_model/         # Entraînement et MLflow
-│   ├── api/                 # API FastAPI
+│   ├── auth_api/            # API FastAPI d'authentification
+│   ├── predict_api/         # API FastAPI de prédictions
 │   ├── import_data/         # Import en base PostgreSQL
 │   └── postgresql/          # Schéma base de données
 ├── airflow/                 # DAGs et configuration Airflow
@@ -502,7 +505,8 @@ Le projet utilise GitHub Actions pour automatiser le processus d'intégration co
      - `synthet_data`
      - `prepare_data`
      - `train_model`
-     - `api`
+     - `auth_api`
+     - `predict_api`
      - `postgres`
      - `import_data`
 
@@ -603,3 +607,4 @@ docker-compose up train_model
 
 **Marco LOPES** - MLOps & DevOps Engineer
 - LinkedIn: [linkedin.com/in/marco-lopes-084063336](https://www.linkedin.com/in/marco-lopes-084063336/)
+**Francis CHIN**
