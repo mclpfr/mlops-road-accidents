@@ -11,7 +11,6 @@ import mlflow.sklearn
 import numpy as np
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-# from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError, Field
 from typing import Literal
 import jwt
@@ -106,12 +105,38 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except jwt.PyJWTError:
+    except jwt.PyJWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
+        ) from e
+
+def get_current_user_role(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
         )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        role: str = payload.get("role")
+        if username is None or role is None:
+            raise credentials_exception
+        return {"username": username, "role": role}
+    except jwt.PyJWTError as e:
+        raise credentials_exception from e
+
+def is_admin(user: dict = Depends(get_current_user_role)):
+    print(user["role"])
+    if user["role"] != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required",
+        )
+    return user
 
 def find_best_model(config_path="config.yaml"):
     try:
@@ -160,6 +185,10 @@ def find_best_model(config_path="config.yaml"):
         logger.error(f"An error occurred during best model finding: {str(e)}")
 
 model_use, model_version_use = find_best_model(config_path="config.yaml")
+
+@router.get("/")
+def verify_api():
+    return {"message": "Bienvenue ! L'API prédiction est fonctionnelle."}
 
 @router.post("/predict")
 async def predict(data: InputData, payload: dict = Depends(verify_token)):
@@ -249,13 +278,12 @@ async def predict_csv(file_request: UploadFile = File(), payload: dict = Depends
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 @router.get("/reload")
-async def reload_model(payload: dict = Depends(verify_token)):
-    username = payload.get("sub")
+async def reload_model(user: dict = Depends(is_admin)):
     global model_use, model_version_use
     model_up, model_version_up = find_best_model(config_path="config.yaml")
     if model_version_up > model_version_use:
         model_use = model_up
         model_version_use = model_version_up
-        return {"user": username, "message": "Mise à jour d'un nouveau modèle effectué."}
+        return {"user": user["username"], "message": "Mise à jour d'un nouveau modèle effectué."}
     else:
-        return {"user": username, "message": "Il n'y a pas de mise à jour d'un nouveau modèle."}
+        return {"user": user["username"], "message": "Il n'y a pas de mise à jour d'un nouveau modèle."}

@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-#from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
@@ -22,6 +21,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 class User(BaseModel):
     username: str
     hashed_password: str
+    role: str = "user"  # Par défaut, le rôle est 'user'
 
 class Token(BaseModel):
     access_token: str
@@ -31,9 +31,15 @@ class Token(BaseModel):
 fake_users_db = {
     "user1": {
         "username": "user1",
-        "hashed_password": pwd_context.hash("pass1")
+        "hashed_password": pwd_context.hash("pass1"),
+        "role": "user"
+        },
+    "admin": {
+        "username": "admin",
+        "hashed_password": pwd_context.hash("adminpass"),
+        "role": "admin"
+        }
     }
-}
 
 # OAuth2 schema pour la récupération du token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -87,23 +93,24 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 @router.get("/")
 def verify_api():
-    return {"message": "Bienvenue ! L'API est fonctionnelle."}
+    return {"message": "Bienvenue ! L'API authentification est fonctionnelle."}
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = authenticate_user(fake_users_db, form_data.username, form_data.password)
-    if not user:
+    # Vérifiez les informations d'identification de l'utilisateur ici
+    if authenticate_user(fake_db=fake_users_db, username=form_data.username, password=form_data.password):
+        user = get_user(fake_users_db, form_data.username)
+        role = user.role if user else "user"
+    else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+            )
+    
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
+        data={"sub": form_data.username, "role": role},
+        expires_delta=access_token_expires
+        )
     return {"access_token": access_token, "token_type": "bearer"}
-
-@router.get("/me", response_model=User)
-async def read_users_me(current_user: User = Depends(get_current_user)):
-    return current_user
