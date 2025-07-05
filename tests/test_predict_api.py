@@ -9,6 +9,7 @@ JWT_ALGORITHM = "HS256"
 
 # URL pour le endpoint /predict
 PREDICT_URL = "http://127.0.0.1:8000/protected/predict"
+RELOAD_URL = "http://127.0.0.1:8000/protected/reload"
 
 # Context de hachage des mots de passe
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -110,3 +111,19 @@ def test_predict_missing_jwt():
     test_data = valid_data
     response = requests.post(PREDICT_URL, json=test_data, timeout=10)
     assert response.status_code == 403
+
+def test_predict_reload_error():
+    '''Test de l'API de rechargement du modèle : échec (utilisateur non autorisé)'''
+    data = {"sub": "user1", "role": "user"}
+    token = create_access_token(data)
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(RELOAD_URL, headers=headers, timeout=10)
+    assert response.status_code == 403
+
+def test_predict_reload_success():
+    '''Test de l'API de rechargement du modèle : succès (avec rôle admin)'''
+    data = {"sub": "user1", "role": "admin"}
+    token = create_access_token(data)
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(RELOAD_URL, headers=headers, timeout=10)
+    assert response.status_code == 200
