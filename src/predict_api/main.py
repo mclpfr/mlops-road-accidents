@@ -1,9 +1,9 @@
 from fastapi import FastAPI
-from predict_routes import router as predict_router
+from predict_api import router as predict_api
 
 app = FastAPI()
 
-app.include_router(predict_router, prefix="/predict", tags=["predict"])
+app.include_router(predict_api, prefix="/predict", tags=["predict"])
 
 if __name__ == "__main__":
     import uvicorn
