@@ -10,27 +10,33 @@ import mlflow
 import mlflow.sklearn
 import numpy as np
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, status
-from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+# from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError, Field
 from typing import Literal
+import jwt
 
 
 # Essayer d'importer depuis auth_api, sinon utiliser auth_api_stub
-try:
-    from auth_api import get_current_user, User
-except ImportError:
-    try:
-        from auth_api_stub import get_current_user, User
-    except ImportError:
-        # Définir des stubs si aucun module n'est disponible
-        class User:
-            username: str
-            hashed_password: str
+# try:
+#     from auth_api import get_current_user, User
+# except ImportError:
+#     try:
+#         from auth_api_stub import get_current_user, User
+#     except ImportError:
+#         # Définir des stubs si aucun module n'est disponible
+#         class User:
+#             username: str
+#             hashed_password: str
         
-        async def get_current_user(token: str = None):
-            return User()
+#         async def get_current_user(token: str = None):
+#             return User()
+
+SECRET_KEY = "key"
+ALGORITHM = "HS256"
 
 router = APIRouter()
+security = HTTPBearer()
 
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
@@ -95,6 +101,18 @@ def load_config(config_path="config.yaml"):
         }
         return config
 
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
 def find_best_model(config_path="config.yaml"):
     try:
         config = load_config(config_path)
@@ -144,8 +162,9 @@ def find_best_model(config_path="config.yaml"):
 model_use, model_version_use = find_best_model(config_path="config.yaml")
 
 @router.post("/predict")
-async def predict(data: InputData, current_user: User = Depends(get_current_user)):
+async def predict(data: InputData, payload: dict = Depends(verify_token)):
     try:
+        username = payload.get("sub")
         df = pd.DataFrame([data.model_dump()])
         model_features = [
             "catu",
@@ -175,7 +194,7 @@ async def predict(data: InputData, current_user: User = Depends(get_current_user
         confidence = float(np.max(proba_row))
         
         return {
-            "user": current_user.username, 
+            "user": username,
             "prediction": y_pred.tolist(),
             "confidence": confidence
         }
@@ -186,8 +205,9 @@ async def predict(data: InputData, current_user: User = Depends(get_current_user
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 @router.post("/predict_csv")
-async def predict_csv(file_request: UploadFile = File(), current_user: User = Depends(get_current_user)):
+async def predict_csv(file_request: UploadFile = File(), payload: dict = Depends(verify_token)):
     try:
+        username = payload.get("sub")
         contents = await file_request.read()
         df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
         records = df.to_dict(orient='records')
@@ -223,18 +243,19 @@ async def predict_csv(file_request: UploadFile = File(), current_user: User = De
         df_report = pd.DataFrame(report).transpose()
         df_report.to_csv("data/out/classification_report.csv")
 
-        return {"user": current_user.username, "message": f"Prédiction effectuée avec succès avec le modèle version {model_version_use}"}
+        return {"user": username, "message": f"Prédiction effectuée avec succès avec le modèle version {model_version_use}"}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 @router.get("/reload")
-async def reload_model(current_user: User = Depends(get_current_user)):
+async def reload_model(payload: dict = Depends(verify_token)):
+    username = payload.get("sub")
     global model_use, model_version_use
     model_up, model_version_up = find_best_model(config_path="config.yaml")
     if model_version_up > model_version_use:
         model_use = model_up
         model_version_use = model_version_up
-        return {"user": current_user.username, "message": "Mise à jour d'un nouveau modèle effectué."}
+        return {"user": username, "message": "Mise à jour d'un nouveau modèle effectué."}
     else:
-        return {"user": current_user.username, "message": "Il n'y a pas de mise à jour d'un nouveau modèle."}
+        return {"user": username, "message": "Il n'y a pas de mise à jour d'un nouveau modèle."}

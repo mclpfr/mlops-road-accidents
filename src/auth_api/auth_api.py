@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
+#from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+import jwt
 
 
 router = APIRouter()
@@ -28,9 +29,9 @@ class Token(BaseModel):
 
 # Exemple de base de données utilisateur
 fake_users_db = {
-    "johndoe": {
-        "username": "johndoe",
-        "hashed_password": pwd_context.hash("johnsecret")
+    "user1": {
+        "username": "user1",
+        "hashed_password": pwd_context.hash("pass1")
     }
 }
 

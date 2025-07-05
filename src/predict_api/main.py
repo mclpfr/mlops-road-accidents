@@ -5,7 +5,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
 
-app.include_router(predict_api, prefix="/predict", tags=["predict"])
+app.include_router(predict_api, prefix="/protected", tags=["predict"])
 
 # Instrumentation Prometheus
 Instrumentator().instrument(app).expose(app)
