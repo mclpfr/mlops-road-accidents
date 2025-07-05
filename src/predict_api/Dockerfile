@@ -27,6 +27,8 @@ COPY config.yaml .
 # Copier le reste de l'application
 COPY src/predict_api/main.py .
 COPY src/predict_api/predict_api.py .
+# Include authentication module so predict_api can import it
+COPY src/auth_api/auth_api.py ./auth_api.py
 
 # Exposer le port sur lequel l'application va tourner
 EXPOSE 8000

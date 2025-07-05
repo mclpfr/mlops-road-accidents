@@ -26,7 +26,7 @@
       "datasource": "Prometheus",
       "targets": [
         {
-          "expr": "time() - process_start_time_seconds{job=~\"api|api_service\"}",
+          "expr": "time() - process_start_time_seconds{job=~\"api|predict_api_service\"}",
           "legendFormat": "Uptime"
         }
       ],
@@ -278,7 +278,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{name=\"api_service\"}[1m])) by (name) * 100",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{name=\"predict_api_service\"}[1m])) by (name) * 100",
           "legendFormat": "{{name}}",
           "refId": "A"
         }
@@ -314,7 +314,7 @@
       },
       "targets": [
         {
-          "expr": "container_memory_usage_bytes{name=\"api_service\"} / 1024 / 1024",
+          "expr": "container_memory_usage_bytes{name=\"predict_api_service\"} / 1024 / 1024",
           "legendFormat": "{{name}}",
           "refId": "A"
         }

@@ -5,6 +5,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 app = FastAPI()
 
+# Expose protected endpoints for predictions
 app.include_router(predict_api, prefix="/protected", tags=["predict"])
 
 # Instrumentation Prometheus
