@@ -16,9 +16,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Données de test pour l'authentification
 valid_credentials = {
-    "username": "johndoe",
+    "username": "user1",
     # "hashed_password": pwd_context.hash("johnsecret")
-    "password": "johnsecret"
+    "password": "pass1"
     }
 
 invalid_credentials = {
@@ -64,8 +64,8 @@ invalid_data = {
 
 # Exemple
 # fake_users_db = {
-#     "johndoe": {
-#         "username": "johndoe",
+#     "user1": {
+#         "username": "user1",
 #         "hashed_password": pwd_context.hash("johnsecret")
 #     }
 # }
@@ -112,7 +112,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 def test_missing_jwt_token():
     '''Test de l'authentification JWT : jeton manquant'''
     response = requests.post(PREDICT_URL, json={}, timeout=10)
-    assert response.status_code == 401
+    assert response.status_code == 403
 
 def test_invalid_jwt_token():
     '''Test de l'authentification JWT : jeton invalide'''
@@ -122,7 +122,7 @@ def test_invalid_jwt_token():
 
 def test_expired_jwt_token():
     '''Test de l'authentification JWT : jeton expiré'''
-    data = {"sub": "johndoe"}
+    data = {"sub": "user1"}
     token = create_access_token(data, expires_delta=timedelta(seconds=-1))
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.post(PREDICT_URL, headers=headers, json={}, timeout=10)
@@ -130,7 +130,7 @@ def test_expired_jwt_token():
 
 def test_valid_jwt_token():
     '''Test de l'authentification JWT : jeton valide'''
-    data = {"sub": "johndoe"}
+    data = {"sub": "user1"}
     token = create_access_token(data)
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.post(PREDICT_URL, headers=headers, json={}, timeout=10)
