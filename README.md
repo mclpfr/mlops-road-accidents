@@ -13,7 +13,9 @@ Ce projet MLOps complet prédit la gravité des accidents de la route en France 
   - Surveillance des performances APIs en temps réel
   - Dashboards de monitoring système et métier
   - Re-entraînement automatique sur alerte de drift
-- **API REST** : Service de prédiction sécurisé avec authentification JWT
+- **API REST** :
+  - Service d'authentification JWT
+  - Service de prédiction sécurisé avec authentification JWT
 
 ## Architecture du Système
 
