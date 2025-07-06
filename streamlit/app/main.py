@@ -1595,8 +1595,8 @@ def add_footer():
                 <a href="https://www.linkedin.com/in/marco-lopes-084063336/">linkedin.com/in/marco-lopes-084063336</a>
             </div>
             <div>
-                <strong>📊 Portfolio:</strong><br>
-                <a href="https://marco-lopes-portfolio.com">marco-lopes-portfolio.com</a>
+                <strong>Portfolio:</strong><br>
+                <a href="https://mclpfr.github.io/marcolopes.github.io/">mclpfr.github.io/marcolopes.github.io/</a>
             </div>
         </div>
         <br>

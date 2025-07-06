@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 import streamlit as st
+from io import BytesIO
 
 def show_chatbot_page():
     """Displays the chatbot page."""
@@ -35,7 +36,7 @@ def show_chatbot_page():
     # -----------------------------------------------------------------------------
     # Interface utilisateur Streamlit
     # -----------------------------------------------------------------------------
-    st.title("🤖 Chatbot MLOps / Docker")
+    st.title("🤖 Agent MLOps")
     st.markdown(
         "Posez vos questions sur l'état de la plateforme Docker Compose (CPU, RAM, conteneurs, logs, erreurs, etc.)."
     )
@@ -57,13 +58,18 @@ def show_chatbot_page():
     # -----------------------------------------------------------------------------
     # Réponses conviviales pour les salutations simples
     # -----------------------------------------------------------------------------
-    if (
-        re.fullmatch(r"\s*(bonjour|salut|hello|hi|hey)[!\s]*", user_input, re.IGNORECASE)
-        or re.search(r"\b(ca[ \-]?va|ça[ \-]?va|comment[ \-]?ç?a[ \-]?va)\b", user_input, re.IGNORECASE)
-    ):
+    # Salutations simples (bonjour…)
+    if re.fullmatch(r"\s*(bonjour|salut|hello|hi|hey)[!\s]*", user_input, re.IGNORECASE):
         greeting_resp = "Bonjour ! 👋 Comment puis-je vous aider aujourd'hui ?"
         st.chat_message("assistant").markdown(greeting_resp)
         st.session_state.chat_history.append(("assistant", greeting_resp))
+        st.stop()
+
+    # Petit-bavardage : « ça va ? », « how are you ? »
+    if re.search(r"\b(ca[ \-]?va\??|ça[ \-]?va\??|comment[ \-]?ç?a[ \-]?va\??|how are you\??)\b", user_input, re.IGNORECASE):
+        smalltalk_resp = "Je vais très bien, merci ! 😊 Et vous, puis-je faire quelque chose pour vous ?"
+        st.chat_message("assistant").markdown(smalltalk_resp)
+        st.session_state.chat_history.append(("assistant", smalltalk_resp))
         st.stop()
 
     # -----------------------------------------------------------------------------

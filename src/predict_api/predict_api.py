@@ -184,7 +184,12 @@ def find_best_model(config_path="config.yaml"):
     except Exception as e:
         logger.error(f"An error occurred during best model finding: {str(e)}")
 
-model_use, model_version_use = find_best_model(config_path="config.yaml")
+_best = find_best_model(config_path="config.yaml")
+if _best is not None:
+    model_use, model_version_use = _best
+else:
+    model_use, model_version_use = None, 0
+    logger.warning("Aucun modèle trouvé lors de l'initialisation; l'API fonctionnera mais renverra une erreur si /predict est appelé avant qu'un modèle ne soit disponible.")
 
 @router.get("/")
 def verify_api():
