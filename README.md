@@ -175,11 +175,6 @@ docker-compose up airflow-webserver airflow-scheduler
 
 ### Intégration Complète du Monitoring
 
-#### **Détection de Drift avec Evidently**
-
-**Architecture Technique :**
-
-![Architecture de Détection de Drift](images/archi_drift.jpg)
 
 **Flux de Détection de Drift :**
 1. **Collecte des Données** : 
