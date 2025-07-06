@@ -114,7 +114,6 @@ docker-compose up airflow-webserver airflow-scheduler
 
 **Logs en Temps Réel :**
 - Panel logs API intégré via Loki
-- Filtrage automatique par niveau (INFO, ERROR, WARNING)
 - Corrélation logs/métriques pour diagnostic rapide
 
 **Alertes Visuelles :**
@@ -145,8 +144,6 @@ docker-compose up airflow-webserver airflow-scheduler
 **Métriques du Meilleur Modèle :**
 - Version et timestamp du modèle en production
 - Accuracy, Precision, Recall, F1-Score actuels
-- Évolution des performances dans le temps
-- Comparaison avec les modèles précédents
 
 **Gestion des Versions :**
 - Historique des promotions de modèles
@@ -212,8 +209,8 @@ evidently/
 ```
 
 **Métriques Surveillées :**
-- `ml_data_drift_score` : Score global de drift (0-1)
-- `ml_feature_drift{feature="NOM_DE_LA_FEATURE"}` : Score par caractéristique
+- `data_drift_score` : Score global de drift (0-1)
+- `feature_drift{feature="NOM_DE_LA_FEATURE"}` : Score par caractéristique
 - `drift_detection_timestamp` : Dernier calcul de drift
 
 **Seuils d'Alerte :**
@@ -249,8 +246,8 @@ curl -X POST http://localhost:8001/config/noise \
 
 ```promql
 # Drift des données
-ml_data_drift_score                    # Score global de drift (0-1)
-ml_feature_drift{feature="catu"}       # Drift par feature
+data_drift_score                    # Score global de drift (0-1)
+feature_drift{feature="catu"}       # Drift par feature
 
 # Performance API
 http_requests_total                    # Nombre total de requêtes
@@ -314,7 +311,7 @@ container_memory_usage_bytes           # Mémoire par conteneur
 
 ## Pipeline MLOps
 
-Le projet utilise une approche innovante avec **génération de données synthétiques** pour simuler un environnement de production réaliste.
+Le projet utilise une approche avec **génération de données synthétiques** pour simuler un environnement de production réaliste.
 
 ### Pourquoi des Données Synthétiques ?
 
@@ -406,6 +403,7 @@ curl -X POST http://localhost:8001/config/noise \
   -d '{}'
 ```
 
+
 ## Structure du Projet
 
 ```
@@ -432,17 +430,17 @@ mlops-road-accidents/
 
 ### Étapes de Configuration
 
-1. **DagsHub Setup** (Obligatoire)
+1. **DagsHub Setup** 
    - Créer un compte sur [DagsHub](https://dagshub.com)
    - Créer un nouveau repository
    - Générer un token d'accès dans Settings > Access Tokens
    - Mettre à jour `mlflow.tracking_uri` avec ton URL MLflow
 
-2. **GitHub Integration** (Optionnel)
+2. **GitHub Integration** 
    - Générer un Personal Access Token avec droits repo
    - Configurer `git.user.token` pour les commits automatiques DVC
 
-3. **PostgreSQL** (Optionnel)
+3. **PostgreSQL** 
    - Modifier `postgresql.password` si nécessaire
    - Utiliser les paramètres par défaut pour un démarrage rapide
 
@@ -530,6 +528,141 @@ Le pipeline se déclenche automatiquement dans les cas suivants :
 - Push sur la branche `main`
 - Pull request vers la branche `main`
 - Déclenchement manuel via l'interface GitHub Actions
+
+## Déploiement sur Kubernetes avec Helm
+
+Le projet peut être déployé sur un cluster Kubernetes à l'aide du Chart Helm fourni. Cette méthode permet un déploiement standardisé et reproductible dans différents environnements.
+
+### Prérequis
+
+- Un cluster Kubernetes fonctionnel (v1.19+)
+- Helm v3 installé
+- `kubectl` configuré pour communiquer avec votre cluster
+
+### Structure du Chart Helm
+
+```
+helm/
+├── Chart.yaml             # Métadonnées du chart
+├── values.yaml            # Valeurs par défaut
+├── values-prod.yaml       # Valeurs pour l'environnement de production
+├── templates/             # Templates Kubernetes
+│   ├── _helpers.tpl       # Fonctions d'aide
+│   ├── configmap.yaml     # ConfigMap pour les configurations
+│   ├── deployment.yaml    # Déploiements des services
+│   ├── ingress.yaml       # Configuration Ingress
+│   ├── secret.yaml        # Secrets pour les credentials
+│   ├── service.yaml       # Services Kubernetes
+│   └── pvc.yaml           # Persistent Volume Claims
+└── charts/                # Sous-charts (dépendances)
+```
+
+### Installation
+
+```bash
+# Vérifier la syntaxe du chart
+helm lint ./helm
+
+# Visualiser les manifestes générés sans installer
+helm template mlops-accidents ./helm --values ./helm/values.yaml
+
+# Installer le chart en environnement de développement
+helm install mlops-accidents ./helm --values ./helm/values.yaml
+
+# Installer en production avec des valeurs spécifiques
+helm install mlops-accidents ./helm --values ./helm/values-prod.yaml
+```
+
+### Configuration
+
+Le fichier `values.yaml` permet de personnaliser le déploiement :
+
+```yaml
+global:
+  environment: dev
+  storageClass: standard
+
+image:
+  registry: docker.io
+  repository: mclpfr
+  tag: latest
+  pullPolicy: Always
+
+replicas:
+  predict_api: 2
+  auth_api: 1
+  evidently_api: 1
+
+resources:
+  predict_api:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+
+postgres:
+  enabled: true
+  persistence:
+    size: 10Gi
+
+monitoring:
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: true
+    dashboards:
+      autoImport: true
+```
+
+### Mise à jour du déploiement
+
+```bash
+# Mettre à jour après modification des valeurs ou du code
+helm upgrade mlops-accidents ./helm --values ./helm/values.yaml
+
+# Rollback en cas de problème
+helm rollback mlops-accidents 1
+```
+
+### Scaling
+
+Le déploiement peut être facilement mis à l'échelle :
+
+```bash
+# Scaling horizontal de l'API de prédiction
+kubectl scale deployment mlops-accidents-predict-api --replicas=5
+
+# Ou via une mise à jour Helm
+helm upgrade mlops-accidents ./helm --set replicas.predict_api=5
+```
+
+### Intégration avec ArgoCD (GitOps)
+
+Pour une approche GitOps, le chart Helm peut être intégré avec ArgoCD :
+
+```yaml
+# Application ArgoCD (application.yaml)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mlops-accidents
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/mclpfr/mlops-road-accidents.git
+    targetRevision: HEAD
+    path: helm
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mlops-accidents
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
 
 ## Commandes Utiles
 
