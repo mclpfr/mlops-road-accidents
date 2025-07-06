@@ -122,7 +122,7 @@ def test_predict_reload_error():
 
 def test_predict_reload_success():
     '''Test de l'API de rechargement du modèle : succès (avec rôle admin)'''
-    data = {"sub": "user1", "role": "admin"}
+    data = {"sub": "user2", "role": "admin"}
     token = create_access_token(data)
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.get(RELOAD_URL, headers=headers, timeout=10)
