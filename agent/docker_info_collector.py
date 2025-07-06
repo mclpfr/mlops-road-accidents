@@ -29,8 +29,8 @@ def collect_docker_info() -> Dict[str, str]:
 
 
 def _list_container_names() -> list[str]:
-    """Return list of running container names (docker ps)."""
-    names = _run("docker ps --format '{{{{.Names}}}}'")
+    """Return list of all container names (docker ps -a)."""
+    names = _run('docker ps -a --format "{{.Names}}"')
     return names.splitlines() if names else []
 
 
@@ -38,8 +38,8 @@ def _find_container_by_partial(partial: str) -> str | None:
     """Return first container name that contains *partial* (case-insensitive)."""
     partial_l = partial.lower()
     for name in _list_container_names():
-        if partial_l in name.lower():
-            return name
+        if partial_l in name.strip().lower():
+            return name.strip()
     return None
 
 
@@ -53,18 +53,30 @@ def get_container_logs(container_name: str, tail: int = 100) -> str:
     import re
     if not re.fullmatch(r"[A-Za-z0-9_.-]+", container_name):
         return "[error] Container name contains invalid characters."
-    # Tenter de résoudre un nom partiel si le conteneur exact n'existe pas
-    resolved_name = container_name
-    test_rc = subprocess.run(
-        f"docker inspect {container_name}",
-        shell=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    ).returncode
-    if test_rc != 0:
+
+    # Tentative de résolution de nom partiel
+    all_names = _list_container_names()
+    resolved_name = None
+
+    # 1. Recherche de correspondance exacte (insensible à la casse)
+    for name in all_names:
+        if name.lower() == container_name.lower():
+            resolved_name = name
+            break
+
+    # 2. Si pas de correspondance exacte, recherche de correspondance partielle
+    if not resolved_name:
         pmatch = _find_container_by_partial(container_name)
         if pmatch:
             resolved_name = pmatch
+
+    # Si aucune correspondance trouvée, retourner une erreur informative
+    if not resolved_name:
+        return (
+            f"Le conteneur '{container_name}' n'a pas été trouvé. "
+            f"Conteneurs disponibles: {', '.join(all_names) or 'Aucun'}"
+        )
+
     # Exécuter la commande logs
     result = subprocess.run(
         f"docker logs --tail {tail} {resolved_name}",
@@ -73,8 +85,6 @@ def get_container_logs(container_name: str, tail: int = 100) -> str:
         capture_output=True,
     )
     if result.returncode != 0:
-        if "No such container" in result.stderr:
-            return f"Le conteneur '{container_name}' n'existe pas ou n'est pas en cours d'exécution."
         # Fallback: return stderr so that the caller can display it
         return result.stderr.strip()
     return result.stdout.strip() or "(Aucune sortie dans les logs)"

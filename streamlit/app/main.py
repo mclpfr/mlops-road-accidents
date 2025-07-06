@@ -279,7 +279,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=21600, persist="disk")
 def get_best_model_overview():
     """Retrieve from MLflow the general information of the model tagged 'best_model'.
     Returns a dict {model_name, model_type, version, accuracy} or None in case of error.
@@ -352,7 +352,7 @@ def get_class_distribution():
     })
     return class_distribution
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=21600, persist="disk")
 def get_best_model_metrics():
     """Return a dict containing accuracy, precision, recall and f1 extracted from the 'best_model' run in MLflow."""
     try:
@@ -398,7 +398,7 @@ def get_best_model_metrics():
         st.warning("Métriques MLflow non disponibles pour le moment. Merci de réessayer plus tard.")
         return None
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=21600, persist="disk")
 def fetch_best_model_info():
     """Retrieve from MLflow the hyper-parameters and the confusion matrix of the model tagged 'best_model'.
     Returns (hyperparams_dict, confusion_matrix_numpy) or (None, None) if an error occurs.
@@ -596,10 +596,10 @@ def main(accidents_count):
         "Démo interactive",
         "Monitoring du modèle",
         "Logs Infra",
-        "Pipeline MLOps",
-        "MLflow UI",
-        "Airflow UI",
-        "Evidently UI",
+        "Services MLOps",
+        "MLflow",
+        "Airflow",
+        "Evidently",
         "Agent"
     ]
 
@@ -637,18 +637,18 @@ def main(accidents_count):
         show_monitoring(drift_data)
     elif st.session_state.selected_page == "Logs Infra":
         show_logs_infra()
-    elif st.session_state.selected_page == "Pipeline MLOps":
+    elif st.session_state.selected_page == "Services MLOps":
         pipeline_steps = {}  # Placeholder
         show_mlops_pipeline(pipeline_steps)
-    elif st.session_state.selected_page == "MLflow UI":
+    elif st.session_state.selected_page == "MLflow":
         show_mlflow()
-    elif st.session_state.selected_page == "Airflow UI":
+    elif st.session_state.selected_page == "Airflow":
         show_airflow()
-    elif st.session_state.selected_page == "Evidently UI":
+    elif st.session_state.selected_page == "Evidently":
         show_evidently()
     elif st.session_state.selected_page == "Agent":
-        from chatbot import chatbot
-        chatbot()
+        from chatbot import show_chatbot_page
+        show_chatbot_page()
 
 def show_overview(model_metrics, accidents_count):
     st.header("Vue d'ensemble du Projet")
@@ -1378,6 +1378,8 @@ def show_interactive_demo():
             "col": map_col.get(col, 1)
         }
 
+        pred = None
+        confidence = None
         import requests
         predict_api_base = os.getenv("PREDICT_API_BASE_URL", "http://predict_api_service:8000")
         auth_api_base = os.getenv("AUTH_API_BASE_URL", "http://auth_api_service:7999")
@@ -1392,7 +1394,7 @@ def show_interactive_demo():
             token_resp.raise_for_status()
             token = token_resp.json().get("access_token")
             headers = {"Authorization": f"Bearer {token}"}
-                        # Envoi de la requête à l'API de prédiction
+            # Envoi de la requête à l'API de prédiction
             predict_url = f"{predict_api_base}/protected/predict"
             logging.getLogger(__name__).info("Sending request to: %s", predict_url)
             try:
@@ -1404,52 +1406,13 @@ def show_interactive_demo():
                 )
                 resp.raise_for_status()
                 result = resp.json()
-                st.success(f"Prédiction: {'Grave' if result['prediction'][0]==1 else 'Pas grave'} (confiance {round(result['confidence']*100,1)} %)")
+                pred = result['prediction'][0]
+                confidence = result['confidence']
             except Exception as e:
                 st.error(f"Erreur lors de l'appel à l'API: {e}")
             
-            # Simuler différentes prédictions en fonction des paramètres
-            # Facteurs de risque qui augmentent la probabilité d'un accident grave
-            risk_factors = 0
-            
-            # Conditions météo défavorables
-            if atm in [2, 3, 4, 5, 6, 7, 8, 9]:  # Pluie, neige, brouillard, etc.
-                risk_factors += 1
-            
-            # État de la surface
-            if surf in [2, 3, 4, 5, 6, 7, 8, 9]:  # Mouillée, enneigée, etc.
-                risk_factors += 1
-                
-            # Conditions d'éclairage
-            if lum in [3, 4, 5]:  # Nuit sans éclairage public, etc.
-                risk_factors += 1
-                
-            # Type de collision
-            if col in [2, 3, 4]:  # Collision frontale, etc.
-                risk_factors += 2
-                
-            # Type de route
-            if catr in [2, 3, 4]:  # Route départementale, etc.
-                risk_factors += 1
-                
-            # Calculer la prédiction en fonction des facteurs de risque
-            if risk_factors >= 3:
-                pred = 0  # Accident grave
-                confidence = min(0.5 + (risk_factors * 0.07), 0.95)  # Max 95% de confiance
-            else:
-                pred = 1  # Accident léger
-                confidence = min(0.6 + ((3 - risk_factors) * 0.08), 0.95)  # Max 95% de confiance
-            
-            logging.getLogger(__name__).info("Prédiction simulée: %s, Confiance: %s, Facteurs de risque: %s", 
-                                           pred, confidence, risk_factors)
-            
-            # Note: Nous contournons l'appel API qui échoue avec l'erreur:
-            # "'User' object has no attribute 'username'"
-            # Une correction complète nécessiterait de modifier le code de l'API
         except Exception as e:
             st.error(f"Erreur lors de l'appel API : {e}")
-            pred = None
-            confidence = None
 
         if pred is not None:
             prediction_label = "Grave" if pred == 1 else "Pas Grave"

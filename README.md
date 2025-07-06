@@ -88,7 +88,7 @@ docker-compose up airflow-webserver airflow-scheduler
 |---------|-----|-------------|
 | API Authentification | http://localhost:7999/docs | API REST avec documentation Swagger |
 | API Prédictions | http://localhost:8000/docs | API REST avec documentation Swagger |
-| Grafana | http://localhost:3000 | 4 Dashboards de monitoring |
+| Grafana | http://localhost:3000 | 5 Dashboards de monitoring |
 | Prometheus | http://localhost:9090 | Métriques système et modèle |
 | Airflow | http://localhost:8080 | Orchestration des pipelines  |
 | Evidently API | http://localhost:8001 | Service de détection de drift |
@@ -100,7 +100,7 @@ docker-compose up airflow-webserver airflow-scheduler
 - **Sources de données** : PostgreSQL, Prometheus, Loki (pré-configurées)
 - **Actualisation** : Toutes les 5 secondes pour un monitoring temps réel
 
-### 4 Dashboards Intégrés
+### 5 Dashboards Intégrés
 
 #### **1. API Performance Monitoring Dashboard**
 **Surveillance en temps réel de l'API de prédiction**

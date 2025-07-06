@@ -38,6 +38,11 @@ fake_users_db = {
         "username": "admin",
         "hashed_password": pwd_context.hash("adminpass"),
         "role": "admin"
+        },
+    "johndoe": {
+        "username": "johndoe",
+        "hashed_password": pwd_context.hash("johnsecret"),
+        "role": "user"
         }
     }
 

@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     python3-dev \
     libpq-dev \
+    curl \
+    docker.io \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python requirements
