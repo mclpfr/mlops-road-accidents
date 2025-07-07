@@ -6,6 +6,7 @@ evidently_host: "http://<host-ip>:8001"
 
 mlflow:
   tracking_uri: "https://dagshub.com/USERNAME/REPOSITORY.mlflow"
+  model_name: "MODEL_NAME"
   username: "USERNAME"
   password: "YOUR_DAGSHUB_TOKEN" 
 

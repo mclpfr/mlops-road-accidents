@@ -139,5 +139,20 @@ update_evidently_reference = DockerOperator(
     user='root', # Run as root to ensure permissions
 )
 
+# Task for untagging the current best model
+untag_best_model = DockerOperator(
+    task_id='untag_best_model',
+    image='mlops-road-accidents-mlflow-management',
+    command='python untag_best_model.py',
+    docker_url='unix://var/run/docker.sock',
+    network_mode='mlops-road-accidents_default',
+    mounts=[
+        Mount(source='/home/ubuntu/mlops-road-accidents/config.yaml', target='/opt/project/config.yaml', type='bind')
+    ],
+    mount_tmp_dir=False, 
+    auto_remove=True, 
+    dag=dag,
+)
+
 # Dependencies definition
-extract_data >> synthet_data >> prepare_data >> train_model >> start_postgres >> import_data >> update_evidently_reference
+extract_data >> synthet_data >> prepare_data >> untag_best_model >> train_model >> start_postgres >> import_data >> update_evidently_reference

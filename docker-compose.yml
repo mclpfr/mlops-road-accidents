@@ -183,6 +183,14 @@ services:
       - prepare_data
       - synthet_data
 
+  mlflow_management:
+    build:
+      context: ./src/mlflow_management
+      dockerfile: Dockerfile
+    image: mlops-road-accidents-mlflow-management
+    container_name: mlflow_management_service
+    user: root
+
   postgres:
     build:
       context: .
