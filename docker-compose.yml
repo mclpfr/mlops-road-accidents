@@ -336,7 +336,7 @@ services:
       dockerfile: Dockerfile
       args:  
         <<: *user-info
-    user: "${USER_ID}:${GROUP_ID}"
+    user: "root"
     volumes:                 
       - ./evidently/api:/app
       - ./evidently/ui:/app/ui/target

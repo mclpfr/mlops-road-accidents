@@ -1,5 +1,5 @@
 global:
-  scrape_interval: 15s  
+  scrape_interval: 5s  
   evaluation_interval: 15s  
 
 alerting:
@@ -11,6 +11,14 @@ rule_files:
   - 'alert.rules.yml'
 
 scrape_configs:
+  - job_name: 'drift_controller'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['drift_controller_service:8002']
+    scheme: http
+    scrape_interval: 5s
+    scrape_timeout: 3s
+
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']

@@ -11,6 +11,7 @@ from scipy import stats
 import pathlib
 import requests
 import json
+import shutil
 import asyncio
 import matplotlib.pyplot as plt
 import io
@@ -182,15 +183,31 @@ async def force_drift(drift_percentage: float = Query(0.8, ge=0.0, le=1.0)):
     }
 
 @app.get("/reset_drift")
-async def reset_drift():
-    set_drift_state(False, 0.0)
-    drift_result = calculate_drift()
-    return {
-        "message": "Artificial drift has been reset",
-        "drift_enabled": False,
-        "drift_percentage": 0.0,
-        "current_drift": drift_result
-    }
+def reset_drift():
+    """
+    Resets the drift by copying current data to reference data.
+    This will result in a drift score of 0 on the next calculation.
+    Also resets any artificial drift state.
+    """
+    try:
+        # Copy current data to reference data to reset drift
+        shutil.copy(CURRENT_DATA_PATH, REFERENCE_DATA_PATH)
+        logger.info(f"Successfully copied {CURRENT_DATA_PATH} to {REFERENCE_DATA_PATH}")
+
+        # Reset artificial drift state
+        set_drift_state(enabled=False, percentage=0.0)
+        
+        # Reset Prometheus metrics to 0 immediately
+        data_drift_score.set(0.0)
+        for gauge in feature_drift_scores.values():
+            gauge.set(0.0)
+            
+        logger.info("Drift state has been reset. New reference data is in place.")
+        
+        return {"status": "Drift reset successfully. Reference data updated."}
+    except Exception as e:
+        logger.error(f"Error resetting drift: {e}")
+        raise HTTPException(status_code=500, detail=f"Error resetting drift: {str(e)}")
 
 @app.get("/drift_status")
 async def drift_status():
