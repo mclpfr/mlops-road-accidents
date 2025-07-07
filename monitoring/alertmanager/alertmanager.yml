@@ -1,25 +1,17 @@
 global:
-  resolve_timeout: 5m
+  # Réduit le temps avant qu'une alerte soit marquée comme résolue
+  resolve_timeout: 1m
 
 route:
   group_by: ['alertname', 'severity']
   group_wait: 10s
-  group_interval: 5m
-  repeat_interval: 3h
-  receiver: 'airflow_webhook'
+  group_interval: 1m
+  repeat_interval: 5m
+  # Route toutes les alertes vers un récepteur qui ne fait rien.
+  receiver: 'null'
   routes:
-    - match:
-        alertname: HighDataDrift
-      receiver: 'airflow_webhook'
-      repeat_interval: 1h  
+    - receiver: 'null'
+      continue: false
 
 receivers:
-- name: 'airflow_webhook'
-  webhook_configs:
-  - url: 'http://evidently-api:8001/trigger_airflow_from_alert'
-    send_resolved: false  
-    http_config:
-      basic_auth:
-        username: 'airflow'
-        password: 'airflow'
-    max_alerts: 3
+  - name: 'null'

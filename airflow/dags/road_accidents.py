@@ -6,6 +6,19 @@ from airflow.models import Variable
 from docker.types import Mount
 import os
 
+# Fetch MLflow tracking URI from project config.yaml
+import yaml
+from pathlib import Path
+
+try:
+    _cfg_path = Path('/opt/project/config.yaml') if Path('/opt/project/config.yaml').exists() else Path(__file__).resolve().parents[3] / 'config.yaml'
+    with _cfg_path.open() as f:
+        _cfg = yaml.safe_load(f)
+    MLFLOW_TRACKING_URI = _cfg.get('mlflow', {}).get('tracking_uri', 'http://mlflow:5000')
+except Exception as e:
+    # Fallback to default if file not found or parsing fails
+    MLFLOW_TRACKING_URI = 'http://mlflow:5000'
+
 # Default arguments definition
 default_args = {
     'owner': 'airflow',
@@ -77,6 +90,7 @@ train_model = DockerOperator(
     command='sh -c "rm -f /app/models/train_model.done && python train_model.py"',
     docker_url='unix://var/run/docker.sock',
     network_mode='mlops-road-accidents_default',
+    environment={"MLFLOW_TRACKING_URI": MLFLOW_TRACKING_URI},
     mounts=common_mounts + [
         Mount(source='/home/ubuntu/mlops-road-accidents/models', target='/app/models', type='bind'),
         Mount(source='/home/ubuntu/mlops-road-accidents/data/processed', target='/app/data/processed', type='bind')

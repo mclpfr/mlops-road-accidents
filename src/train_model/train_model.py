@@ -488,24 +488,59 @@ def train_model(config_path="config.yaml"):
             
             # MLflow run end is handled by the `with` statement
 
-        # Create training completion marker file
-        with open(os.path.join(model_dir, "train_model.done"), "w") as f:
-            f.write(f"done at {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}\nrun_id: {run_id}\naccuracy: {current_accuracy:.4f}")
-        logger.info("Marker file created: models/train_model.done")
+        # Only create the marker file if we reach this point without errors
+        # This ensures the task is only marked as complete if everything succeeded
+        try:
+            with open(os.path.join(model_dir, "train_model.done"), "w") as f:
+                f.write(f"done at {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}\nrun_id: {run_id}\naccuracy: {current_accuracy:.4f}")
+            logger.info("Training completed successfully. Marker file created: models/train_model.done")
+            
+        except Exception as marker_error:
+            logger.error(f"Failed to create completion marker file: {marker_error}")
+            # Don't raise here, as the training itself was successful
+            # Just log the error and continue
 
-    except FileNotFoundError as e: # Specifically handle file not found errors earlier
+    except FileNotFoundError as e:
         logger.error(f"File not found error: {e}")
         logger.error(traceback.format_exc())
+        if 'run_id' in locals() and run_id != "N/A" and mlflow.active_run() and mlflow.active_run().info.run_id == run_id:
+            try:
+                mlflow.end_run(status="FAILED")
+                logger.info(f"MLflow run {run_id} marked as FAILED due to file not found.")
+            except Exception as mlflow_err:
+                logger.error(f"Error marking MLflow run as failed: {mlflow_err}")
         create_fallback_models(config.get("data_extraction", {}).get("year", "2023") if 'config' in locals() else "2023")
+        raise  # Re-raise to fail the Airflow task
 
     except Exception as e:
         logger.error(f"An error occurred during model training: {e}")
         logger.error(traceback.format_exc())
-        if 'run_id' in locals() and run_id != "N/A" and mlflow.active_run() and mlflow.active_run().info.run_id == run_id:
-             mlflow.end_run(status="FAILED")
-             logger.info(f"MLflow run {run_id} marked as FAILED.")
+        
+        # Clean up any partial results
+        try:
+            if 'run_id' in locals() and run_id != "N/A" and mlflow.active_run() and mlflow.active_run().info.run_id == run_id:
+                mlflow.end_run(status="FAILED")
+                logger.info(f"MLflow run {run_id} marked as FAILED due to error.")
+                
+                # Try to clean up any partially registered models
+                try:
+                    client = mlflow.tracking.MlflowClient()
+                    model_name_registry = "accident-severity-predictor"
+                    for mv in client.search_model_versions(f"run_id='{run_id}'"):
+                        if mv.current_stage == "None":
+                            client.delete_model_version(
+                                name=mv.name,
+                                version=mv.version
+                            )
+                            logger.info(f"Deleted uncommitted model version {mv.version} for run {run_id}")
+                except Exception as cleanup_err:
+                    logger.error(f"Error during model cleanup: {cleanup_err}")
+                    
+        except Exception as mlflow_err:
+            logger.error(f"Error during MLflow cleanup: {mlflow_err}")
+            
         create_fallback_models(config.get("data_extraction", {}).get("year", "2023") if 'config' in locals() else "2023")
-        raise # Propagate the exception to indicate script failure
+        raise  # Re-raise to fail the Airflow task
 
 def create_fallback_models(year_str="2023"):
     """Creates fallback model files in case of a major error."""
@@ -523,6 +558,17 @@ def create_fallback_models(year_str="2023"):
         logger.error(f"Could not create fallback model files: {fallback_exc}")
 
 
+def check_environment():
+    """Check if all required environment variables and files are present."""
+    required_env_vars = ["MLFLOW_TRACKING_URI"]
+    missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+    
+    if missing_vars:
+        logger.error(f"Missing required environment variables: {', '.join(missing_vars)}")
+        return False
+    
+    return True
+
 if __name__ == "__main__":
     config_file_path = "config.yaml" 
     
@@ -532,23 +578,36 @@ if __name__ == "__main__":
         logger.error(f"Failed to load configuration for marker check: {e}")
         sys.exit(1)
 
-    # The marker file name does not depend on the year in the original script
+    # Vérifier les dépendances de l'environnement
+    if not check_environment():
+        logger.error("Environment validation failed. Exiting.")
+        sys.exit(1)
+
+    # Le nom du fichier marqueur ne dépend pas de l'année dans le script original
     data_prepared_marker_file = "data/processed/prepared_data.done" 
     
-    max_wait_time = 300  # seconds
-    wait_interval = 10   # seconds
+    max_wait_time = 300  # secondes
+    wait_interval = 10   # secondes
     waited_time = 0
     
-    logger.info(f"Waiting for marker file: {data_prepared_marker_file}")
+    logger.info(f"En attente du fichier marqueur: {data_prepared_marker_file}")
     while not os.path.exists(data_prepared_marker_file) and waited_time < max_wait_time:
-        logger.info(f"Waiting for {data_prepared_marker_file}... ({waited_time}/{max_wait_time}s)")
+        logger.info(f"En attente de {data_prepared_marker_file}... ({waited_time}/{max_wait_time}s)")
         time.sleep(wait_interval)
         waited_time += wait_interval
     
     if not os.path.exists(data_prepared_marker_file):
-        logger.error(f"Error: Marker file {data_prepared_marker_file} was not created within the timeout period.")
-        sys.exit(1) # Exit script if data is not ready
+        logger.error(f"Erreur: Le fichier marqueur {data_prepared_marker_file} n'a pas été créé dans le délai imparti.")
+        sys.exit(1)  # Quitter le script si les données ne sont pas prêtes
     
-    logger.info(f"Marker file {data_prepared_marker_file} found. Starting model training.")
-    train_model(config_path=config_file_path)
+    logger.info(f"Fichier marqueur {data_prepared_marker_file} trouvé. Démarrage de l'entraînement du modèle.")
+    
+    try:
+        train_model(config_path=config_file_path)
+        logger.info("Entraînement du modèle terminé avec succès.")
+        sys.exit(0)  # Succès
+    except Exception as e:
+        logger.error(f"Échec de l'entraînement du modèle: {e}")
+        logger.error(traceback.format_exc())
+        sys.exit(1)  # Échec
 

@@ -8,6 +8,7 @@ x-airflow-common: &airflow-common
     dockerfile: airflow/Dockerfile
     args:
       <<: *user-info
+  user: "0"
   environment:
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
 
@@ -18,10 +19,10 @@ x-airflow-common: &airflow-common
     - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
     - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
     - AIRFLOW__WEBSERVER__RBAC=False
-    - AIRFLOW__WEBSERVER__AUTHENTICATE=False
+    - AIRFLOW__WEBSERVER__AUTHENTICATE=True
     - AIRFLOW__WEBSERVER__SECRET_KEY=mydummysecret123
     - AIRFLOW_HOME=/opt/airflow
-    - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.deny_all
+    - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
     - AIRFLOW__CORE__PARALLELISM=8
     - AIRFLOW__CORE__DAG_CONCURRENCY=8
     - AIRFLOW__WEBSERVER__WORKERS=2
@@ -32,7 +33,7 @@ x-airflow-common: &airflow-common
     - /var/run/docker.sock:/var/run/docker.sock
     - airflow_logs:/opt/airflow/logs
     - ./.:/opt/project
-  user: "airflow"
+
   deploy:
     resources:
       limits:
@@ -618,6 +619,35 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
       AIRFLOW__CORE__SCHEDULER__SCHEDULER_HEARTBEAT_SEC: 5
+
+  drift-controller:
+    build:
+      context: ./drift-controller
+      dockerfile: Dockerfile
+    container_name: drift_controller_service
+    ports:
+      - "8002:8000"
+    environment:
+      - PROMETHEUS_URL=http://prometheus:9090
+      - AIRFLOW_URL=http://airflow-webserver:8080/api/v1/dags/road_accidents/dagRuns
+      - AIRFLOW_USER=airflow
+      - AIRFLOW_PASSWORD=airflow
+      - DRIFT_THRESHOLD=0.5
+      - CHECK_INTERVAL_SECONDS=10
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    depends_on:
+      - prometheus
+      - airflow-webserver
+    networks:
+      - default
 
 networks:
   default:
