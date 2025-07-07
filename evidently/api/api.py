@@ -143,22 +143,11 @@ def calculate_drift():
         logger.error(f"Error calculating drift: {e}")
         raise HTTPException(status_code=500, detail=f"Error calculating drift: {str(e)}")
 
-# --- Background Task ---
-async def periodic_drift_calculation():
-    while True:
-        try:
-            logger.info("Running scheduled drift calculation")
-            calculate_drift()
-        except Exception as e:
-            logger.error(f"Error in scheduled drift calculation: {e}")
-        await asyncio.sleep(10)
-
 # --- Startup Event ---
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting Evidently Data Drift API")
     set_drift_state(False, 0.0)  # Reset drift state on startup
-    asyncio.create_task(periodic_drift_calculation())
 
 # --- API Endpoints ---
 
@@ -206,31 +195,6 @@ async def reset_drift():
 @app.get("/drift_status")
 async def drift_status():
     return get_drift_state()
-
-@app.post("/trigger_airflow_from_alert")
-async def trigger_airflow_from_alert(request: Request):
-    try:
-        alert_data = await request.json()
-        if not any(alert.get('labels', {}).get('alertname') == 'HighDataDrift' for alert in alert_data.get('alerts', [])):
-            return JSONResponse(content={"status": "info", "message": "No high data drift alerts found"}, status_code=200)
-
-        airflow_url = "http://airflow-webserver:8080/api/v1/dags/road_accidents/dagRuns"
-        headers = {"Content-Type": "application/json", "Authorization": "Basic YWlyZmxvdzphaXJmbG93"}
-        payload = {"conf": {"alert_data": alert_data, "triggered_by": "evidently_api"}}
-        
-        logger.info(f"Triggering Airflow DAG 'road_accidents'")
-        response = requests.post(airflow_url, headers=headers, json=payload)
-        
-        if response.status_code in [200, 201]:
-            logger.info(f"Successfully triggered Airflow DAG. Response: {response.json()}")
-            return JSONResponse(content={"status": "success", "message": "Airflow DAG triggered", "airflow_response": response.json()})
-        else:
-            logger.error(f"Failed to trigger Airflow DAG. Status: {response.status_code}, Response: {response.text}")
-            return JSONResponse(content={"status": "error", "message": f"Failed to trigger Airflow DAG: {response.text}"}, status_code=500)
-            
-    except Exception as e:
-        logger.error(f"Error processing alert webhook: {e}")
-        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
 @app.get("/drift_full_report", response_class=HTMLResponse)
 async def drift_full_report():
