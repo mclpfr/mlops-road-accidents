@@ -333,6 +333,11 @@ def get_best_model_overview():
     except Exception as e:
         st.error(f"Erreur lors de la récupération des informations du modèle : {str(e)}")
         return None
+    
+
+
+
+
 
 @st.cache_data(ttl=600)
 def get_class_distribution():
@@ -689,22 +694,27 @@ def show_overview(model_metrics, accidents_count):
     st.markdown("---")
     st.subheader("Métriques de Performance")
 
-    col1, col2, col3 = st.columns(3)
+    # Prepare metrics values with proper percentage formatting
+    def _to_pct(value):
+        try:
+            if value is None:
+                return "N/A"
+            val = float(value)
+            if 0 <= val <= 1:
+                val *= 100.0
+            return f"{val:.1f}%"
+        except (TypeError, ValueError):
+            return "N/A"
+
+    col1, col2 = st.columns(2)
 
     with col1:
-        st.metric("Accuracy", f"{model_metrics.get('accuracy', 0):.1f}%")
-        st.metric("Précision Globale", f"{model_metrics.get('precision_globale', 0):.1f}%")
-        st.metric("Rappel Global", f"{model_metrics.get('rappel_global', 0):.1f}%")
+        st.metric("Accuracy", _to_pct(model_metrics.get("accuracy")))
+        st.metric("Precision", _to_pct(model_metrics.get("precision")))
 
     with col2:
-        st.write("**Précision par Classe**")
-        st.write(f"- Pas Grave: {model_metrics.get('precision_pas_grave', 'N/A')}%")
-        st.write(f"- Grave: {model_metrics.get('precision_grave', 'N/A')}%")
-
-    with col3:
-        st.write("**Rappel par Classe**")
-        st.write(f"- Pas Grave: {model_metrics.get('rappel_pas_grave', 'N/A')}%")
-        st.write(f"- Grave: {model_metrics.get('rappel_grave', 'N/A')}%")
+        st.metric("Recall", _to_pct(model_metrics.get("recall")))
+        st.metric("F1-Score", _to_pct(model_metrics.get("f1_score")))
     
     # Stack technique et architecture
     st.markdown("---")
@@ -1441,6 +1451,8 @@ def show_evidently():
 
         except Exception as e:
             st.error(f"Une erreur inattendue est survenue lors du chargement du rapport Evidently : {e}")
+
+
 
 
 # Authentication temporarily disabled - Auto-login as user
