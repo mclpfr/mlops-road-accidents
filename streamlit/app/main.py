@@ -566,20 +566,20 @@ def main(accidents_count):
         "Démo interactive",
         "Monitoring du modèle",
         "Logs Infra",
-        "Services MLOps",
+        "Infrastructure",
         "MLflow",
         "Airflow",
         "Evidently",
         "Agent"
     ]
 
-    user_pages = [
-        "Vue d'ensemble",
-        "Démo interactive"
-    ]
+    role_pages = {
+        "admin": all_pages,
+        "user": ["Vue d'ensemble", "Analyse des données", "Analyse du modèle", "Démo interactive"],
+    }
 
     # Page selection based on role
-    pages = all_pages if st.session_state.get('role') == 'admin' else user_pages
+    pages = role_pages.get(st.session_state.get('role'), all_pages)
 
     # If the selected page is no longer accessible, redirect to the first available page
     if st.session_state.selected_page not in pages:
@@ -607,7 +607,7 @@ def main(accidents_count):
         show_monitoring(drift_data)
     elif st.session_state.selected_page == "Logs Infra":
         show_logs_infra()
-    elif st.session_state.selected_page == "Services MLOps":
+    elif st.session_state.selected_page == "Infrastructure":
         pipeline_steps = {}  # Placeholder
         show_mlops_pipeline(pipeline_steps)
     elif st.session_state.selected_page == "MLflow":
@@ -1028,10 +1028,9 @@ def show_model_analysis(model_metrics):
                 """)
 
 def show_mlops_pipeline(pipeline_steps):
-    st.header("Pipeline MLOps & Infrastructure")
+
     
-    # Pipeline status
-    st.subheader("État Actuel du Pipeline")
+
     
     for step in pipeline_steps:
         status_class = f"step-{step['Status']}"
@@ -1455,18 +1454,6 @@ def show_evidently():
 
 
 
-# Authentication temporarily disabled - Auto-login as user
-if 'authentication_status' not in st.session_state:
-    st.session_state['authentication_status'] = True
-    st.session_state['username'] = 'user'
-    st.session_state['name'] = 'Utilisateur Standard'
-
-# Get user role
-user_role = 'user'
-
-# Menu de navigation
-menu_items = ["Vue d'ensemble", "Analyse des données", "Analyse du modèle", "Démonstration interactive"]
-
 # Sidebar avec informations additionnelles
 def _compute_per_class_f1(cm):
     """Compute the F1-score for each class from a 2x2 confusion matrix.
@@ -1576,24 +1563,37 @@ def add_footer():
     """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
-    # Auto-login as admin
-    st.session_state['role'] = 'admin'
+    # --- Authentification ---
+    authenticator = get_authenticator()
+    authenticator.login()
 
-    # Get accident count at startup
-    accidents_count = 0
-    try:
-        result = fetch_data_from_db("SELECT COUNT(*) as count FROM accidents")
-        if not result.empty and 'count' in result.columns:
-            accidents_count = int(result.iloc[0]['count'])
-    except Exception as e:
-        st.sidebar.error(f"Erreur de connexion DB: {e}")
+    if st.session_state.get("authentication_status"):
+        st.sidebar.success(f"Bienvenue {st.session_state['name']}")
+        st.session_state['role'] = get_user_role(st.session_state['username'])
+        with st.sidebar:
+            authenticator.logout()
 
-    # Ajout des informations sidebar
-    add_sidebar_info(accidents_count)
+        # Get accident count at startup
+        accidents_count = 0
+        try:
+            result = fetch_data_from_db("SELECT COUNT(*) as count FROM accidents")
+            if not result.empty and 'count' in result.columns:
+                accidents_count = int(result.iloc[0]['count'])
+        except Exception as e:
+            st.sidebar.error(f"Erreur de connexion DB: {e}")
 
-    # Application principale
-    main(accidents_count)
+        # Ajout des informations sidebar
+        add_sidebar_info(accidents_count)
 
-    # Footer - Ne pas afficher sur la page Agent
-    if st.session_state.selected_page != "Agent":
-        add_footer()
+        # Application principale
+        main(accidents_count)
+
+        # Footer - Ne pas afficher sur la page Agent
+        if st.session_state.selected_page != "Agent":
+            add_footer()
+
+    elif st.session_state.get("authentication_status") is False:
+        st.error("Nom d'utilisateur ou mot de passe incorrect")
+
+    elif st.session_state.get("authentication_status") is None:
+        st.warning("Veuillez entrer vos identifiants")
