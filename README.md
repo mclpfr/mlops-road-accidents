@@ -50,39 +50,46 @@ cp config.yaml.example config.yaml
 - `NAME` et `EMAIL` : Identifiants Git
 - `YOUR_TOKEN` : Token GitHub pour les commits automatiques
 
-3. **Lancement complet**
-```bash
-# Pipeline complet
-docker-compose up --build
+3. **Lancement avec `Makefile`**
 
-# Ou en arrière-plan
-docker-compose up -d --build
+Le `Makefile` à la racine du projet simplifie la gestion des conteneurs. Voici les commandes principales :
+
+#### Lancement Complet
+Pour démarrer tous les services en arrière-plan :
+```bash
+make start-all
 ```
-### Services Individuels
+
+#### Gestion par Groupe de Services
+Vous pouvez également démarrer, arrêter ou redémarrer des groupes de services spécifiques :
+
 ```bash
-# 1. Extraction des données
-docker-compose up extract_data
+# Démarrer les services de monitoring (Prometheus, Grafana, etc.)
+make start-monitoring
 
-# 2. Génération de données synthétiques
-docker-compose up synthet_data
+# Démarrer le pipeline ML (de l'extraction à l'entraînement)
+make start-ml
 
-# 3. Préparation des données
-docker-compose up prepare_data
+# Démarrer l'interface utilisateur (Streamlit, API)
+make start-ui
 
-# 4. Entraînement du modèle
-docker-compose up train_model
+# Démarrer Airflow
+make start-airflow
+```
 
-# 5. Import en base de données
-docker-compose up import_data
+#### Arrêt et Nettoyage
+```bash
+# Arrêter un groupe de services (ex: monitoring)
+make stop-monitoring
 
-# API et base de données
-docker-compose up auth_api predict_api postgres
+# Arrêter tous les services
+make stop-all
 
-# Monitoring complet
-docker-compose up prometheus grafana evidently-api
+# Arrêter et supprimer les conteneurs
+make clean
 
-# Orchestration
-docker-compose up airflow-webserver airflow-scheduler
+# Arrêter, supprimer les conteneurs et les volumes de données
+make purge
 ```
 ### Services Disponibles
 
