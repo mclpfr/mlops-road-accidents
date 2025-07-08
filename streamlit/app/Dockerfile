@@ -16,11 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python requirements
-COPY streamlit/app/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project source
-COPY . .
+# Project source will be mounted via docker-compose
 
 # Expose Streamlit default port
 EXPOSE 8501

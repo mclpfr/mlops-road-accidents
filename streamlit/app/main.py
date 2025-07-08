@@ -518,13 +518,13 @@ def create_sample_data():
 
     # Placeholder for other datasets (to be replaced later if needed)
         # Get actual metrics from MLflow
-    model_metrics = get_best_metrics_from_db()
+    model_metrics = get_best_model_overview()
     if not model_metrics:
         model_metrics = {
-            "Accuracy": 0.852,
-            "Precision": 0.821,
-            "Recall": 0.873,
-            "F1-Score": 0.842,
+            "accuracy": 0.852,
+            "precision": 0.821,
+            "recall": 0.873,
+            "f1_score": 0.842,
         }
 
     # Mock drift data (to maintain existing visualizations)
@@ -587,13 +587,13 @@ def main(accidents_count):
 
     # Display the selected page
     if st.session_state.selected_page == "Vue d'ensemble":
-        model_metrics = get_best_metrics_from_db()
+        model_metrics = get_best_model_overview()
         show_overview(model_metrics, accidents_count)
     elif st.session_state.selected_page == "Analyse des données":
         class_distribution = get_class_distribution()
         show_data_analysis(class_distribution)
     elif st.session_state.selected_page == "Analyse du modèle":
-        model_metrics = get_best_metrics_from_db()
+        model_metrics = get_best_model_overview()
         show_model_analysis(model_metrics)
     elif st.session_state.selected_page == "Démo interactive":
         show_interactive_demo()
@@ -1503,11 +1503,11 @@ def add_sidebar_info(accidents_count):
     
     
     # Get MLflow metrics and calculate F1-scores per class
-    metrics_dict = get_best_model_metrics() or {}
-    overall_accuracy = round((metrics_dict.get("Accuracy", 0)*100) if metrics_dict.get("Accuracy",0)<=1 else metrics_dict.get("Accuracy",0), 1)
-    overall_precision = round((metrics_dict.get("Precision", 0)*100) if metrics_dict.get("Precision",0)<=1 else metrics_dict.get("Precision",0), 1)
-    overall_recall = round((metrics_dict.get("Recall", 0)*100) if metrics_dict.get("Recall",0)<=1 else metrics_dict.get("Recall",0), 1)
-    overall_f1 = round((metrics_dict.get("F1_score", 0)*100) if metrics_dict.get("F1_score",0)<=1 else metrics_dict.get("F1_score",0), 1)
+    metrics_dict = get_best_model_overview() or {}
+    overall_accuracy = round((metrics_dict.get("accuracy", 0)*100) if metrics_dict.get("accuracy",0)<=1 else metrics_dict.get("accuracy",0), 1)
+    overall_precision = round((metrics_dict.get("precision", 0)*100) if metrics_dict.get("precision",0)<=1 else metrics_dict.get("precision",0), 1)
+    overall_recall = round((metrics_dict.get("recall", 0)*100) if metrics_dict.get("recall",0)<=1 else metrics_dict.get("recall",0), 1)
+    overall_f1 = round((metrics_dict.get("f1_score", 0)*100) if metrics_dict.get("f1_score",0)<=1 else metrics_dict.get("f1_score",0), 1)
     _, cm = fetch_best_model_info()
     f1_pas, f1_grave = _compute_per_class_f1(cm)   
     prec_pas, prec_grave, rec_pas, rec_grave = _compute_per_class_pr_rc(cm)
