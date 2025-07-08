@@ -1,25 +1,25 @@
 {
   "model_name_registry": "accident-severity-predictor",
-  "model_version": "609",
+  "model_version": "610",
   "model_type": "RandomForestClassifier",
-  "accuracy": 0.8400200100050025,
-  "created_at": "2025-07-08 10:29:18 UTC",
+  "accuracy": 0.846,
+  "created_at": "2025-07-08 10:30:55 UTC",
   "git_info": {
-    "commit_hash": "12aa6a642e616896ed38aa2bef4dbc028f195460"
+    "commit_hash": "04aff4f0dfb827f84c4a33a0c09bcadb8a3c65a5"
   },
   "mlflow_info": {
     "experiment_id": "14",
     "experiment_name": "traffic-incidents-2023",
-    "run_id": "a878ebe4eaa34ed4b9de1f959137ffcd",
-    "run_name": "run_rf_2023_20250708-102845",
-    "model_uri": "runs:/a878ebe4eaa34ed4b9de1f959137ffcd/random_forest_model"
+    "run_id": "d3f731bdbbbf496498e954ad23d10330",
+    "run_name": "run_rf_2023_20250708-103012",
+    "model_uri": "runs:/d3f731bdbbbf496498e954ad23d10330/random_forest_model"
   },
   "hyperparameters_used": {
     "random_state": 42
   },
   "data_source_processed": "data/processed/prepared_accidents_2023.csv",
   "data_source_raw": "data/raw/accidents_2023_synthet.csv",
-  "total_samples_in_X": 49972,
+  "total_samples_in_X": 100000,
   "features_definition": [
     "catu",
     "sexe",
