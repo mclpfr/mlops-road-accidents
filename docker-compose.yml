@@ -85,11 +85,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 512M
+          cpus: '1.0'
+          memory: 2G
         reservations:
-          cpus: '0.1'
-          memory: 128M
+          cpus: '0.2'
+          memory: 512M
     depends_on:
       - extract_data
 
@@ -109,11 +109,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.8'
-          memory: 1G
+          cpus: '1.0'
+          memory: 2G
         reservations:
-          cpus: '0.2'
-          memory: 256M
+          cpus: '0.5'
+          memory: 512M
     depends_on:
       - synthet_data
       
@@ -138,14 +138,16 @@ services:
     deploy:
       resources:
         limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
           cpus: '0.5'
           memory: 512M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
     depends_on:
       postgres:
         condition: service_healthy
+      train_model:
+        condition: service_completed_successfully
 
   train_model:
     build:
@@ -162,9 +164,9 @@ services:
         su -c 'python train_model.py' appuser
       "
     volumes:
-      - ./data:/app/data:rw
-      - ./models:/app/models:rw
-      - ./config.yaml:/app/config.yaml:rw
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./config.yaml:/app/config.yaml
       - ./.git:/app/.git:rw
       - ./dvc.yaml:/app/dvc.yaml:rw
       - ./.dvc:/app/.dvc:rw
@@ -174,8 +176,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.5'
-          memory: 3G
+          cpus: '2.0'
+          memory: 4G
         reservations:
           cpus: '0.5'
           memory: 1G

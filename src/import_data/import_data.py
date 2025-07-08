@@ -3,6 +3,7 @@
 import os
 import pandas as pd
 import sqlalchemy
+from sqlalchemy import text
 import json
 import logging
 import time
@@ -116,6 +117,7 @@ def import_accidents_data(engine, data_path):
         logger.error(f"Error importing accident data: {str(e)}")
 
 def import_model_metrics(engine, config):
+    logger.info("Starting model metrics import...")
     try:
         mlflow_config = config["mlflow"]
         tracking_uri = mlflow_config["tracking_uri"]
@@ -143,60 +145,72 @@ def import_model_metrics(engine, config):
             logger.warning(f"No runs found for experiment {experiment_name}")
             return
 
-        model_name = "accident-severity-predictor"
+        # Direct search for the best model version in the MLflow registry
+        model_name = mlflow_config.get("model_name", "accident-severity-predictor")
         metrics_data = []
-        best_model_version = None
-        
         try:
-            # Search for all model versions
-            model_versions = client.search_model_versions(f"name='{model_name}'")
-            
-            # Search for the version tagged "best_model"
-            for version in model_versions:
-                if version.tags and "best_model" in version.tags:
-                    best_model_version = version
-                    logger.info(f"Found best model version: {version.version} with accuracy {version.tags['best_model']}")
-                    break
-            
-            if best_model_version is None:
-                logger.warning(f"No version tagged as 'best_model' found for model {model_name}")
-                return
-            
-            # Get metrics only for the best version
-            run_id = best_model_version.run_id
-            model_version = best_model_version.version
-            status = best_model_version.current_stage  # e.g. 'Production', 'Staging', etc.
-            
+            # 1) Prefer versions in the "Production" stage (or "Staging" if specified)
+            preferred_stage = mlflow_config.get("preferred_stage", "Production")
+
+            # 1) Retrieve versions using the standard get_latest_versions API (more robust)
             try:
-                run_info = client.get_run(run_id)
-                metrics = run_info.data.metrics
-                metrics_record = {
-                    "run_id": run_id,
-                    "run_date": datetime.fromtimestamp(run_info.info.start_time/1000.0),
-                    "model_name": model_name,
-                    "accuracy": metrics.get("accuracy", 0),
-                    "precision_macro_avg": metrics.get("macro avg_precision", 0),
-                    "recall_macro_avg": metrics.get("macro avg_recall", 0),
-                    "f1_macro_avg": metrics.get("macro avg_f1-score", 0),
-                    "model_version": model_version,
-                    "model_stage": status,
-                    "year": year
-                }
-                metrics_data.append(metrics_record)
-                logger.info(f"Retrieved metrics for best model version {model_version}")
+                model_versions = client.get_latest_versions(model_name, stages=[preferred_stage])
             except Exception as e:
-                logger.error(f"Could not retrieve metrics for best model run_id {run_id}: {str(e)}")
+                logger.warning(f"get_latest_versions a échoué: {str(e)} — tentative avec search_model_versions")
+                model_versions = []
+
+            # 2) Fallback: use search_model_versions if no version exists in the desired stage
+            if not model_versions:
+                try:
+                    model_versions = client.search_model_versions(f"name='{model_name}'")
+                except Exception as e:
+                    logger.error(f"Impossible d'interroger MLflow model versions: {str(e)}")
+                    return
+
+            if not model_versions:
+                logger.error(
+                    f"Aucune version du modèle '{model_name}' trouvée dans le registre MLflow")
                 return
-                
+
+            # 3) Select the most recent version (highest version number)
+            best_version = sorted(model_versions, key=lambda v: int(v.version), reverse=True)[0]
+
+            run_id = best_version.run_id
+            model_version = best_version.version
+            model_stage = best_version.current_stage or 'None'
+
+            # 4) Retrieve metrics from the associated run
+            best_run = client.get_run(run_id)
+            metrics = best_run.data.metrics
+
+            logger.info(
+                f"Sélection de la version {model_version} ({model_stage}) du modèle '{model_name}' — run {run_id}")
+            logger.info(f"Clés des métriques disponibles: {list(metrics.keys())}")
+
+            # 5) Build the metrics record
+            metrics_record = dict(metrics)
+            metrics_record.update({
+                "run_id": run_id,
+                "run_date": datetime.fromtimestamp(best_run.info.start_time / 1000.0),
+                "model_name": model_name,
+                "model_version": model_version,
+                "model_stage": model_stage,
+                "year": year,
+            })
+            metrics_data.append(metrics_record)
+
         except Exception as e:
-            logger.error(f"Could not retrieve model versions from MLflow Model Registry: {str(e)}")
+            logger.error(f"Erreur lors du traitement des données MLflow: {str(e)}")
             return
+
 
         # Import metrics only if there is data
         if metrics_data:
             metrics_df = pd.DataFrame(metrics_data)
+            with engine.connect() as connection:
+                connection.execute(text('DROP TABLE IF EXISTS best_model_metrics'))
             metrics_df.to_sql('best_model_metrics', engine, if_exists='replace', index=False)
-            logger.info(f"Import successful: best model version {model_version} metrics imported")
+            logger.info(f"Import successful: best model version metrics imported")
         else:
             logger.warning("No metrics to import")
 
@@ -204,40 +218,24 @@ def import_model_metrics(engine, config):
         # Log any error during model metrics import
         logger.error(f"Error importing model metrics: {str(e)}")
 
+
 def main():
     time.sleep(5)
     
-    # Check if the marker file train_model.done exists
-    marker_file = "models/train_model.done"
-    max_wait_time = 300  # Maximum wait time in seconds (5 minutes)
-    wait_interval = 10   # Check every 10 seconds
-    wait_time = 0
-    
-    while not os.path.exists(marker_file) and wait_time < max_wait_time:
-        logger.info(f"Waiting for {marker_file} to be created... ({wait_time}/{max_wait_time} seconds)")
-        time.sleep(wait_interval)
-        wait_time += wait_interval
-    
-    if not os.path.exists(marker_file):
-        logger.error(f"Error: The marker file {marker_file} was not created within the wait time.")
-        return
-
     config = load_config()
-
     engine = get_postgres_connection(config)
 
     year = config["data_extraction"]["year"]
     data_path = f"/app/data/raw/accidents_{year}.csv"
+    
     import_accidents_data(engine, data_path)
-
     import_model_metrics(engine, config)
 
-    logger.info("Data import completed successfully")
-    
-    # Clean up all marker files
+
+    # Clean up marker files after all imports are done
     marker_files = [
         "/app/data/raw/extract_data.done",
-        "/app/data/raw/accidents_{year}_synthet.done".format(year=year),
+        f"/app/data/raw/accidents_{year}_synthet.done",
         "/app/data/processed/prepared_data.done",
         "/app/models/train_model.done"
     ]

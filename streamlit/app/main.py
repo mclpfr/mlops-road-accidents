@@ -279,48 +279,59 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-@st.cache_data(ttl=21600, persist="disk")
+@st.cache_data(ttl=600)  # Cache for 10 minutes
 def get_best_model_overview():
-    """Retrieve from MLflow the general information of the model tagged 'best_model'.
+    """Retrieve the best model information from the best_model_metrics PostgreSQL table.
     Returns a dict {model_name, model_type, version, accuracy} or None in case of error.
     """
     try:
-        setup_mlflow()
-        client = MlflowClient()
-        model_name = "accident-severity-predictor"
-
-        best_version = None
-        for mv in client.search_model_versions(f"name='{model_name}'"):
-            if mv.tags and "best_model" in mv.tags:
-                best_version = mv
-                break
-        if best_version is None:
+        # Query to get the most recent best model metrics
+        query = """
+            SELECT model_name, model_version as version, accuracy, 
+                   precision_macro_avg as precision, recall_macro_avg as recall, 
+                   f1_macro_avg as f1_score, run_date
+            FROM best_model_metrics
+            ORDER BY run_date DESC
+            LIMIT 1;
+        """
+        
+        # Execute the query
+        df = fetch_data_from_db(query)
+        
+        if df.empty:
+            st.warning("Aucun modèle trouvé dans la table best_model_metrics")
             return None
-
-        run = client.get_run(best_version.run_id)
-        params = run.data.params
-        metrics = run.data.metrics
-
-        model_type = params.get("model_type") or run.data.tags.get("model_type", "N/A")
-        accuracy_val = metrics.get("accuracy") or metrics.get("acc")
+            
+        # Get the first (most recent) row
+        model_data = df.iloc[0]
+        
+        # Format the accuracy as percentage if needed
+        accuracy_val = model_data['accuracy']
         if accuracy_val is not None:
             try:
                 accuracy_val = float(accuracy_val)
-                # If accuracy is between 0 and 1, convert to %
-                if accuracy_val <= 1:
-                    accuracy_val *= 100
-                accuracy_val = round(accuracy_val, 1)
-            except Exception:
+                # Convert to percentage if between 0 and 1
+                if 0 <= accuracy_val <= 1:
+                    accuracy_val = round(accuracy_val * 100, 1)
+                else:
+                    accuracy_val = round(accuracy_val, 1)
+            except (ValueError, TypeError):
                 accuracy_val = None
-        info = {
-            "model_name": best_version.name,
-            "model_type": model_type,
-            "version": best_version.version,
+        
+        # Return the model information
+        return {
+            "model_name": model_data.get('model_name', 'N/A'),
+            "model_type": "RandomForestClassifier",  # Default value, adjust if you have this column
+            "version": model_data.get('version', 'N/A'),
             "accuracy": accuracy_val,
+            "precision": model_data.get('precision'),
+            "recall": model_data.get('recall'),
+            "f1_score": model_data.get('f1_score'),
+            "run_date": model_data.get('run_date')
         }
-        return info
+        
     except Exception as e:
-        st.warning(f"Impossible de récupérer les informations générales MLflow : {e}")
+        st.error(f"Erreur lors de la récupération des informations du modèle : {str(e)}")
         return None
 
 @st.cache_data(ttl=600)
@@ -352,53 +363,7 @@ def get_class_distribution():
     })
     return class_distribution
 
-@st.cache_data(ttl=21600, persist="disk")
-def get_best_model_metrics():
-    """Return a dict containing accuracy, precision, recall and f1 extracted from the 'best_model' run in MLflow."""
-    try:
-        setup_mlflow()
-        client = MlflowClient()
-        model_name = "accident-severity-predictor"
-        best_version = None
-        for mv in client.search_model_versions(f"name='{model_name}'"):
-            if mv.tags and "best_model" in mv.tags:
-                best_version = mv
-                break
-        if best_version is None:
-            return None
-        run = client.get_run(best_version.run_id)
-        metrics = run.data.metrics
-        
-        # --- MLflow metrics normalization ---
-        metrics_lower = {k.lower(): v for k, v in metrics.items()}
-        metric_map = {
-            "accuracy": "Accuracy",
-            "acc": "Accuracy",
-            "precision": "Precision",
-            "precision_macro_avg": "Precision",
-            "macro avg_precision": "Precision",
-            "recall": "Recall",
-            "recall_macro_avg": "Recall",
-            "macro avg_recall": "Recall",
-            "f1": "F1_score",
-            "f1_score": "F1_score",
-            "f1_macro_avg": "F1_score",
-            "macro avg_f1-score": "F1_score",
-        }
-        result = {}
-        for key, label in metric_map.items():
-            if key in metrics_lower:
-                val = metrics_lower[key]
-                if val <= 1:
-                    val *= 100  # convertir en %
-                result[label] = round(val, 1)
-        return result if result else None
-    except Exception as e:
-        logging.getLogger(__name__).warning(f"Metrics MLflow non disponibles : {e}")
-        st.warning("Métriques MLflow non disponibles pour le moment. Merci de réessayer plus tard.")
-        return None
-
-@st.cache_data(ttl=21600, persist="disk")
+@st.cache_data(ttl=21600)
 def fetch_best_model_info():
     """Retrieve from MLflow the hyper-parameters and the confusion matrix of the model tagged 'best_model'.
     Returns (hyperparams_dict, confusion_matrix_numpy) or (None, None) if an error occurs.
@@ -553,7 +518,7 @@ def create_sample_data():
 
     # Placeholder for other datasets (to be replaced later if needed)
         # Get actual metrics from MLflow
-    model_metrics = get_best_model_metrics()
+    model_metrics = get_best_metrics_from_db()
     if not model_metrics:
         model_metrics = {
             "Accuracy": 0.852,
@@ -622,13 +587,13 @@ def main(accidents_count):
 
     # Display the selected page
     if st.session_state.selected_page == "Vue d'ensemble":
-        model_metrics = get_best_model_metrics()
+        model_metrics = get_best_metrics_from_db()
         show_overview(model_metrics, accidents_count)
     elif st.session_state.selected_page == "Analyse des données":
         class_distribution = get_class_distribution()
         show_data_analysis(class_distribution)
     elif st.session_state.selected_page == "Analyse du modèle":
-        model_metrics = get_best_model_metrics()
+        model_metrics = get_best_metrics_from_db()
         show_model_analysis(model_metrics)
     elif st.session_state.selected_page == "Démo interactive":
         show_interactive_demo()
@@ -651,6 +616,9 @@ def main(accidents_count):
         show_chatbot_page()
 
 def show_overview(model_metrics, accidents_count):
+    if model_metrics is None:
+        st.warning("Les métriques du modèle ne sont pas disponibles.")
+        return
     st.header("Vue d'ensemble du Projet")
 
     # Key metrics
@@ -720,34 +688,23 @@ def show_overview(model_metrics, accidents_count):
     # Detailed performance metrics
     st.markdown("---")
     st.subheader("Métriques de Performance")
-    
-    # Récupération des métriques
-    metrics_dict = get_best_model_metrics() or {}
-    overall_accuracy = round((metrics_dict.get("Accuracy", 0)*100) if metrics_dict.get("Accuracy",0)<=1 else metrics_dict.get("Accuracy",0), 1)
-    overall_precision = round((metrics_dict.get("Precision", 0)*100) if metrics_dict.get("Precision",0)<=1 else metrics_dict.get("Precision",0), 1)
-    overall_recall = round((metrics_dict.get("Recall", 0)*100) if metrics_dict.get("Recall",0)<=1 else metrics_dict.get("Recall",0), 1)
-    overall_f1 = round((metrics_dict.get("F1_score", 0)*100) if metrics_dict.get("F1_score",0)<=1 else metrics_dict.get("F1_score",0), 1)
-    _, cm = fetch_best_model_info()
-    f1_pas, f1_grave = _compute_per_class_f1(cm)   
-    prec_pas, prec_grave, rec_pas, rec_grave = _compute_per_class_pr_rc(cm)
-    
-    # Display metrics in columns
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
-        st.metric("Accuracy", f"{overall_accuracy}%")
-        st.metric("Précision Globale", f"{overall_precision}%")
-        st.metric("Rappel Global", f"{overall_recall}%")
-    
+        st.metric("Accuracy", f"{model_metrics.get('accuracy', 0):.1f}%")
+        st.metric("Précision Globale", f"{model_metrics.get('precision_globale', 0):.1f}%")
+        st.metric("Rappel Global", f"{model_metrics.get('rappel_global', 0):.1f}%")
+
     with col2:
-        st.markdown("**Précision par Classe**")
-        st.markdown(f"- Pas Grave: {prec_pas}%" if prec_pas is not None else "- Pas Grave: N/A")
-        st.markdown(f"- Grave: {prec_grave}%" if prec_grave is not None else "- Grave: N/A")
-    
+        st.write("**Précision par Classe**")
+        st.write(f"- Pas Grave: {model_metrics.get('precision_pas_grave', 'N/A')}%")
+        st.write(f"- Grave: {model_metrics.get('precision_grave', 'N/A')}%")
+
     with col3:
-        st.markdown("**Rappel par Classe**")
-        st.markdown(f"- Pas Grave: {rec_pas}%" if rec_pas is not None else "- Pas Grave: N/A")
-        st.markdown(f"- Grave: {rec_grave}%" if rec_grave is not None else "- Grave: N/A")
+        st.write("**Rappel par Classe**")
+        st.write(f"- Pas Grave: {model_metrics.get('rappel_pas_grave', 'N/A')}%")
+        st.write(f"- Grave: {model_metrics.get('rappel_grave', 'N/A')}%")
     
     # Stack technique et architecture
     st.markdown("---")
@@ -938,7 +895,7 @@ def show_model_analysis(model_metrics):
         st.subheader("Comparaison des Algorithmes")
         
         # Get current accuracy from model metrics
-        current_accuracy = model_metrics.get('Accuracy', 0.85)  # Valeur par défaut si non trouvée
+        current_accuracy = model_metrics.get('accuracy', 0.85)  # Valeur par défaut si non trouvée
         
         # Comparison table with actual values
         algo_comparison = {

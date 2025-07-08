@@ -558,15 +558,48 @@ def create_fallback_models(year_str="2023"):
         logger.error(f"Could not create fallback model files: {fallback_exc}")
 
 
-def check_environment():
-    """Check if all required environment variables and files are present."""
-    required_env_vars = ["MLFLOW_TRACKING_URI"]
-    missing_vars = [var for var in required_env_vars if not os.getenv(var)]
-    
-    if missing_vars:
-        logger.error(f"Missing required environment variables: {', '.join(missing_vars)}")
+def check_environment(config: dict | None = None):
+    """Validate that mandatory settings are available either via env vars or config.
+
+    Currently the only **required** setting is the MLflow tracking URI.
+    We first look for the ``MLFLOW_TRACKING_URI`` environment variable; if it is
+    not set we fall back to the value provided in the loaded ``config`` (if any).
+    This makes the script usable in situations where all configuration lives in
+    *config.yaml* without forcing users to duplicate the value in the container
+    environment.
+
+    Parameters
+    ----------
+    config : dict | None
+        Parsed YAML configuration.  When ``None`` the function will attempt to
+        load the default config file to perform the check.
+    Returns
+    -------
+    bool
+        ``True`` if the environment is considered valid, ``False`` otherwise.
+    """
+    # Load configuration lazily if the caller did not provide one.
+    if config is None:
+        try:
+            config = load_config()
+        except Exception as exc:
+            logger.warning(
+                "Unable to load configuration for environment validation: %s", exc
+            )
+            config = {}
+
+    tracking_uri_env = os.getenv("MLFLOW_TRACKING_URI")
+    tracking_uri_cfg = (
+        config.get("mlflow", {}).get("tracking_uri") if isinstance(config, dict) else None
+    )
+
+    if not tracking_uri_env and not tracking_uri_cfg:
+        logger.error(
+            "Missing MLflow tracking URI. Set the MLFLOW_TRACKING_URI environment variable "
+            "or add it to config.yaml under the 'mlflow.tracking_uri' key."
+        )
         return False
-    
+
     return True
 
 if __name__ == "__main__":
@@ -578,16 +611,16 @@ if __name__ == "__main__":
         logger.error(f"Failed to load configuration for marker check: {e}")
         sys.exit(1)
 
-    # Vérifier les dépendances de l'environnement
-    if not check_environment():
+    # Check environment dependencies
+    if not check_environment(temp_config_for_marker):
         logger.error("Environment validation failed. Exiting.")
         sys.exit(1)
 
-    # Le nom du fichier marqueur ne dépend pas de l'année dans le script original
+    # The marker file name does not depend on the year in the original script
     data_prepared_marker_file = "data/processed/prepared_data.done" 
     
-    max_wait_time = 300  # secondes
-    wait_interval = 10   # secondes
+    max_wait_time = 300  # seconds
+    wait_interval = 10   # seconds
     waited_time = 0
     
     logger.info(f"En attente du fichier marqueur: {data_prepared_marker_file}")
@@ -598,16 +631,16 @@ if __name__ == "__main__":
     
     if not os.path.exists(data_prepared_marker_file):
         logger.error(f"Erreur: Le fichier marqueur {data_prepared_marker_file} n'a pas été créé dans le délai imparti.")
-        sys.exit(1)  # Quitter le script si les données ne sont pas prêtes
+        sys.exit(1)  # Exit script if the data is not ready
     
     logger.info(f"Fichier marqueur {data_prepared_marker_file} trouvé. Démarrage de l'entraînement du modèle.")
     
     try:
         train_model(config_path=config_file_path)
         logger.info("Entraînement du modèle terminé avec succès.")
-        sys.exit(0)  # Succès
+        sys.exit(0)  # Success
     except Exception as e:
         logger.error(f"Échec de l'entraînement du modèle: {e}")
         logger.error(traceback.format_exc())
-        sys.exit(1)  # Échec
+        sys.exit(1)  # Failure
 

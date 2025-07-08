@@ -85,9 +85,9 @@ def download_accident_data(config_path="config.yaml"):
     # Convert 'grav' column to numeric, handling any potential string values
     merged_data['grav'] = pd.to_numeric(merged_data['grav'].astype(str).str.strip('"'), errors='coerce')
 
-    # Limit dataset to 200000 lines 
+    # Limit dataset to 100000 lines 
     original_size = len(merged_data)
-    limit = 200000
+    limit = 100000
     if original_size > limit:
         print(f"Limiting the dataset to {limit} rows (original size: {original_size} rows)")
         merged_data = merged_data.head(limit)
