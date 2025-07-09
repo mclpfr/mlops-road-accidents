@@ -46,6 +46,7 @@ x-airflow-common: &airflow-common
     postgres-airflow:
       condition: service_healthy
 
+
 x-airflow-common-env: &airflow-common-env {}
 
 services:
@@ -90,8 +91,7 @@ services:
         reservations:
           cpus: '0.2'
           memory: 512M
-    depends_on:
-      - extract_data
+
 
   prepare_data:
     build:
@@ -114,8 +114,7 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-    depends_on:
-      - synthet_data
+
       
   import_data:
     build:
@@ -143,11 +142,7 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-    depends_on:
-      postgres:
-        condition: service_healthy
-      train_model:
-        condition: service_completed_successfully
+
 
   train_model:
     build:
@@ -181,9 +176,7 @@ services:
         reservations:
           cpus: '0.5'
           memory: 1G
-    depends_on:
-      - prepare_data
-      - synthet_data
+
 
   mlflow_management:
     build:
@@ -192,6 +185,14 @@ services:
     image: mlops-road-accidents-mlflow-management
     container_name: mlflow_management_service
     user: root
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
+        reservations:
+          cpus: '0.2'
+          memory: 256M
 
   postgres:
     build:
@@ -254,8 +255,7 @@ services:
         reservations:
           cpus: '0.2'
           memory: 256M
-    depends_on:
-      - train_model
+
 
   predict_api:
     container_name: predict_api_service
@@ -290,8 +290,7 @@ services:
         reservations:
           cpus: '0.2'
           memory: 256M
-    depends_on:
-      - auth_api
+
 
   streamlit:
     container_name: streamlit
@@ -315,10 +314,7 @@ services:
         reservations:
           cpus: '0.2'
           memory: 256M
-    depends_on:
-      - airflow-webserver
-      - grafana
-      - evidently-api
+
 
   agent:
     container_name: agent
@@ -391,10 +387,7 @@ services:
         reservations:
           cpus: '0.1'
           memory: 256M
-    depends_on:
-      - predict_api
-      - evidently-api
-      - alertmanager
+
     networks:
       - default
 
@@ -469,8 +462,7 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
-    depends_on:
-      - loki
+
 
   grafana:
     image: grafana/grafana:latest
@@ -503,11 +495,7 @@ services:
         reservations:
           cpus: '0.2'
           memory: 256M
-    depends_on:
-      - prometheus
-      - alertmanager
-      - postgres
-      - loki
+
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.2
@@ -554,6 +542,9 @@ services:
       
   airflow-init:
     <<: *airflow-common
+    depends_on:
+      postgres-airflow:
+        condition: service_healthy
     user: "0"
     container_name: airflow-init
     restart: on-failure
@@ -570,9 +561,7 @@ services:
         reservations:
           cpus: '0.2'
           memory: 512M
-    depends_on:
-      postgres-airflow:
-        condition: service_healthy
+
 
   airflow-webserver:
     <<: *airflow-common
@@ -594,12 +583,13 @@ services:
         reservations:
           cpus: '0.5'
           memory: 1G
-    depends_on:
-      postgres-airflow:
-        condition: service_healthy
+
 
   airflow-scheduler:
     <<: *airflow-common
+    depends_on:
+      airflow-webserver:
+        condition: service_healthy
     container_name: airflow-scheduler
     command: scheduler
     restart: always
@@ -617,11 +607,8 @@ services:
         reservations:
           cpus: '0.5'
           memory: 1G
-    depends_on:
-      postgres-airflow:
-        condition: service_healthy
-      airflow-webserver:
-        condition: service_healthy
+
+
     environment:
       <<: *airflow-common-env
       AIRFLOW_ADMIN_PASSWORD: admin
@@ -653,9 +640,7 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
-    depends_on:
-      - prometheus
-      - airflow-webserver
+
     networks:
       - default
 
