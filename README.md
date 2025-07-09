@@ -21,6 +21,135 @@ Ce projet MLOps complet prédit la gravité des accidents de la route en France 
 
 ![Architecture du Système](images/archi_system.jpg)
 
+### Architecture Technique Détaillée
+
+```mermaid
+graph TB
+    %% Couche Data Sources
+    subgraph "Data Sources"
+        GOV["`**Données Gouvernementales**
+        data.gouv.fr
+        Accidents 2023`"]
+    end
+
+    %% Couche Pipeline ML
+    subgraph "Pipeline ML (Airflow)"
+        EXTRACT["`**extract_data**
+        Téléchargement
+        Fusion 4 CSV`"]
+        SYNTHETIC["`**synthet_data**
+        Génération 50/50
+        Données synthétiques`"]
+        PREPARE["`**prepare_data**
+        Feature engineering
+        Standardisation`"]
+        TRAIN["`**train_model**
+        Random Forest
+        MLflow tracking`"]
+        IMPORT["`**import_data**
+        PostgreSQL
+        Dashboards`"]
+    end
+
+    %% Couche MLOps
+    subgraph "DagsHub"
+        MLFLOW["`**MLflow**
+        Model Registry
+        Versioning
+        Tracking`"]
+        DVC["`**DVC**
+        Data versioning
+        Git intégration
+        Reproductibilité`"]
+    end
+
+    %% Couche Storage
+    subgraph "Storage Layer"
+        POSTGRES["`**PostgreSQL**
+        Données business
+        Métriques modèle`"]
+        FILES["`**File System**
+        Modèles .joblib
+        Données CSV`"]
+        EVID_DATA["`**Evidently Data**
+        Reference/Current
+        Drift detection`"]
+    end
+
+    %% Couche API
+    subgraph "API Services"
+        AUTH["`**Auth API**
+        Port 7999
+        JWT tokens`"]
+        PREDICT["`**Predict API**
+        Port 8000
+        Prédictions sécurisées`"]
+    end
+
+    %% Couche Monitoring
+    subgraph "Monitoring Stack"
+        PROMETHEUS["`**Prometheus**
+        Port 9090
+        Métriques collecte`"]
+        GRAFANA["`**Grafana**
+        Port 3000
+        5 Dashboards`"]
+        ALERT["`**Alertmanager**
+        Webhook alerts
+        Re-entraînement`"]
+        LOKI["`**Loki**
+        Log aggregation
+        API logs`"]
+        EVID_API["`**Evidently API**
+        Port 8001
+        Détection drift`"]
+    end
+
+    %% Couche Orchestration
+    subgraph "Orchestration"
+        AIRFLOW["`**Airflow**
+        Port 8080
+        DAGs pipeline`"]
+    end
+
+    %% Couche Users
+    subgraph "Users & Interfaces"
+        USERS["`**Users**`"]
+        ADMIN["`**Admin**
+        Monitoring dashboards
+        MLOps oversight`"]
+    end
+
+    %% Flux de données
+    GOV --> EXTRACT
+    EXTRACT --> SYNTHETIC
+    SYNTHETIC --> PREPARE
+    PREPARE --> TRAIN
+    TRAIN --> IMPORT
+    TRAIN --> MLFLOW
+    TRAIN --> DVC
+    IMPORT --> POSTGRES
+    TRAIN --> FILES
+    PREPARE --> EVID_DATA
+    USERS --> PREDICT
+    PREDICT --> AUTH
+    ADMIN --> GRAFANA
+    GRAFANA --> PROMETHEUS
+    GRAFANA --> LOKI
+    PROMETHEUS --> PREDICT
+    PROMETHEUS --> AUTH
+    LOKI --> PREDICT
+    LOKI --> AUTH
+    ALERT --> PROMETHEUS
+    EVID_API --> EVID_DATA
+    AIRFLOW --> EXTRACT
+    AIRFLOW --> SYNTHETIC
+    AIRFLOW --> PREPARE
+    AIRFLOW --> TRAIN
+    AIRFLOW --> IMPORT
+```
+
+
 ## Démarrage Rapide
 
 ### Prérequis
