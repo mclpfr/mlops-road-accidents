@@ -2,6 +2,12 @@ x-user-info: &user-info
   USER_ID: "1000"
   GROUP_ID: "1000"
 
+x-logging: &logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 x-airflow-common: &airflow-common
   build:
     context: .
@@ -42,6 +48,7 @@ x-airflow-common: &airflow-common
       reservations:
         cpus: '0.5'
         memory: 1G
+    logging: *logging
   depends_on:
     postgres-airflow:
       condition: service_healthy
@@ -51,6 +58,7 @@ x-airflow-common-env: &airflow-common-env {}
 
 services:
   extract_data:
+    logging: *logging
     build:
       context: .
       dockerfile: src/extract_data/Dockerfile
@@ -72,6 +80,7 @@ services:
           memory: 128M
 
   synthet_data:
+    logging: *logging
     build:
       context: .
       dockerfile: src/synthet_data/Dockerfile
@@ -94,6 +103,7 @@ services:
 
 
   prepare_data:
+    logging: *logging
     build:
       context: .
       dockerfile: src/prepare_data/Dockerfile
@@ -117,6 +127,7 @@ services:
 
       
   import_data:
+    logging: *logging
     build:
       context: .
       dockerfile: src/import_data/Dockerfile
@@ -145,6 +156,7 @@ services:
 
 
   train_model:
+    logging: *logging
     build:
       context: .
       dockerfile: src/train_model/Dockerfile
@@ -156,17 +168,14 @@ services:
       sh -c "
         chown -R appuser:appuser /app/models;
         rm -f /app/models/train_model.done;
-        su -c 'python train_model.py' appuser
+        su -c 'python src/train_model/train_model.py' appuser
       "
     volumes:
-      - ./data:/app/data
+      # Mount entire project to retain Git & DVC context and source code
+      - ./:/app
+      # Persist models and data between container runs
       - ./models:/app/models
-      - ./config.yaml:/app/config.yaml
-      - ./.git:/app/.git:rw
-      - ./dvc.yaml:/app/dvc.yaml:rw
-      - ./.dvc:/app/.dvc:rw
-      - ./src/prepare_data:/app/src/prepare_data:ro
-      - ./src/synthet_data:/app/src/synthet_data:ro
+      - ./data:/app/data
     working_dir: /app
     deploy:
       resources:
@@ -179,6 +188,7 @@ services:
 
 
   mlflow_management:
+    logging: *logging
     build:
       context: ./src/mlflow_management
       dockerfile: Dockerfile
@@ -195,6 +205,7 @@ services:
           memory: 256M
 
   postgres:
+    logging: *logging
     build:
       context: .
       dockerfile: src/postgresql/Dockerfile
@@ -237,13 +248,11 @@ services:
     ports:
       - "7999:7999"
     logging:
-      driver: "json-file"
+      <<: *logging
       options:
         max-size: "10m"
         max-file: "3"
-        tag: "api"
-        labels: "logging"
-        env: "logging_job"
+        tag: "auth-api"
     labels:
       - "logging=promtail"
       - "logging_job=api"
@@ -272,13 +281,11 @@ services:
     ports:
       - "8000:8000"
     logging:
-      driver: "json-file"
+      <<: *logging
       options:
         max-size: "10m"
         max-file: "3"
-        tag: "api"
-        labels: "logging"
-        env: "logging_job"
+        tag: "predict-api"
     labels:
       - "logging=promtail"
       - "logging_job=api"
@@ -293,6 +300,7 @@ services:
 
 
   streamlit:
+    logging: *logging
     container_name: streamlit
     build:
       context: .
@@ -317,6 +325,7 @@ services:
 
 
   agent:
+    logging: *logging
     container_name: agent
     build:
       context: ./agent
@@ -335,7 +344,8 @@ services:
           cpus: '0.1'
           memory: 128M
 
-  evidently-api:                       
+  evidently-api:
+    logging: *logging                       
     container_name: evidently-api
     build:                                                
       context: ./evidently/api        
@@ -366,6 +376,7 @@ services:
       - default
 
   prometheus:
+    logging: *logging
     image: prom/prometheus:v2.47.2
     container_name: prometheus_service
     ports:
@@ -392,6 +403,7 @@ services:
       - default
 
   alertmanager:
+    logging: *logging
     image: prom/alertmanager:latest
     container_name: alertmanager_service
     ports:
@@ -435,6 +447,7 @@ services:
           memory: 256M
 
   promtail:
+    logging: *logging
     image: grafana/promtail:2.9.0
     container_name: promtail_service
     restart: unless-stopped

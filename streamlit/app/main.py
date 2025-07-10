@@ -172,10 +172,10 @@ st.set_page_config(
 
 
 
-@st.cache_data(ttl=600)  # Cache results for 10 minutes
+@st.cache_data(ttl=60)  # Cache results for 1 minute (reduced from 10 minutes)
 def fetch_data_from_db(query: str):
     """
-    Connect to the Neon-hosted PostgreSQL database and execute the provided SQL query.
+    Connect to the local PostgreSQL database and execute the provided SQL query.
     Returns a Pandas DataFrame.
     """
     try:
@@ -183,14 +183,13 @@ def fetch_data_from_db(query: str):
         import psycopg2
         from psycopg2.extras import RealDictCursor
         
-        # Connection parameters
+        # Connection parameters for local PostgreSQL
         conn_params = {
-            "host": "ep-misty-violet-a9kyobqv-pooler.gwc.azure.neon.tech",
+            "host": "postgres",  # Service name in docker-compose
             "database": "road_accidents",
             "user": "postgres",
-            "password": "npg_BhciYxu9LEH7",
-            "port": "5432",
-            "sslmode": "require"
+            "password": "postgres",
+            "port": "5432"
         }
         
         # Database connection
@@ -280,8 +279,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-@st.cache_data(ttl=600)  # Cache for 10 minutes
-def get_best_model_overview(cache_key=None):
+def get_best_model_overview():
     """Retrieve the best model information from the best_model_metrics PostgreSQL table.
     
     Args:
@@ -293,11 +291,12 @@ def get_best_model_overview(cache_key=None):
     try:
         # Query to get the most recent best model metrics
         query = """
-            SELECT model_name, model_version as version, accuracy, 
-                   precision_macro_avg as precision, recall_macro_avg as recall, 
-                   f1_macro_avg as f1_score, run_date
+            SELECT model_name, model_version::INT AS version, accuracy,
+                   "macro avg_precision" AS precision, "macro avg_recall" AS recall,
+                   "macro avg_f1-score" AS f1_score,
+                   run_date
             FROM best_model_metrics
-            ORDER BY run_date DESC
+            ORDER BY version DESC
             LIMIT 1;
         """
         
@@ -328,7 +327,7 @@ def get_best_model_overview(cache_key=None):
         return {
             "model_name": model_data.get('model_name', 'N/A'),
             "model_type": "RandomForestClassifier",  # Default value, adjust if you have this column
-            "version": model_data.get('version', 'N/A'),
+            "version": int(model_data.get('version')) if not pd.isna(model_data.get('version')) else 'N/A',
             "accuracy": accuracy_val,
             "precision": model_data.get('precision'),
             "recall": model_data.get('recall'),
@@ -533,9 +532,8 @@ def create_sample_data():
         })
 
     # Placeholder for other datasets (to be replaced later if needed)
-        # Get actual metrics from MLflow
-    # Utilisation de l'horodatage actuel comme clé de cache pour forcer le rafraîchissement
-    model_metrics = get_best_model_overview(cache_key=datetime.now().timestamp())
+    # Get actual metrics from MLflow
+    model_metrics = get_best_model_overview()
     if not model_metrics:
         model_metrics = {
             "accuracy": 0.852,
@@ -604,15 +602,13 @@ def main(accidents_count):
 
     # Display the selected page
     if st.session_state.selected_page == "Vue d'ensemble":
-        # Utilisation de l'horodatage actuel comme clé de cache pour forcer le rafraîchissement
-        model_metrics = get_best_model_overview(cache_key=datetime.now().timestamp())
+        model_metrics = get_best_model_overview()
         show_overview(model_metrics, accidents_count)
     elif st.session_state.selected_page == "Analyse des données":
         class_distribution = get_class_distribution()
         show_data_analysis(class_distribution)
     elif st.session_state.selected_page == "Analyse du modèle":
-        # Utilisation de l'horodatage actuel comme clé de cache pour forcer le rafraîchissement
-        model_metrics = get_best_model_overview(cache_key=datetime.now().timestamp())
+        model_metrics = get_best_model_overview()
         show_model_analysis(model_metrics)
     elif st.session_state.selected_page == "Démo interactive":
         show_interactive_demo()
@@ -641,12 +637,11 @@ def show_overview(model_metrics, accidents_count):
     st.header("Vue d'ensemble du Projet")
 
     # Key metrics
-    # Get model info from MLflow
-    overview_info = get_best_model_overview(cache_key=time.time())
-    model_type = overview_info.get("model_type", "N/A") if overview_info else "N/A"
-    model_version = overview_info.get("version", "N/A") if overview_info else "N/A"
-    model_name = overview_info.get("model_name", "N/A") if overview_info else "N/A"
-    accuracy_val = overview_info.get("accuracy") if overview_info else None
+    # Get model info from the passed metrics
+    model_type = model_metrics.get("model_type", "N/A") if model_metrics else "N/A"
+    model_version = model_metrics.get("version", "N/A") if model_metrics else "N/A"
+    model_name = model_metrics.get("model_name", "N/A") if model_metrics else "N/A"
+    accuracy_val = model_metrics.get("accuracy") if model_metrics else None
     accuracy_display = f"{accuracy_val}%" if accuracy_val is not None else "N/A"
 
     col1, col2, col3, col4 = st.columns(4)
@@ -1517,7 +1512,7 @@ def add_sidebar_info(accidents_count):
     
     # Get MLflow metrics and calculate F1-scores per class
     # Utilisation de l'horodatage actuel comme clé de cache pour forcer le rafraîchissement
-    metrics_dict = get_best_model_overview(cache_key=datetime.now().timestamp()) or {}
+    metrics_dict = get_best_model_overview() or {}
     overall_accuracy = round((metrics_dict.get("accuracy", 0)*100) if metrics_dict.get("accuracy",0)<=1 else metrics_dict.get("accuracy",0), 1)
     overall_precision = round((metrics_dict.get("precision", 0)*100) if metrics_dict.get("precision",0)<=1 else metrics_dict.get("precision",0), 1)
     overall_recall = round((metrics_dict.get("recall", 0)*100) if metrics_dict.get("recall",0)<=1 else metrics_dict.get("recall",0), 1)

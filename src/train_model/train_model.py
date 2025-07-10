@@ -9,6 +9,8 @@ import os
 import mlflow
 import mlflow.sklearn
 import json
+import requests
+import jwt
 import logging
 import time
 import traceback
@@ -262,7 +264,29 @@ def train_model(config_path="config.yaml"):
                     
                     # Set tag for the new best model version
                     client.set_model_version_tag(name=model_name_registry, version=registered_model_version.version, key="best_model", value=str(current_accuracy))
-                    logger.info(f"'best_model={current_accuracy:.4f}' tag added to version {registered_model_version.version} of model {model_name_registry}.")
+                    logger.info(f"'best_model' tag added to version {registered_model_version.version} of model {model_name_registry}.")
+
+                    # --- Trigger model reload in predict_api container ---
+                    try:
+                        import requests
+                        reload_url = os.getenv("PREDICT_API_RELOAD_URL", "http://predict_api:8000/protected/reload")
+                        logger.info(f"Triggering model reload via {reload_url}")
+                        # Generate admin JWT token for predict_api
+                        try:
+                            jwt_secret = os.getenv("PREDICT_API_JWT_SECRET", "key")
+                            payload = {"sub": "train_model_service", "role": "admin"}
+                            token = jwt.encode(payload, jwt_secret, algorithm="HS256")
+                            headers = {"Authorization": f"Bearer {token}"}
+                        except Exception as jwt_exc:
+                            logger.error(f"Failed to generate JWT: {jwt_exc}")
+                            headers = {}
+                        response = requests.get(reload_url, headers=headers, timeout=(5, 60))
+                        if response.status_code == 200:
+                            logger.info("Successfully triggered model reload for predict_api container via protected endpoint.")
+                        else:
+                            logger.warning(f"Reload request returned status {response.status_code}: {response.text}")
+                    except Exception as reload_exc:
+                        logger.error(f"Failed to trigger model reload: {reload_exc}")
                     
                     best_model_path = os.path.join(model_dir, f"{best_model_filename_base}.joblib")
                     joblib.dump(model, best_model_path)
@@ -352,39 +376,25 @@ def train_model(config_path="config.yaml"):
                     for f_path in dvc_files_to_add:
                         if os.path.exists(f_path):
                             try:
-                                logger.info(f"DVC add/commit: {f_path}")
-                                # Use 'dvc commit --force' for files that are already outputs of DVC stages
-                                # This will update the DVC cache without changing the pipeline definition
-                                result = subprocess.run(["dvc", "commit", "--force", f_path], 
-                                                     capture_output=True, text=True)
-                                if result.returncode == 0:
-                                    logger.info(f"Successfully committed {f_path} to DVC cache")
-                                    # Ajouter le fichier .dvc correspondant à la liste pour Git
-                                    dvc_file = f"{f_path}.dvc"
-                                    if os.path.exists(dvc_file):
-                                        git_add_paths.append(dvc_file)
-                                        logger.info(f"Added to Git staging: {dvc_file}")
-                                else:
-                                    # If the first commit failed, retry once (no fallback to `dvc add`)
-                                    logger.info(f"Retrying `dvc commit --force` for {f_path}...")
-                                    result = subprocess.run(["dvc", "commit", "--force", f_path],
-                                                         capture_output=True, text=True)
-                                    if result.returncode == 0:
-                                        logger.info(f"Successfully committed {f_path} to DVC cache on retry")
-                                        # Ajouter le fichier .dvc correspondant à la liste pour Git
-                                        dvc_file = f"{f_path}.dvc"
-                                        if os.path.exists(dvc_file):
-                                            git_add_paths.append(dvc_file)
-                                            logger.info(f"Added to Git staging: {dvc_file}")
-                                    else:
-                                        logger.error(f"Failed to add/commit {f_path} to DVC: {result.stderr}")
-                            except subprocess.CalledProcessError as e:
-                                logger.error(f"Failed to process {f_path} with DVC: {e}\nStdout: {e.stdout}\nStderr: {e.stderr}")
+                                logger.info(f"Processing DVC tracking for {f_path}")
+                                commit_res = subprocess.run(["dvc", "commit", "--force", f_path], capture_output=True, text=True)
+                                if commit_res.returncode != 0:
+                                    logger.warning(f"`dvc commit` failed for {f_path}: {commit_res.stderr.strip()} – falling back to `dvc add`. ")
+                                    add_res = subprocess.run(["dvc", "add", f_path], capture_output=True, text=True)
+                                    if add_res.returncode != 0:
+                                        logger.error(f"`dvc add` failed for {f_path}: {add_res.stderr.strip()}")
+                                        continue
+                                dvc_file = f"{f_path}.dvc"
+                                if os.path.exists(dvc_file):
+                                    git_add_paths.append(dvc_file)
+                                    logger.info(f"Added {dvc_file} to Git staging list")
                             except FileNotFoundError:
-                                logger.error("DVC command not found. Ensure DVC is installed and in PATH.")
-                                break # Stop DVC process if command is not found
+                                logger.error("DVC is not installed in the container PATH")
+                                break
+                            except Exception as dvc_exc:
+                                logger.error(f"Unexpected DVC error for {f_path}: {dvc_exc}")
                         else:
-                            logger.warning(f"File {f_path} not found, skipped for 'dvc add'.")
+                            logger.warning(f"File {f_path} not found, skipped DVC tracking.")
                     
                     # --- Git Integration (continued) ---
                     if git_add_paths: # If .dvc files were created/updated
