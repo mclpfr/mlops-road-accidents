@@ -36,7 +36,7 @@ def prepare_data(config_path="config.yaml"):
     
     # Load accidents data
     print(f"Loading data from {synthet_path}...")
-    data = pd.read_csv(synthet_path, low_memory=False, sep=';', encoding='latin1')
+    data = pd.read_csv(synthet_path, sep=';', encoding='latin1', engine='python', on_bad_lines='skip')
     print(f"Loaded data shape: {data.shape}")
     
     # Define the features we want to keep

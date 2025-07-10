@@ -7,6 +7,7 @@ import pandas as pd
 import requests
 import docker
 import socket
+from datetime import datetime
 
 # Create logs directory if it doesn't exist
 log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
@@ -280,9 +281,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 @st.cache_data(ttl=600)  # Cache for 10 minutes
-def get_best_model_overview():
+def get_best_model_overview(cache_key=None):
     """Retrieve the best model information from the best_model_metrics PostgreSQL table.
-    Returns a dict {model_name, model_type, version, accuracy} or None in case of error.
+    
+    Args:
+        cache_key: A value that can be changed to force a cache refresh.
+    
+    Returns:
+        dict: A dictionary containing model information or None in case of error.
     """
     try:
         # Query to get the most recent best model metrics
@@ -453,7 +459,12 @@ def fetch_best_model_info():
         data_path = next((p for p in candidate_paths if os.path.exists(p)), None)
         if data_path is None:
             st.warning(f"Aucun fichier de données trouvé dans les chemins : {candidate_paths}")
-            return hyperparams_dict, None  # No data -> No matrix
+            # Fallback to artifact if it exists
+            if cm_artifact is not None:
+                st.info("Utilisation de l'artefact de la matrice de confusion comme fallback.")
+                st.session_state.confusion_matrix = cm_artifact
+                return hyperparams_dict, cm_artifact
+            return hyperparams_dict, None  # No data, no artifact -> No matrix
 
         st.info(f"Chargement des données depuis : {data_path}")
         
@@ -523,7 +534,8 @@ def create_sample_data():
 
     # Placeholder for other datasets (to be replaced later if needed)
         # Get actual metrics from MLflow
-    model_metrics = get_best_model_overview()
+    # Utilisation de l'horodatage actuel comme clé de cache pour forcer le rafraîchissement
+    model_metrics = get_best_model_overview(cache_key=datetime.now().timestamp())
     if not model_metrics:
         model_metrics = {
             "accuracy": 0.852,
@@ -592,13 +604,15 @@ def main(accidents_count):
 
     # Display the selected page
     if st.session_state.selected_page == "Vue d'ensemble":
-        model_metrics = get_best_model_overview()
+        # Utilisation de l'horodatage actuel comme clé de cache pour forcer le rafraîchissement
+        model_metrics = get_best_model_overview(cache_key=datetime.now().timestamp())
         show_overview(model_metrics, accidents_count)
     elif st.session_state.selected_page == "Analyse des données":
         class_distribution = get_class_distribution()
         show_data_analysis(class_distribution)
     elif st.session_state.selected_page == "Analyse du modèle":
-        model_metrics = get_best_model_overview()
+        # Utilisation de l'horodatage actuel comme clé de cache pour forcer le rafraîchissement
+        model_metrics = get_best_model_overview(cache_key=datetime.now().timestamp())
         show_model_analysis(model_metrics)
     elif st.session_state.selected_page == "Démo interactive":
         show_interactive_demo()
@@ -628,7 +642,7 @@ def show_overview(model_metrics, accidents_count):
 
     # Key metrics
     # Get model info from MLflow
-    overview_info = get_best_model_overview()
+    overview_info = get_best_model_overview(cache_key=time.time())
     model_type = overview_info.get("model_type", "N/A") if overview_info else "N/A"
     model_version = overview_info.get("version", "N/A") if overview_info else "N/A"
     model_name = overview_info.get("model_name", "N/A") if overview_info else "N/A"
@@ -1234,7 +1248,7 @@ def show_monitoring(drift_data):
         drift_api_available = False
     
     with col1:
-        if st.button("🚨 Forcer le drift", help="Ajoute du bruit aux données pour simuler un drift."):
+        if st.button("Forcer le drift", help="Ajoute du bruit aux données pour simuler un drift."):
             try:
                 response = requests.get(f"{evidently_host}/force_drift", params={"drift_percentage": 0.8}, timeout=5)
                 if response.status_code == 200:
@@ -1245,7 +1259,7 @@ def show_monitoring(drift_data):
                 st.error(f"Erreur lors de la connexion à l'API: {e}")
     
     with col2:
-        if st.button("🔄 Réinitialiser le drift", help="Réinitialise le drift (bruit) artificiel."):
+        if st.button("Réinitialiser le drift", help="Réinitialise le drift (bruit) artificiel."):
             try:
                 response = requests.get(f"{evidently_host}/reset_drift", timeout=5)
                 if response.status_code == 200:
@@ -1502,7 +1516,8 @@ def add_sidebar_info(accidents_count):
     
     
     # Get MLflow metrics and calculate F1-scores per class
-    metrics_dict = get_best_model_overview() or {}
+    # Utilisation de l'horodatage actuel comme clé de cache pour forcer le rafraîchissement
+    metrics_dict = get_best_model_overview(cache_key=datetime.now().timestamp()) or {}
     overall_accuracy = round((metrics_dict.get("accuracy", 0)*100) if metrics_dict.get("accuracy",0)<=1 else metrics_dict.get("accuracy",0), 1)
     overall_precision = round((metrics_dict.get("precision", 0)*100) if metrics_dict.get("precision",0)<=1 else metrics_dict.get("precision",0), 1)
     overall_recall = round((metrics_dict.get("recall", 0)*100) if metrics_dict.get("recall",0)<=1 else metrics_dict.get("recall",0), 1)
