@@ -319,7 +319,8 @@ make purge
    - Les nouvelles données sont collectées et stockées dans `evidently/current/current_data.csv`
    - Les données de référence (modèle de production) sont stockées dans `evidently/reference/best_model_data.csv`
 
-2. **Calcul du Drift** :
+2. **Flux de Détection de Drift :**
+   - Ce processus est la première étape du **Drift Controller**, un workflow automatisé qui orchestre la détection, l'alerte et le ré-entraînement.
    - Le service Evidently API compare les distributions des caractéristiques entre les données de référence et courantes
    - Pour les variables numériques : Utilisation de la distance de Wasserstein (seuil > 0.1)
    - Pour les variables catégorielles : Test du Khi-deux (seuil p-value < 0.05)
