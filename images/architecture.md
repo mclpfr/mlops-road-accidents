@@ -6,7 +6,6 @@ graph TB
         data.gouv.fr
         Accidents 2023`"]
     end
-
     %% Couche Pipeline ML
     subgraph "Pipeline ML (Airflow)"
         EXTRACT["`**extract_data**
@@ -25,7 +24,6 @@ graph TB
         PostgreSQL
         Dashboards`"]
     end
-
     %% Couche MLOps
     subgraph "DagsHub"
         MLFLOW["`**MLflow**
@@ -37,7 +35,6 @@ graph TB
         Git intégration
         Reproductibilité`"]
     end
-
     %% Couche Storage
     subgraph "Storage Layer"
         POSTGRES["`**PostgreSQL**
@@ -50,7 +47,6 @@ graph TB
         Reference/Current
         Drift detection`"]
     end
-
     %% Couche API
     subgraph "API Services"
         AUTH["`**Auth API**
@@ -60,7 +56,6 @@ graph TB
         Port 8000
         Prédictions sécurisées`"]
     end
-
     %% Couche Monitoring
     subgraph "Monitoring Stack"
         PROMETHEUS["`**Prometheus**
@@ -75,26 +70,24 @@ graph TB
         LOKI["`**Loki**
         Log aggregation
         API logs`"]
-        EVID_API["`**Evidently API**
+        EVID_API["`**Evidently IA**
         Port 8001
-        Détection drift`"]
+        Calcul drift`"]
+        DRIFT_CTRL["`**Drift Controller**
+        Contrôle seuil
+        Déclencheur pipeline`"]
     end
-
     %% Couche Orchestration
     subgraph "Orchestration"
         AIRFLOW["`**Airflow**
         Port 8080
         DAGs pipeline`"]
     end
-
     %% Couche Users
     subgraph "Users & Interfaces"
         USERS["`**Users**`"]
-        ADMIN["`**Admin**
-        Monitoring dashboards
-        MLOps oversight`"]
+        ADMIN["`**Admin**`"]
     end
-
     %% Flux de données
     EXTRACT --> GOV
     EXTRACT --> SYNTHETIC
@@ -102,39 +95,33 @@ graph TB
     PREPARE --> TRAIN
     TRAIN --> IMPORT
     IMPORT --> POSTGRES
-
     %% MLOps connections
     TRAIN --> MLFLOW
     TRAIN --> DVC
     DVC --> FILES
-
     %% API flows
     USERS --> AUTH
     AUTH --> PREDICT
     PREDICT --> FILES
-    PREDICT --> PROMETHEUS
-
     %% Monitoring flows
-    PROMETHEUS --> GRAFANA
     PROMETHEUS --> ALERT
-    PREDICT --> LOKI
-    LOKI --> GRAFANA
-    POSTGRES --> GRAFANA
-
+    PROMETHEUS --> EVID_API
+    PROMETHEUS --> PREDICT
+    LOKI --> PREDICT
+    GRAFANA --> PROMETHEUS
+    GRAFANA --> LOKI
+    GRAFANA --> POSTGRES
     %% Drift detection
     EVID_API --> EVID_DATA
-    EVID_API --> PROMETHEUS
-    ALERT --> AIRFLOW
+    DRIFT_CTRL --> EVID_API
+    DRIFT_CTRL --> AIRFLOW
     AIRFLOW --> TRAIN
-
     %% Orchestration
     AIRFLOW --> EXTRACT
-
     %% Admin access
     ADMIN --> GRAFANA
     ADMIN --> AIRFLOW
     ADMIN --> PROMETHEUS
-
     %% Styling
     classDef dataSource fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
     classDef pipeline fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
@@ -144,13 +131,12 @@ graph TB
     classDef monitoring fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     classDef orchestration fill:#f1f8e9,stroke:#689f38,stroke-width:2px
     classDef users fill:#fce4ec,stroke:#c2185b,stroke-width:2px
-
     class GOV dataSource
     class EXTRACT,SYNTHETIC,PREPARE,TRAIN,IMPORT pipeline
-    class MLFLOW,DVC,DAGSHUB mlops
+    class MLFLOW,DVC mlops
     class POSTGRES,FILES,EVID_DATA storage
     class AUTH,PREDICT,EVID_API api
-    class PROMETHEUS,GRAFANA,ALERT,LOKI monitoring
-    class AIRFLOW,SCHEDULER orchestration
+    class PROMETHEUS,GRAFANA,ALERT,LOKI,DRIFT_CTRL monitoring
+    class AIRFLOW orchestration
     class USERS,ADMIN users
 ```
