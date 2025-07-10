@@ -961,6 +961,24 @@ def show_model_analysis(model_metrics):
         subheader_text = "Matrice de Confusion"
         st.subheader(subheader_text)
         
+        # Fallback local : tente de charger une matrice de confusion depuis le dossier models/ si rien n’est déjà en mémoire
+        if not hasattr(st.session_state, 'confusion_matrix_img') and not hasattr(st.session_state, 'confusion_matrix'):
+            try:
+                from pathlib import Path
+                year = os.getenv("DATA_YEAR", "2023")
+                candidates = [
+                    Path(__file__).resolve().parents[2] / "models" / f"confusion_matrix_best_model_{year}.png",
+                    Path(__file__).resolve().parent.parent / "models" / f"confusion_matrix_best_model_{year}.png",
+                    Path("models") / f"confusion_matrix_best_model_{year}.png"
+                ]
+                for p in candidates:
+                    if p.exists():
+                        st.session_state.confusion_matrix_img = str(p)
+                        st.info(f"Matrice de confusion chargée depuis le fichier local : {p}")
+                        break
+            except Exception as e:
+                st.warning(f"Impossible de charger la matrice locale : {e}")
+        
         # Affiche un indicateur de chargement pendant le calcul
         with st.spinner('Chargement de la matrice de confusion...'):
             # First check if there's a saved matrix image
