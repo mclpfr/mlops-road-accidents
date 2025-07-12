@@ -309,16 +309,18 @@ services:
       - "8501:8501"
     environment:
       - AIRFLOW_BASE_URL=http://localhost:8080
+      - AGENT_EVENTS_PATH=/agent_events/agent_events.jsonl
       - GRAFANA_BASE_URL=http://localhost:3000
       - EVIDENTLY_BASE_URL=http://evidently-api:8001
     volumes:
       - ./:/app
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./agent_events:/agent_events
     deploy:
       resources:
         limits:
           cpus: '0.5'
-          memory: 1G
+          memory: 2G
         reservations:
           cpus: '0.2'
           memory: 256M
@@ -332,9 +334,15 @@ services:
       dockerfile: Dockerfile
     environment:
       - LOG_LEVEL=INFO
+      - AGENT_EVENTS_PATH=/agent_events/agent_events.jsonl
+      - MAX_RESTARTS=10
+      - LLM_API_KEY=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
     volumes:
       - ./agent:/app
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./agent_events:/agent_events
+    ports:
+      - "8002:8000"
     deploy:
       resources:
         limits:
@@ -481,6 +489,8 @@ services:
     image: grafana/grafana:latest
     container_name: grafana_service
     restart: always
+    labels:
+      - "com.company.always_on=true"
     ports:
       - 3000:3000
     networks:
@@ -668,3 +678,4 @@ volumes:
   alertmanager_data:
   postgres_airflow_data:
   airflow_logs:
+  agent_events:

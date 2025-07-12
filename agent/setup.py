@@ -7,5 +7,9 @@ setup(
     install_requires=[
         'requests',
         'pyyaml',
+        'fastapi',
+        'uvicorn',
+        'websockets',
+        'docker',
     ],
 )

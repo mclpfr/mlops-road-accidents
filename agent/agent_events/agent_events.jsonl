@@ -1,0 +1,12 @@
+{"timestamp": "2025-07-11T06:52:08.562444Z", "container": "streamlit", "action": "restart", "status": "running", "message": "MEM 91.7%>Thresh; restarted"}
+{"timestamp": "2025-07-11T06:52:08.912024Z", "container": "grafana_service", "action": "restart", "status": "exited", "message": "Exited unexpectedly; restarted"}
+{"timestamp": "2025-07-11T06:52:52.891398Z", "container": "streamlit", "action": "restart", "status": "running", "message": "MEM 100.0%>Thresh; restarted"}
+{"timestamp": "2025-07-11T07:06:49.441580Z", "container": "grafana_service", "action": "restart", "status": "exited", "message": "Exited unexpectedly; restarted"}
+{"timestamp": "2025-07-11T07:09:31.727234Z", "container": "grafana_service", "action": "restart", "status": "exited", "message": "Exited unexpectedly; restarted"}
+{"timestamp": "2025-07-11T07:10:10.794485Z", "container": "grafana_service", "action": "restart", "status": "exited", "message": "Exited unexpectedly; restarted"}
+{"timestamp": "2025-07-11T07:14:55.268781Z", "container": "grafana_service", "action": "alert", "status": "exited", "message": "Exited unexpectedly; restart limit reached"}
+{"timestamp": "2025-07-11T07:15:34.338502Z", "container": "grafana_service", "action": "alert", "status": "exited", "message": "Exited unexpectedly; restart limit reached"}
+{"timestamp": "2025-07-11T07:16:13.414004Z", "container": "grafana_service", "action": "alert", "status": "exited", "message": "Exited unexpectedly; restart limit reached"}
+{"timestamp": "2025-07-11T07:16:52.816097Z", "container": "grafana_service", "action": "restart", "status": "exited", "message": "Exited unexpectedly; restarted"}
+{"timestamp": "2025-07-11T07:26:02.845497Z", "container": "grafana_service", "action": "restart", "status": "exited", "message": "Exited unexpectedly; restarted"}
+{"timestamp": "2025-07-11T07:28:06.248099Z", "container": "grafana_service", "action": "restart", "status": "exited", "message": "Exited unexpectedly; restarted"}

@@ -4,14 +4,16 @@ env/
 __pycache__/
 
 config.json
-config.yaml
+!config.yaml
 config_perso.yaml
 
 data/raw/
 data/processed/
 models/
+!models/*.dvc
 !models/best_model_2023_metadata.json
 agent/__init__.py
+agent/__pycache__/
 
 .dvc/tmp/
 .dvc/cache/

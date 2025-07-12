@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gérard - Agent MLOps</title>
+    <style>
+        :root {
+            --terminal-green: #00ff00;
+            --terminal-dark-green: #00aa00;
+            --terminal-black: #000000;
+            --terminal-gray: #333333;
+        }
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Courier New', monospace;
+            background-color: var(--terminal-black);
+            color: var(--terminal-green);
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid var(--terminal-dark-green);
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 10px;
+            border-bottom: 1px solid var(--terminal-dark-green);
+            margin-bottom: 10px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 1.5em;
+            text-shadow: 0 0 5px var(--terminal-green);
+        }
+        
+        .status {
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--terminal-green);
+            margin-right: 5px;
+            box-shadow: 0 0 5px var(--terminal-green);
+            animation: blink 2s infinite;
+        }
+        
+        .terminal {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: rgba(0, 20, 0, 0.8);
+            border: 1px solid var(--terminal-dark-green);
+            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.2);
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .terminal::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .terminal::-webkit-scrollbar-track {
+            background: var(--terminal-black);
+        }
+        
+        .terminal::-webkit-scrollbar-thumb {
+            background: var(--terminal-dark-green);
+            border-radius: 4px;
+        }
+        
+        .input-area {
+            display: flex;
+            padding: 10px 0;
+            border-top: 1px solid var(--terminal-dark-green);
+        }
+        
+        .prompt {
+            color: var(--terminal-green);
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .input-field {
+            flex-grow: 1;
+            background-color: transparent;
+            border: none;
+            color: var(--terminal-green);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            outline: none;
+        }
+        
+        .send-btn {
+            background-color: var(--terminal-dark-green);
+            color: var(--terminal-black);
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            border-radius: 3px;
+            transition: all 0.3s;
+        }
+        
+        .send-btn:hover {
+            background-color: var(--terminal-green);
+            box-shadow: 0 0 10px var(--terminal-green);
+        }
+        
+        /* Scan line effect */
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: rgba(0, 255, 0, 0.1);
+            animation: scan 6s linear infinite;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        @keyframes scan {
+            0% {
+                top: 0;
+            }
+            100% {
+                top: 100%;
+            }
+        }
+        
+        @keyframes blink {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        
+        /* CRT effect */
+        .crt-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 20, 0, 0.1) 50%, rgba(0, 0, 0, 0));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 99;
+        }
+        
+        /* Message styling */
+        .message {
+            margin-bottom: 10px;
+            animation: fadeIn 0.3s;
+        }
+        
+        .user-message {
+            color: #ffffff;
+        }
+        
+        .agent-message {
+            color: var(--terminal-green);
+        }
+        
+        .system-message {
+            color: var(--terminal-dark-green);
+            font-style: italic;
+        }
+        
+        .error-message {
+            color: #ff6b6b;
+        }
+        
+        /* Code block styling */
+        pre {
+            background-color: rgba(0, 40, 0, 0.5);
+            border: 1px solid var(--terminal-dark-green);
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+        
+        code {
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Markdown styling */
+        strong {
+            color: #ffffff;
+            font-weight: bold;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        /* Typing indicator */
+        .typing-indicator {
+            display: none;
+            color: var(--terminal-green);
+        }
+        
+        .typing-indicator::after {
+            content: '▋';
+            animation: blink 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="scan-line"></div>
+    <div class="crt-effect"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Gérard - Agent MLOps</h1>
+            <div class="status">
+                <div class="status-indicator"></div>
+                <span id="connection-status">En ligne</span>
+            </div>
+        </div>
+        
+        <div id="terminal" class="terminal"></div>
+        
+        <div class="input-area">
+            <span class="prompt">></span>
+            <input type="text" id="user-input" class="input-field" placeholder="Posez votre question ou utilisez !help pour voir les commandes..." autofocus>
+            <button id="send-btn" class="send-btn">Envoyer</button>
+        </div>
+    </div>
+    
+    <script>
+        // DOM elements
+        const terminal = document.getElementById('terminal');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const connectionStatus = document.getElementById('connection-status');
+        
+        // WebSocket connection
+        let socket;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        
+        // Connect to WebSocket
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            
+            socket = new WebSocket(wsUrl);
+            
+            socket.onopen = function() {
+                addMessage('Connexion établie avec Gérard...', 'system-message');
+                connectionStatus.textContent = 'En ligne';
+                reconnectAttempts = 0;
+            };
+            
+            socket.onmessage = function(event) {
+                const message = event.data;
+                addMessage(formatMessage(message), 'agent-message');
+                terminal.scrollTop = terminal.scrollHeight;
+            };
+            
+            socket.onclose = function() {
+                connectionStatus.textContent = 'Déconnecté';
+                addMessage('Connexion perdue. Tentative de reconnexion...', 'error-message');
+                
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    setTimeout(connectWebSocket, 2000 * reconnectAttempts);
+                } else {
+                    addMessage('Impossible de se reconnecter. Veuillez rafraîchir la page.', 'error-message');
+                }
+            };
+            
+            socket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                addMessage('Erreur de connexion WebSocket', 'error-message');
+            };
+        }
+        
+        // Format message with markdown-like syntax
+        function formatMessage(text) {
+            // Convert markdown-like syntax
+            return text
+                // Code blocks with ```
+                .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+                // Bold text with **
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                // Italic text with *
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                // Line breaks
+                .replace(/\n/g, '<br>');
+        }
+        
+        // Add message to terminal
+        function addMessage(message, className) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${className}`;
+            messageElement.innerHTML = message;
+            terminal.appendChild(messageElement);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+        
+        // Send message
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message) {
+                addMessage(`> ${message}`, 'user-message');
+                
+                if (socket && socket.readyState === WebSocket.OPEN) {
+                    socket.send(message);
+                } else {
+                    addMessage('Non connecté au serveur', 'error-message');
+                    connectWebSocket();
+                }
+                
+                userInput.value = '';
+            }
+        }
+        
+        // Event listeners
+        sendBtn.addEventListener('click', sendMessage);
+        
+        userInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Initialize
+        connectWebSocket();
+        
+        // Add some terminal startup text for effect
+        setTimeout(() => {
+            addMessage('Initialisation du système...', 'system-message');
+        }, 300);
+        
+        setTimeout(() => {
+            addMessage('Chargement des modules MLOps...', 'system-message');
+        }, 800);
+        
+        setTimeout(() => {
+            addMessage('Connexion à l\'API Docker...', 'system-message');
+        }, 1300);
+        
+        setTimeout(() => {
+            addMessage('Système prêt.', 'system-message');
+        }, 1800);
+    </script>
+</body>
+</html>
