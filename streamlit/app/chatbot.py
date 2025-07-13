@@ -6,6 +6,7 @@ via WebSocket pour fournir une interface de chat en temps réel.
 from __future__ import annotations
 
 import streamlit as st
+import os
 import docker
 from pathlib import Path
 
@@ -34,7 +35,8 @@ def show_chatbot_page():
     # URL interne pour les communications entre conteneurs
     agent_internal_url = "http://agent:8003"
     # URL externe pour l'accès depuis le navigateur
-    agent_external_url = "http://localhost:8003"
+    # URL externe pour l'accès depuis le navigateur (port mappé dans docker-compose)
+    agent_external_url = os.environ.get("AGENT_EXTERNAL_URL", "http://localhost:8003")
     
     # Créer un iframe pour afficher l'interface de l'agent avec un sandbox plus permissif
     iframe_html = f"""
@@ -105,9 +107,9 @@ def show_chatbot_page():
     """)
     
     # Ajouter un lien pour accéder directement à l'interface de l'agent
-    st.markdown("""
+    st.markdown(f"""
     <div style="margin-top: 20px; padding: 10px; background-color: #f0f2f6; border-radius: 5px;">
         <p>Si l'iframe ne s'affiche pas correctement, vous pouvez accéder directement à l'interface de Gérard à l'adresse suivante :</p>
-        <a href="http://localhost:8003" target="_blank">http://localhost:8003</a>
+        <a href=\"{agent_external_url}\" target=\"_blank\">{agent_external_url}</a>
     </div>
     """, unsafe_allow_html=True)
