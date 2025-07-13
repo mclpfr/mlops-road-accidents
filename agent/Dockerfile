@@ -24,7 +24,7 @@ ENV LOG_DIR=/app/logs \
     PYTHONPATH=/app
 
 # Expose the FastAPI port
-EXPOSE 8000
+EXPOSE 8003
 
 # Run both the monitoring daemon and the FastAPI server
-CMD ["python", "main.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003", "--reload"]

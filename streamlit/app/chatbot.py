@@ -32,16 +32,15 @@ def show_chatbot_page():
     
     # Déterminer l'URL de l'agent
     # URL interne pour les communications entre conteneurs
-    agent_internal_url = "http://agent:8002"
+    agent_internal_url = "http://agent:8003"
     # URL externe pour l'accès depuis le navigateur
-    agent_external_url = "http://localhost:8002"
+    agent_external_url = "http://localhost:8003"
     
-    # Créer un iframe pour afficher l'interface de l'agent
-    st.components.v1.iframe(
-        src=agent_external_url,
-        height=700,
-        scrolling=True
-    )
+    # Créer un iframe pour afficher l'interface de l'agent avec un sandbox plus permissif
+    iframe_html = f"""
+        <iframe src=\"{agent_external_url}\" width=\"100%\" height=\"700\" style=\"border:none;\" sandbox=\"allow-forms allow-scripts allow-same-origin allow-popups allow-downloads\"></iframe>
+    """
+    st.components.v1.html(iframe_html, height=700, scrolling=True)
     
     # Ajouter un lien direct vers l'interface de l'agent en cas de problème avec l'iframe
     st.markdown(f"""Si l'iframe ne s'affiche pas correctement, [cliquez ici pour accéder directement à l'interface de Gérard]({agent_external_url}).""")
@@ -109,6 +108,6 @@ def show_chatbot_page():
     st.markdown("""
     <div style="margin-top: 20px; padding: 10px; background-color: #f0f2f6; border-radius: 5px;">
         <p>Si l'iframe ne s'affiche pas correctement, vous pouvez accéder directement à l'interface de Gérard à l'adresse suivante :</p>
-        <a href="http://localhost:8002" target="_blank">http://localhost:8002</a>
+        <a href="http://localhost:8003" target="_blank">http://localhost:8003</a>
     </div>
     """, unsafe_allow_html=True)

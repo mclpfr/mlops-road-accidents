@@ -55,10 +55,19 @@ Important :
 
 
 def load_api_key() -> str:
-    """Return the LLM API key from config.yaml or environment variable."""
-    # Utiliser directement la clé API OpenRouter
-    api_key = "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"
-    print("Utilisation directe de la clé API OpenRouter")
+    """Return the LLM API key from config.yaml."""
+    config_path = Path("/app/config.yaml")
+    if not config_path.exists():
+        raise FileNotFoundError("Le fichier de configuration config.yaml est introuvable.")
+        
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+        
+    api_key = config.get("agent", {}).get("llm_api_key")
+    if not api_key:
+        raise ValueError("La clé 'llm_api_key' est introuvable dans la section 'agent' de config.yaml.")
+        
+    print("Clé API chargée depuis config.yaml.")
     return api_key
 
 

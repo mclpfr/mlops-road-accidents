@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Any
 
 import docker
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -20,6 +21,24 @@ from docker_info_collector import get_container_logs, _list_container_names
 
 # Initialize FastAPI app
 app = FastAPI(title="Gérard - Agent MLOps Autonome")
+
+# Add CORS middleware to allow iframe embedding
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
+
+# Remove X-Frame-Options header to allow embedding in iframes
+@app.middleware("http")
+async def remove_frame_options(request, call_next):
+    response = await call_next(request)
+    # Some responses contain 'X-Frame-Options: DENY' by default, which blocks iframes
+    if "x-frame-options" in response.headers:
+        del response.headers["x-frame-options"]
+    return response
 
 # Create a directory for static files if it doesn't exist
 static_dir = Path(__file__).parent / "static"

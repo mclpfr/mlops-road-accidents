@@ -332,17 +332,13 @@ services:
     build:
       context: ./agent
       dockerfile: Dockerfile
-    environment:
-      - LOG_LEVEL=INFO
-      - AGENT_EVENTS_PATH=/agent_events/agent_events.jsonl
-      - MAX_RESTARTS=10
-      - LLM_API_KEY=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
     volumes:
       - ./agent:/app
+      - ./config.yaml:/app/config.yaml
       - /var/run/docker.sock:/var/run/docker.sock
       - ./agent_events:/agent_events
     ports:
-      - "8002:8000"
+      - "8003:8003"
     deploy:
       resources:
         limits:
