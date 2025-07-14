@@ -336,7 +336,7 @@ services:
       - ./agent:/app
       - ./config.yaml:/app/config.yaml
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./agent_events:/agent_events
+      - ./agent/agent_events:/agent_events
     ports:
       - "8003:8003"
     deploy:
