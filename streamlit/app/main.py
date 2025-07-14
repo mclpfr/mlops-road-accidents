@@ -231,6 +231,20 @@ st.markdown("""
     border-left: 4px solid #3B82F6;
 }
 
+/* New section title styling */
+.section-title {
+    border-left: 4px solid #2563EB;
+    padding-left: 0.6rem;
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 0.2rem;
+}
+.subtext {
+    color: #374151;
+    margin-bottom: 1.2rem;
+}
+
+
 .success-card {
     border-left-color: #10B981;
 }
@@ -276,6 +290,28 @@ st.markdown("""
     border-left: 4px solid #6B7280;
     background-color: #F9FAFB;
 }
+
+/* Metric boxes */
+.metric-box {
+    background-color: #F9FAFB;
+    border-radius: 0.5rem;
+    padding: 1.2rem 0.6rem;
+    text-align: center;
+    border: 1px solid #E5E7EB;
+}
+.metric-box h5 {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6B7280;
+}
+.metric-box h3 {
+    margin: 0.3rem 0 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1E3A8A;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -634,7 +670,9 @@ def show_overview(model_metrics, accidents_count):
     if model_metrics is None:
         st.warning("Les métriques du modèle ne sont pas disponibles.")
         return
-    st.header("Vue d'ensemble du Projet")
+    # Title using the new design
+    st.markdown("<div class='section-title'>Machine Learning Model Dashboard</div>", unsafe_allow_html=True)
+    st.markdown("<div class='subtext'>Prédiction de gravité d'accidents – Modèle de production</div>", unsafe_allow_html=True)
 
     # Key metrics
     # Get model info from the passed metrics
@@ -715,15 +753,26 @@ def show_overview(model_metrics, accidents_count):
         except (TypeError, ValueError):
             return "N/A"
 
-    col1, col2 = st.columns(2)
+    mcol1, mcol2, mcol3, mcol4 = st.columns(4)
 
-    with col1:
-        st.metric("Accuracy", _to_pct(model_metrics.get("accuracy")))
-        st.metric("Precision", _to_pct(model_metrics.get("precision")))
+    perf_metrics = [
+        ("Accuracy", _to_pct(model_metrics.get("accuracy"))),
+        ("Precision", _to_pct(model_metrics.get("precision"))),
+        ("Recall", _to_pct(model_metrics.get("recall"))),
+        ("F1-Score", _to_pct(model_metrics.get("f1_score"))),
+    ]
 
-    with col2:
-        st.metric("Recall", _to_pct(model_metrics.get("recall")))
-        st.metric("F1-Score", _to_pct(model_metrics.get("f1_score")))
+    for (label, value), col in zip(perf_metrics, [mcol1, mcol2, mcol3, mcol4]):
+        with col:
+            st.markdown(
+                f"""
+                <div class='metric-box'>
+                    <h5>{label}</h5>
+                    <h3>{value}</h3>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
     
     # Stack technique et architecture
     st.markdown("---")

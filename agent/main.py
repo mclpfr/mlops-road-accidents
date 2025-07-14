@@ -6,7 +6,7 @@ import os
 import json
 import asyncio
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 import docker
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
@@ -22,13 +22,14 @@ from docker_info_collector import get_container_logs, _list_container_names
 # Initialize FastAPI app
 app = FastAPI(title="Gérard - Agent MLOps Autonome")
 
-# Add CORS middleware to allow iframe embedding
+# Add CORS middleware to allow iframe embedding and WebSocket connections
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allows all origins
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
+    expose_headers=["*"]  # Expose all headers for WebSocket handshake
 )
 
 # Remove X-Frame-Options header to allow embedding in iframes
@@ -55,7 +56,8 @@ active_connections: List[WebSocket] = []
 
 # Command registry
 commands = {
-    "logs": "Affiche les logs d'un conteneur",
+    "logs": "Affiche les logs d'un conteneur (utiliser -f pour suivre en temps réel)",
+    "stoplogs": "Arrête l'affichage en temps réel des logs",
     "restart": "Redémarre un conteneur",
     "status": "Affiche le statut d'un conteneur",
     "help": "Affiche l'aide des commandes disponibles",
@@ -95,6 +97,32 @@ class WebSocketManager:
 # Initialize WebSocket manager
 manager = WebSocketManager()
 
+# Tasks streaming logs per (websocket, container_name)
+log_stream_tasks: Dict[Tuple[WebSocket, str], asyncio.Task] = {}
+
+async def stream_container_logs(container_name: str, websocket: WebSocket):
+    """Stream Docker container logs to the websocket until cancelled."""
+    try:
+        # Find the container by exact or partial name
+        containers = docker_client.containers.list(all=True)
+        target = None
+        for c in containers:
+            if c.name.lower() == container_name.lower() or container_name.lower() in c.name.lower():
+                target = c
+                break
+        if not target:
+            await manager.send_to_client(websocket, f"❌ Conteneur '{container_name}' non trouvé.")
+            return
+
+        # Stream logs continuously
+        for line in target.logs(stream=True, follow=True, tail=0):
+            await manager.send_to_client(websocket, line.decode(errors="ignore"))
+    except asyncio.CancelledError:
+        # Expected when the task is cancelled
+        pass
+    except Exception as e:
+        await manager.send_to_client(websocket, f"❌ Erreur streaming logs: {str(e)}")
+
 
 async def handle_command(command: str, websocket: WebSocket) -> bool:
     """Handle special commands prefixed with '!'."""
@@ -104,6 +132,16 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
     cmd_parts = command[1:].strip().split(maxsplit=1)
     cmd = cmd_parts[0].lower()
     arg = cmd_parts[1] if len(cmd_parts) > 1 else ""
+
+    # Parse -f / --follow flags for log streaming
+    def _parse_follow(arg_str: str):
+        parts = arg_str.split()
+        follow_flag = False
+        for flag in ("-f", "--follow"):
+            if flag in parts:
+                follow_flag = True
+                parts.remove(flag)
+        return follow_flag, parts
     
     if cmd == "help":
         help_text = "📚 **Commandes disponibles:**\n\n"
@@ -113,6 +151,29 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
         return True
         
     elif cmd == "logs":
+        # Gestion du suivi temps réel avec -f / --follow
+        follow, parts = _parse_follow(arg)
+        if not parts:
+            await manager.send_to_client(websocket, "⚠️ Veuillez spécifier un nom de conteneur. Exemple: `!logs -f grafana`")
+            return True
+
+        container_name = parts[0]
+
+        if follow:
+            key = (websocket, container_name)
+            # Stop any existing stream for this (ws, container)
+            if key in log_stream_tasks:
+                log_stream_tasks[key].cancel()
+                del log_stream_tasks[key]
+            task = asyncio.create_task(stream_container_logs(container_name, websocket))
+            log_stream_tasks[key] = task
+            await manager.send_to_client(websocket, f"📡 Suivi en temps réel des logs pour '{container_name}' démarré. Tapez `!stoplogs {container_name}` pour arrêter.")
+        else:
+            await manager.send_to_client(websocket, f"🔍 Récupération des logs pour '{container_name}'...")
+            logs = get_container_logs(container_name, tail=20)
+            formatted_logs = f"📜 **Logs pour {container_name}:**\n```\n{logs}\n```"
+            await manager.send_to_client(websocket, formatted_logs)
+        return True
         if not arg:
             await manager.send_to_client(websocket, "⚠️ Veuillez spécifier un nom de conteneur. Exemple: `!logs grafana`")
             return True
@@ -123,6 +184,22 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
         await manager.send_to_client(websocket, formatted_logs)
         return True
         
+    elif cmd == "stoplogs":
+        parts = arg.split()
+        container_name = parts[0] if parts else None
+        cancelled = False
+        for key in list(log_stream_tasks.keys()):
+            ws, cname = key
+            if ws == websocket and (container_name is None or cname.lower() == container_name.lower()):
+                log_stream_tasks[key].cancel()
+                del log_stream_tasks[key]
+                cancelled = True
+        if cancelled:
+            await manager.send_to_client(websocket, "🛑 Flux de logs arrêté.")
+        else:
+            await manager.send_to_client(websocket, "⚠️ Aucun flux de logs en cours.")
+        return True
+
     elif cmd == "restart":
         if not arg:
             await manager.send_to_client(websocket, "⚠️ Veuillez spécifier un nom de conteneur. Exemple: `!restart grafana`")
@@ -243,6 +320,66 @@ async def websocket_endpoint(websocket: WebSocket):
             if await handle_command(message, websocket):
                 continue
                 
+            # Détecter les demandes d'affichage de logs en temps réel
+            logs_patterns = [
+                "affiche les logs en temps réel", "afficher les logs en temps réel",
+                "montre les logs en temps réel", "montrer les logs en temps réel",
+                "voir les logs en temps réel", "logs en temps réel",
+                "affiche les logs", "afficher les logs", "montre les logs", "montrer les logs"
+            ]
+            
+            is_logs_request = any(pattern in message.lower() for pattern in logs_patterns)
+            if is_logs_request:
+                # Récupérer la liste de tous les conteneurs disponibles
+                try:
+                    all_containers = docker_client.containers.list(all=True)
+                    available_containers = [c.name for c in all_containers]
+                    
+                    # Extraire le nom du conteneur de la demande
+                    container_name = None
+                    
+                    # Liste des mots-clés à rechercher dans la demande
+                    container_keywords = [
+                        "grafana", "postgres", "mlflow", "streamlit", "api", 
+                        "prometheus", "loki", "alertmanager", "cadvisor", "promtail",
+                        "evidently", "auth", "predict", "agent", "extract", "prepare", 
+                        "import", "train", "synthet"
+                    ]
+                    
+                    # Chercher un mot-clé dans le message
+                    for keyword in container_keywords:
+                        if keyword in message.lower():
+                            # Trouver le conteneur correspondant
+                            matching_containers = [c for c in available_containers if keyword in c.lower()]
+                            if matching_containers:
+                                container_name = matching_containers[0]
+                                break
+                    
+                    # Si aucun conteneur spécifique n'est mentionné, demander à l'utilisateur
+                    if not container_name:
+                        container_list = "\n".join([f"- {c}" for c in available_containers])
+                        await manager.send_to_client(websocket, f"⚠️ Veuillez spécifier un conteneur. Voici les conteneurs disponibles:\n{container_list}\n\nPour voir les logs, tapez par exemple: !logs -f nom_du_conteneur")
+                        continue
+                except Exception as e:
+                    await manager.send_to_client(websocket, f"⚠️ Erreur lors de la récupération des conteneurs: {str(e)}")
+                    continue
+                
+                # Vérifier que container_name est défini avant de continuer
+                if container_name:
+                    # Simuler la commande !logs -f container_name
+                    await manager.send_to_client(websocket, f"📡 Je vais afficher les logs de {container_name} en temps réel...")
+                    key = (websocket, container_name)
+                    # Stop any existing stream for this (ws, container)
+                    if key in log_stream_tasks:
+                        log_stream_tasks[key].cancel()
+                        del log_stream_tasks[key]
+                    task = asyncio.create_task(stream_container_logs(container_name, websocket))
+                    log_stream_tasks[key] = task
+                    await manager.send_to_client(websocket, f"📡 Suivi en temps réel des logs pour '{container_name}' démarré. Tapez `!stoplogs {container_name}` pour arrêter.")
+                else:
+                    await manager.send_to_client(websocket, "⚠️ Aucun conteneur spécifié ou reconnu dans votre demande. Veuillez réessayer en mentionnant le nom du conteneur.")
+                continue
+                
             # Détecter si c'est une simple salutation
             salutations = ["bonjour", "salut", "hello", "coucou", "hey", "bonsoir"]
             is_greeting = message.lower().strip().rstrip('!?.,;:') in salutations
@@ -286,11 +423,20 @@ async def websocket_endpoint(websocket: WebSocket):
                 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+        # Annuler les flux de logs associés à cette connexion
+        for key in list(log_stream_tasks):
+            if key[0] == websocket:
+                log_stream_tasks[key].cancel()
+                del log_stream_tasks[key]
     except Exception as e:
         print(f"Error in websocket connection: {str(e)}")
         manager.disconnect(websocket)
+        for key in list(log_stream_tasks):
+            if key[0] == websocket:
+                log_stream_tasks[key].cancel()
+                del log_stream_tasks[key]
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8003, reload=True)

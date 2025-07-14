@@ -144,7 +144,7 @@ def answer_question(question: str, context: str, api_key: Optional[str] = None) 
         {"role": "system", "content": SYSTEM_PROMPT},
         {
             "role": "user",
-            "content": f"Contexte:\n{context}\n\nQuestion:\n{question}",
+            "content": f"Contexte:\n{context}\n\nQuestion:\n{question}\n\nConsigne: Réponds de façon concise (max 10 lignes) et synthétique en français.",
         },
     ]
 
@@ -152,7 +152,7 @@ def answer_question(question: str, context: str, api_key: Optional[str] = None) 
         "model": MODEL_NAME,
         "messages": messages,
         "temperature": 0.3,  # Lower temperature for more consistent responses
-        "max_tokens": 512,
+        "max_tokens": 256,
         "top_p": 0.9,
         "stream": False,
         "response_format": {"type": "text"}

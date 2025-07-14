@@ -273,7 +273,32 @@
         // Connect to WebSocket
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            let wsUrl;
+            
+            // Détecter le chemin de l'URL actuelle
+            const currentPath = window.location.pathname;
+            
+            // Stratégie de connexion basée sur l'environnement
+            if (window.location.pathname.startsWith('/agent')) {
+                // Si nous sommes dans le contexte d'un proxy nginx (/agent/)
+                wsUrl = `${protocol}//${window.location.host}/agent/ws`;
+                console.log('Connexion WebSocket via proxy nginx:', wsUrl);
+            } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                // Accès direct en localhost
+                wsUrl = `${protocol}//localhost:8003/ws`;
+                console.log('Connexion WebSocket directe localhost:', wsUrl);
+            } else {
+                // Pour les autres cas
+                wsUrl = `${protocol}//${window.location.hostname}:8003/ws`;
+                console.log('Connexion WebSocket standard:', wsUrl);
+            }
+            
+            // Afficher des informations de débogage dans la console
+            console.log('Information de débogage WebSocket:');
+            console.log('- URL actuelle:', window.location.href);
+            console.log('- Chemin:', currentPath);
+            console.log('- Hôte:', window.location.host);
+            console.log('- URL WebSocket choisie:', wsUrl);
             
             socket = new WebSocket(wsUrl);
             
