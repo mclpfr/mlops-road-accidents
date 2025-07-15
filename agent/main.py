@@ -379,14 +379,90 @@ async def websocket_endpoint(websocket: WebSocket):
                 else:
                     await manager.send_to_client(websocket, "⚠️ Aucun conteneur spécifié ou reconnu dans votre demande. Veuillez réessayer en mentionnant le nom du conteneur.")
                 continue
+
+            # Gérer les commandes de conteneur (démarrer, arrêter, redémarrer) par langage naturel
+            message_lower = message.lower().strip()
+            # Détecte l'action (start / stop / restart)
+            start_kw = ["démarre", "demarre", "start"]
+            stop_kw = ["arrête", "arrete", "stop"]
+            restart_kw = ["redémarre", "redemarre", "restart"]
+
+            if any(k in message_lower for k in start_kw + stop_kw + restart_kw):
+                if any(k in message_lower for k in stop_kw):
+                    action = "stop"
+                    action_verb_present = "arrêté"
+                elif any(k in message_lower for k in restart_kw):
+                    action = "restart"
+                    action_verb_present = "redémarré"
+                else:
+                    action = "start"
+                    action_verb_present = "démarré"
                 
+                target_container = None
+                try:
+                    all_containers = [c.name for c in docker_client.containers.list(all=True)]
+                    mots_message = message_lower.split()
+                    for mot in mots_message:
+                        if mot not in start_kw + stop_kw + restart_kw:
+                            search_key = mot
+                            break
+                    else:
+                        search_key = ""
+                    for c_name in all_containers:
+                        if search_key and search_key in c_name.lower():
+                            target_container = c_name
+                            break
+                    if target_container:
+                        await manager.send_to_client(websocket, f"⚙️ Tentative d'{action} le conteneur {target_container}...")
+                        container = docker_client.containers.get(target_container)
+                        if action == "stop":
+                            container.stop()
+                        elif action == "restart":
+                            container.restart()
+                        else:
+                            import subprocess
+                            result = subprocess.run(["docker", "start", target_container], capture_output=True, text=True)
+                            if result.returncode == 0:
+                                await manager.send_to_client(websocket, f"✅ Le conteneur {target_container} a été {action_verb_present} avec succès.")
+                            else:
+                                await manager.send_to_client(websocket, f"❌ Erreur lors du démarrage du conteneur {target_container} : {result.stderr.strip()}")
+                        continue # On ne passe pas la main au LLM
+                    else:
+                        # Aucun conteneur trouvé, proposer la création
+                        await manager.send_to_client(websocket, '''❌ Aucun conteneur Loki existant n'a été trouvé.
+
+Vous pouvez en créer un avec la commande suivante :
+
+```
+docker run -d --name loki grafana/loki:2.9.0
+```
+''')
+                        continue # On ne passe pas la main au LLM
+
+                except docker.errors.NotFound:
+                    if target_container:
+                        await manager.send_to_client(websocket, f"⚠️ Conteneur '{target_container}' non trouvé.")
+                    # Si aucun conteneur trouvé, on laisse le LLM répondre
+                    pass
+                except Exception as e:
+                    await manager.send_to_client(websocket, f"❌ Erreur lors de l'opération sur le conteneur : {str(e)}")
+                    continue
+
             # Détecter si c'est une simple salutation
             salutations = ["bonjour", "salut", "hello", "coucou", "hey", "bonsoir"]
             is_greeting = message.lower().strip().rstrip('!?.,;:') in salutations
             
-            # Ne pas afficher "Je réfléchis" pour les salutations simples
+            # Ne pas afficher de message pour les salutations simples
             if not is_greeting:
-                await manager.send_to_client(websocket, "🧠 Je réfléchis à votre question...")
+                # Déterminer si le message est une question
+                message_lower = message.lower().strip()
+                question_starters = ["qui", "que", "quoi", "quand", "où", "comment", "pourquoi", "quel", "est-ce que"]
+                is_a_question = message_lower.endswith('?') or any(message_lower.startswith(starter) for starter in question_starters)
+
+                if is_a_question:
+                    await manager.send_to_client(websocket, "🧠 Je réfléchis à votre question...")
+                else:
+                    await manager.send_to_client(websocket, "🧠 Je traite votre demande...")
             
             # Pour les salutations, utiliser un contexte vide
             # Pour les questions techniques, collecter les informations Docker
