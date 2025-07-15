@@ -98,6 +98,7 @@ graph TB
     %% MLOps connections
     TRAIN --> MLFLOW
     TRAIN --> DVC
+    TRAIN --> PREDICT
     DVC --> FILES
     %% API flows
     USERS --> AUTH
