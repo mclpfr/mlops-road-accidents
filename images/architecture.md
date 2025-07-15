@@ -119,6 +119,7 @@ graph TB
     %% Orchestration
     AIRFLOW --> EXTRACT
     %% Admin access
+    ADMIN --> AUTH
     ADMIN --> GRAFANA
     ADMIN --> AIRFLOW
     ADMIN --> PROMETHEUS
