@@ -191,6 +191,31 @@
             color: var(--terminal-dark-green);
             font-style: italic;
         }
+
+        /* Tableaux MLOps stylés */
+        .mlops-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            color: var(--terminal-green);
+            background: rgba(0,20,0,0.85);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            box-shadow: 0 0 8px #00ff0033;
+        }
+        .mlops-table th, .mlops-table td {
+            border: 1px solid var(--terminal-dark-green);
+            padding: 6px 10px;
+            text-align: left;
+        }
+        .mlops-table th {
+            background: rgba(0,40,0,0.95);
+            font-weight: bold;
+            color: #00ff99;
+        }
+        .mlops-table tr:nth-child(even) {
+            background: rgba(0,40,0,0.25);
+        }
         
         .error-message {
             color: #ff6b6b;
@@ -335,17 +360,43 @@
             };
         }
         
+        // Convertit un tableau Markdown en <table> HTML stylé
+        function markdownTableToHTML(md) {
+            const lines = md.trim().split('\n');
+            if (lines.length < 2 || !lines[0].includes('|')) return null;
+            const clean = l => l.replace(/^\s*\|/, '').replace(/\|\s*$/, '');
+            const header = clean(lines[0]).split('|').map(cell => cell.trim());
+            const separator = clean(lines[1]).split('|');
+            if (!separator.every(s => /^-+$/.test(s.trim()))) return null;
+            const rows = lines.slice(2).map(l => clean(l).split('|').map(cell => cell.trim()));
+
+            let html = '<table class="mlops-table"><thead><tr>';
+            header.forEach(h => { html += `<th>${h}</th>`; });
+            html += '</tr></thead><tbody>';
+            rows.forEach(row => {
+                html += '<tr>';
+                row.forEach(cell => { html += `<td>${cell}</td>`; });
+                html += '</tr>';
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+
         // Format message with markdown-like syntax
         function formatMessage(text) {
-            // Convert markdown-like syntax
+            // D'abord, tente de convertir un tableau markdown
+            const tableMatch = text.match(/((?:^\s*\|.+\|\s*\n)+)/m);
+            if (tableMatch) {
+                const tableHTML = markdownTableToHTML(tableMatch[1]);
+                if (tableHTML) {
+                    text = text.replace(tableMatch[1], tableHTML);
+                }
+            }
+            // Puis applique le reste du markdown
             return text
-                // Code blocks with ```
                 .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-                // Bold text with **
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                // Italic text with *
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                // Line breaks
                 .replace(/\n/g, '<br>');
         }
         

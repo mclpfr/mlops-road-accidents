@@ -277,11 +277,64 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
             await manager.send_to_client(websocket, "📊 Récupération du statut de tous les conteneurs...")
             try:
                 containers = docker_client.containers.list(all=True)
-                status_text = "📊 **Statut des conteneurs:**\n\n"
-                for container in containers:
-                    status = container.status
+
+                def humanize(bytes_val: int) -> str:
+                    return f"{bytes_val / (1024*1024):.0f}MiB" if bytes_val else "0MiB"
+
+                headers = [
+                    "Conteneur",
+                    "État",
+                    "CPU %",
+                    "Mémoire utilisée / limite",
+                    "Mémoire utilisée %",
+                    "Erreur critique"
+                ]
+                md_lines = [
+                    "| " + " | ".join(headers) + " |",
+                    "|" + "|".join(["-"*len(h) for h in headers]) + "|",
+                ]
+
+                for c in containers:
+                    status = c.status
+                    # Default values
+                    cpu_pct = "-"
+                    mem_used = 0
+                    mem_limit = 0
+                    mem_pct = "-"
+                    if status == "running":
+                        try:
+                            stats = c.stats(stream=False)
+                            cpu_delta = stats["cpu_stats"]["cpu_usage"]["total_usage"] - stats["precpu_stats"]["cpu_usage"]["total_usage"]
+                            system_delta = stats["cpu_stats"].get("system_cpu_usage", 0) - stats["precpu_stats"].get("system_cpu_usage", 0)
+                            if system_delta > 0:
+                                cpu_pct_val = (cpu_delta / system_delta) * stats["cpu_stats"].get("online_cpus", 1) * 100.0
+                                cpu_pct = f"{cpu_pct_val:.2f} %"
+                            mem_used = stats["memory_stats"].get("usage", 0)
+                            mem_limit = stats["memory_stats"].get("limit", 0)
+                            mem_pct_val = (mem_used / mem_limit * 100.0) if mem_limit else 0.0
+                            mem_pct = f"{mem_pct_val:.2f} %"
+                        except Exception:
+                            pass
+                    # Humanize memory strings
+                    mem_used_str = humanize(mem_used)
+                    limit_str = humanize(mem_limit) if mem_limit else "Illimitée"
+                    mem_combined = f"{mem_used_str} / {limit_str}"
+                    
                     emoji = "🟢" if status == "running" else "🔴"
-                    status_text += f"{emoji} **{container.name}**: {status}\n"
+                    etat_str = f"{emoji} {status.capitalize()}"
+
+                    md_lines.append(
+                        "| " + " | ".join([
+                            c.name,
+                            etat_str,
+                            cpu_pct,
+                            mem_combined,
+                            mem_pct,
+                            "Aucune"
+                        ]) + " |"
+                    )
+
+                status_text = "📊 **Statut des conteneurs :**\n\n" + "\n".join(md_lines) + "\n"
                 await manager.send_to_client(websocket, status_text)
             except Exception as e:
                 await manager.send_to_client(websocket, f"❌ Erreur lors de la récupération des statuts: {str(e)}")
@@ -426,25 +479,94 @@ async def websocket_endpoint(websocket: WebSocket):
                     await manager.send_to_client(websocket, "⚠️ Aucun conteneur spécifié ou reconnu dans votre demande. Veuillez réessayer en mentionnant le nom du conteneur.")
                 continue
 
+
+            # Natural Language Processing for status requests
             message_lower = message.lower().strip()
-            # Bloc : détection synonymes de status/état/santé/health
-            status_keywords = ["status", "état", "etat", "santé", "sante", "health"]
-            # Récupérer tous les conteneurs connus
-            try:
-                all_containers = docker_client.containers.list(all=True)
-                available_containers = [c.name for c in all_containers]
-            except Exception:
-                available_containers = []
-            found_keyword = any(kw in message_lower for kw in status_keywords)
-            found_container = None
-            for cname in available_containers:
-                if cname.lower() in message_lower:
-                    found_container = cname
-                    break
-            if found_keyword and found_container:
-                # Appeler la commande !status <nom>
-                await handle_command(f"!status {found_container}", websocket)
+            status_keywords = ["status", "état", "etat", "santé", "sante", "health", "plateforme", "lieux", "bilan", "aperçu"]
+
+            # Check for general status request
+            is_general_status_request = any(kw in message_lower for kw in status_keywords)
+            # Check if a specific container is mentioned to avoid hijacking specific status requests
+            is_specific_container_mentioned = any(cn in message_lower for cn in _list_container_names())
+
+            if is_general_status_request and not is_specific_container_mentioned:
+                await handle_command("!status", websocket)
                 continue
+                
+            # Gérer les commandes de conteneur (démarrer, arrêter, redémarrer) par langage naturel
+            # Détecte l'action (start / stop / restart)
+            start_kw = ["démarre", "demarre", "start", "lance", "lancer"]
+            stop_kw = ["arrête", "arrete", "stop", "stoppe", "stopper"]
+            restart_kw = ["redémarre", "redemarre", "restart", "relance", "relancer"]
+
+            if any(k in message_lower for k in start_kw + stop_kw + restart_kw):
+                if any(k in message_lower for k in stop_kw):
+                    action = "stop"
+                    action_verb_present = "arrêté"
+                elif any(k in message_lower for k in restart_kw):
+                    action = "restart"
+                    action_verb_present = "redémarré"
+                else:
+                    action = "start"
+                    action_verb_present = "démarré"
+                
+                target_container = None
+                try:
+                    all_containers = [c.name for c in docker_client.containers.list(all=True)]
+                    
+                    # Recherche du nom de conteneur dans le message
+                    for c_name in all_containers:
+                        if c_name.lower() in message_lower:
+                            target_container = c_name
+                            break
+                    
+                    # Si aucun conteneur spécifique n'est trouvé, chercher des mots clés
+                    if not target_container:
+                        mots_message = message_lower.split()
+                        for mot in mots_message:
+                            if mot not in start_kw + stop_kw + restart_kw and len(mot) > 3:
+                                search_key = mot
+                                for c_name in all_containers:
+                                    if search_key in c_name.lower():
+                                        target_container = c_name
+                                        break
+                                if target_container:
+                                    break
+                    
+                    if target_container:
+                        await manager.send_to_client(websocket, f"⚙️ Tentative de {action} du conteneur {target_container}...")
+                        container = docker_client.containers.get(target_container)
+                        
+                        try:
+                            if action == "stop":
+                                container.stop()
+                                await manager.send_to_client(websocket, f"✅ Le conteneur {target_container} a été {action_verb_present} avec succès.")
+                            elif action == "restart":
+                                container.restart()
+                                await manager.send_to_client(websocket, f"✅ Le conteneur {target_container} a été {action_verb_present} avec succès.")
+                            else:  # start
+                                container.start()
+                                await manager.send_to_client(websocket, f"✅ Le conteneur {target_container} a été {action_verb_present} avec succès.")
+                            continue
+                        except Exception as e:
+                            await manager.send_to_client(websocket, f"❌ Erreur lors de l'action {action} sur le conteneur {target_container} : {str(e)}")
+                            continue
+                    else:
+                        await manager.send_to_client(websocket, f"❓ Je n'ai pas pu identifier quel conteneur vous souhaitez {action_verb_present}. Veuillez préciser le nom du conteneur.")
+                        continue
+                except Exception as e:
+                    await manager.send_to_client(websocket, f"❌ Erreur lors de la recherche du conteneur : {str(e)}")
+                    continue
+
+            # Si aucune commande spéciale ou mot-clé n'est détecté, envoyer au LLM
+            await manager.send_to_client(websocket, "🧠 Je traite votre demande...")
+            docker_info = await collect_docker_info()  # Collect fresh data
+            response_generator = answer_question(message, api_key, docker_info)
+            full_response = ""
+            async for chunk in response_generator:
+                full_response += chunk
+                await manager.send_to_client(websocket, chunk)
+
             # Gérer les commandes de conteneur (démarrer, arrêter, redémarrer) par langage naturel
             message_lower = message.lower().strip()
             # Détecte l'action (start / stop / restart)

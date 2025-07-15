@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends docker.io \
 # Copy source code
 COPY . .
 COPY agent/services.yml /app/services.yml
+COPY config.yaml /app/config.yaml
 
 # Create directories for static files and logs
 RUN mkdir -p /app/static /app/logs
