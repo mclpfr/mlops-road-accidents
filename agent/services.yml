@@ -1,0 +1,9 @@
+groups:
+  start-ui: "Démarrer l’interface utilisateur (Streamlit + agent)"
+  start-ml: "Démarrer les services ML"
+  start-monitoring: "Démarrer la supervision/observabilité"
+  start-airflow: "Démarrer Airflow"
+commands:
+  - start
+  - stop
+  - restart

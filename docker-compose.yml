@@ -330,8 +330,8 @@ services:
     logging: *logging
     container_name: agent
     build:
-      context: ./agent
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: agent/Dockerfile
     volumes:
       - ./agent:/app
       - ./config.yaml:/app/config.yaml

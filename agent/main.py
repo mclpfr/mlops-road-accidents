@@ -133,6 +133,13 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
     cmd = cmd_parts[0].lower()
     arg = cmd_parts[1] if len(cmd_parts) > 1 else ""
 
+    # Fuzzy matching pour tolérer les fautes d'orthographe sur les commandes
+    from difflib import get_close_matches
+    ALL_COMMANDS = ["services", "logs", "stoplogs", "restart", "status", "help"]
+    match = get_close_matches(cmd, ALL_COMMANDS, n=1, cutoff=0.7)
+    if match:
+        cmd = match[0]
+
     # Parse -f / --follow flags for log streaming
     def _parse_follow(arg_str: str):
         parts = arg_str.split()
@@ -225,7 +232,46 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
             await manager.send_to_client(websocket, f"❌ Erreur lors du redémarrage: {str(e)}")
         return True
         
+    elif cmd in ["services", "service", "servic", "servces", "serivce", "servies"]:
+        import shlex, subprocess
+        if not arg:
+            await manager.send_to_client(websocket, "⚠️ Veuillez spécifier au moins un groupe de services à démarrer. Exemple : `!services start-ui start-ml`.")
+            return True
+        if arg.strip().lower() == "help":
+            import yaml
+            try:
+                with open("/app/services.yml", "r") as f:
+                    services_conf = yaml.safe_load(f)
+                groups = services_conf.get("groups", {})
+                commands = services_conf.get("commands", [])
+                help_msg = "**Groupes de services disponibles :**\n"
+                for g, desc in groups.items():
+                    help_msg += f"- `{g}` : {desc}\n"
+                help_msg += "\n**Commandes possibles :**\n"
+                for c in commands:
+                    help_msg += f"- `{c}`\n"
+                help_msg += "\n**Exemples :**\n!services start-ui start-ml\n!services stop-ui\n!services restart-monitoring"
+                await manager.send_to_client(websocket, help_msg)
+            except Exception as e:
+                await manager.send_to_client(websocket, f"❌ Impossible de lire la configuration des services : {str(e)}")
+            return True
+        service_targets = shlex.split(arg)
+        results = []
+        for target in service_targets:
+            await manager.send_to_client(websocket, f"🚀 Starting service group `{target}`...")
+            try:
+                result = subprocess.run(["make", target], capture_output=True, text=True, cwd="/home/ubuntu/mlops-road-accidents")
+                if result.returncode == 0:
+                    results.append(f"✅ `{target}` started successfully.")
+                else:
+                    results.append(f"❌ Error starting `{target}`:\n" + "```\n" + result.stderr.strip() + "\n```")
+            except Exception as e:
+                results.append(f"❌ Exception for `{target}`: {str(e)}")
+        await manager.send_to_client(websocket, "\n".join(results))
+        return True
+
     elif cmd == "status":
+
         if not arg:
             # Show status of all containers
             await manager.send_to_client(websocket, "📊 Récupération du statut de tous les conteneurs...")
@@ -380,6 +426,25 @@ async def websocket_endpoint(websocket: WebSocket):
                     await manager.send_to_client(websocket, "⚠️ Aucun conteneur spécifié ou reconnu dans votre demande. Veuillez réessayer en mentionnant le nom du conteneur.")
                 continue
 
+            message_lower = message.lower().strip()
+            # Bloc : détection synonymes de status/état/santé/health
+            status_keywords = ["status", "état", "etat", "santé", "sante", "health"]
+            # Récupérer tous les conteneurs connus
+            try:
+                all_containers = docker_client.containers.list(all=True)
+                available_containers = [c.name for c in all_containers]
+            except Exception:
+                available_containers = []
+            found_keyword = any(kw in message_lower for kw in status_keywords)
+            found_container = None
+            for cname in available_containers:
+                if cname.lower() in message_lower:
+                    found_container = cname
+                    break
+            if found_keyword and found_container:
+                # Appeler la commande !status <nom>
+                await handle_command(f"!status {found_container}", websocket)
+                continue
             # Gérer les commandes de conteneur (démarrer, arrêter, redémarrer) par langage naturel
             message_lower = message.lower().strip()
             # Détecte l'action (start / stop / restart)
@@ -413,7 +478,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             target_container = c_name
                             break
                     if target_container:
-                        await manager.send_to_client(websocket, f"⚙️ Tentative d'{action} le conteneur {target_container}...")
+                        await manager.send_to_client(websocket, f"⚙️ Tentative de démarrage du conteneur {target_container}...")
                         container = docker_client.containers.get(target_container)
                         if action == "stop":
                             container.stop()

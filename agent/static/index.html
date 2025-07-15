@@ -269,6 +269,9 @@
         let socket;
         let reconnectAttempts = 0;
         const maxReconnectAttempts = 5;
+
+        let commandHistory = [];
+        let historyIndex = -1;
         
         // Connect to WebSocket
         function connectWebSocket() {
@@ -361,6 +364,11 @@
             if (message) {
                 addMessage(`> ${message}`, 'user-message');
                 
+                if (commandHistory[commandHistory.length - 1] !== message) {
+                    commandHistory.push(message);
+                }
+                historyIndex = commandHistory.length;
+
                 if (socket && socket.readyState === WebSocket.OPEN) {
                     socket.send(message);
                 } else {
@@ -375,9 +383,29 @@
         // Event listeners
         sendBtn.addEventListener('click', sendMessage);
         
-        userInput.addEventListener('keypress', function(event) {
+        userInput.addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
+                event.preventDefault();
                 sendMessage();
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    userInput.value = commandHistory[historyIndex];
+                    userInput.focus();
+                    setTimeout(() => userInput.selectionStart = userInput.selectionEnd = userInput.value.length, 0);
+                }
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    userInput.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    userInput.value = '';
+                }
+                userInput.focus();
+                setTimeout(() => userInput.selectionStart = userInput.selectionEnd = userInput.value.length, 0);
             }
         });
         

@@ -11,12 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends docker.io \
 
 # Copy source code
 COPY . .
+COPY agent/services.yml /app/services.yml
 
 # Create directories for static files and logs
 RUN mkdir -p /app/static /app/logs
 
-# Install the package in development mode
-RUN pip install -e .
 
 # Default environment
 ENV LOG_DIR=/app/logs \
