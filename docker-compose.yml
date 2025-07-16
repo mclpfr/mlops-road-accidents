@@ -308,10 +308,7 @@ services:
     ports:
       - "8501:8501"
     environment:
-      - AIRFLOW_BASE_URL=http://localhost:8080
       - AGENT_EVENTS_PATH=/agent_events/agent_events.jsonl
-      - GRAFANA_BASE_URL=http://localhost:3000
-      - EVIDENTLY_BASE_URL=http://evidently-api:8001
     volumes:
       - ./:/app
       - /var/run/docker.sock:/var/run/docker.sock
@@ -493,14 +490,17 @@ services:
     networks:
       - default
     environment:
-      - GF_SERVER_ROOT_URL=https://srv877984.hstgr.cloud/grafana/
+      - GF_SERVER_ROOT_URL=https://srv877984.hstgr.cloud/grafana
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_DOMAIN=srv877984.hstgr.cloud
+      - GF_SERVER_ENFORCE_DOMAIN=true
       - GF_SECURITY_COOKIE_SAMESITE=none
       - GF_SECURITY_COOKIE_SECURE=true
-      - GF_SECURITY_CONTENT_SECURITY_POLICY="frame-ancestors 'self' http://localhost:* https://srv877984.hstgr.cloud;"
+      - GF_SECURITY_CONTENT_SECURITY_POLICY="frame-ancestors 'self' https://srv877984.hstgr.cloud;"
       - GF_SECURITY_ALLOW_EMBEDDING=true
-      - GF_SECURITY_COOKIE_SAMESITE=lax
-      - GF_SECURITY_X_FRAME_OPTIONS=allow-from-all
+      - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
+      - GF_SECURITY_STRICT_TRANSPORT_SECURITY_MAX_AGE_DAYS=365
+      - GF_SECURITY_X_FRAME_OPTIONS=""
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
@@ -509,6 +509,7 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
       - GF_SERVER_STATIC_ROOT_PATH=/usr/share/grafana/public
       - GF_PATHS_PLUGINS=/var/lib/grafana/plugins
+      - GF_FEATURE_TOGGLES_ENABLE=publicDashboards
     volumes:
       - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
       - ./monitoring/grafana/provisioning/dashboards/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml

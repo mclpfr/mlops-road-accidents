@@ -1334,31 +1334,58 @@ def show_monitoring(drift_data):
     # Grafana dashboard URL (uses base URL configured in environment)
     grafana_base = os.getenv("GRAFANA_BASE_URL", "https://srv877984.hstgr.cloud/grafana").rstrip("/")
     
-    # Utiliser le dashboard API standard au lieu d'un dashboard public
-    dashboard_url = f"{grafana_base}/d/api_monitoring_dashboard_v2/api?orgId=1&refresh=5s&from=now-1h&to=now"
-    
-    # Embed dashboard in an iframe
-    components.html(
-        f'<iframe src="{dashboard_url}&kiosk&theme=light" style="width:100%; height:80vh; border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>',
-        height=600,
+    # Construire l'URL du tableau de bord avec les paramètres nécessaires
+    dashboard_url = f"{grafana_base}/d/api_monitoring_dashboard_v2?orgId=1&refresh=5s&from=now-1h&to=now&kiosk&theme=light"
+
+    # Embed dashboard in an iframe with proper security headers
+    st.markdown(
+        f"""
+        <div style="width: 100%; height: 80vh; overflow: hidden;">
+            <iframe 
+                src="{dashboard_url}" 
+                style="width:100%; height:100%; border:none;"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                allow="fullscreen"
+                referrerpolicy="no-referrer"
+                loading="lazy"
+                id="grafana-iframe"
+            ></iframe>
+        </div>
+        <script>
+            // S'assurer que l'iframe est bien chargé
+            document.getElementById('grafana-iframe').onload = function() {{
+                console.log('Grafana iframe loaded successfully');
+            }};
+        </script>
+        """,
+        unsafe_allow_html=True
     )
     
     # Display message with instructions to start Grafana
     st.info("""
-    Pour démarrer Grafana, exécutez la commande suivante :
-    ```
-    sudo docker-compose up -d grafana
+    Si le tableau de bord ne s'affiche pas, essayez les étapes suivantes :
+    
+    1. Vérifiez que Grafana est en cours d'exécution :
+    ```bash
+    docker ps | grep grafana
     ```
     
-    Si le problème persiste, vérifiez les logs avec :
-    ```
-    sudo docker-compose logs grafana
+    2. Si nécessaire, démarrez Grafana :
+    ```bash
+    docker compose up -d grafana
     ```
     
-    Vous pouvez également essayer de redémarrer le service :
+    3. Vérifiez les logs en cas de problème :
+    ```bash
+    docker compose logs grafana
     ```
-    sudo docker-compose restart grafana
+    
+    4. Redémarrez le service si nécessaire :
+    ```bash
+    docker compose restart grafana
     ```
+    
+    Si le problème persiste, vérifiez que l'URL de base de Grafana est correctement configurée dans les variables d'environnement.
     """)
     
     return
