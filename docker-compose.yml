@@ -496,6 +496,7 @@ services:
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - GF_SECURITY_COOKIE_SAMESITE=none
       - GF_SECURITY_COOKIE_SECURE=true
+      - GF_SECURITY_CONTENT_SECURITY_POLICY="frame-ancestors 'self' http://localhost:* https://srv877984.hstgr.cloud;"
       - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_SECURITY_COOKIE_SAMESITE=lax
       - GF_SECURITY_X_FRAME_OPTIONS=allow-from-all
