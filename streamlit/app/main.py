@@ -1332,7 +1332,7 @@ def show_monitoring(drift_data):
                 st.error(f"Erreur lors de la connexion à l'API: {e}")
     
     # Grafana dashboard URL (uses base URL configured in environment)
-    grafana_base = os.getenv("GRAFANA_BASE_URL", "http://localhost:3000")
+    grafana_base = os.getenv("GRAFANA_BASE_URL", "https://srv877984.hstgr.cloud/grafana").rstrip("/")
     
     # Utiliser le dashboard API standard au lieu d'un dashboard public
     dashboard_url = f"{grafana_base}/d/api_monitoring_dashboard_v2/api?orgId=1&refresh=5s&from=now-1h&to=now"
@@ -1478,7 +1478,11 @@ def show_interactive_demo():
 
 def show_logs_infra():
     # URL du dashboard public Grafana
-    grafana_url = "http://localhost:3000/public-dashboards/02e51b65ea8f4e8b83098ad46397b6b4"
+    # Determine Grafana base URL from env var or fallback to public domain
+    grafana_base = os.getenv("GRAFANA_BASE_URL", "https://srv877984.hstgr.cloud/grafana").rstrip("/")
+    # Public dashboard UID – adjust if you change the dashboard in Grafana
+    public_uid = "02e51b65ea8f4e8b83098ad46397b6b4"
+    grafana_url = f"{grafana_base}/public-dashboards/{public_uid}"
     
     # Afficher l'iframe intégré
     st.components.v1.iframe(
