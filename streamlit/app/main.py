@@ -1502,7 +1502,7 @@ def show_evidently():
     internal_host = os.getenv("EVIDENTLY_BASE_URL", "http://evidently-api:8001")
     
     # The URL for public access (via browser) may be different.
-    public_host = os.getenv("EVIDENTLY_PUBLIC_URL", "http://localhost:8001")
+    public_host = os.getenv("EVIDENTLY_PUBLIC_URL", "https://srv877984.hstgr.cloud/evidently")
     
     embed_url = public_host.rstrip("/") + "/drift_full_report"
     health_url = internal_host.rstrip("/") + "/health"

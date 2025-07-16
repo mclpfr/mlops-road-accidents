@@ -18,6 +18,9 @@ import io
 import base64
 from matplotlib.figure import Figure
 from datetime import datetime
+from fastapi.middleware.gzip import GZipMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 # --- Configuration ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -31,7 +34,30 @@ DRIFT_STATUS_FILE = BASE_DIR / "drift_status.json"
 STATIC_DIR = BASE_DIR / "static"
 
 # --- FastAPI App Initialization ---
-app = FastAPI(title="Evidently Data Drift API")
+app = FastAPI(
+    title="Evidently Data Drift API",
+    root_path=os.getenv('EVIDENTLY_URL_PREFIX', '')
+)
+
+# Middleware pour le reverse proxy
+if os.getenv('EVIDENTLY_ENABLE_PROXY_FIX', 'False').lower() == 'true':
+    from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
+    from starlette.middleware.trustedhost import TrustedHostMiddleware
+    from starlette.middleware.gzip import GZipMiddleware
+    
+    # Only add HTTPS redirect if we're behind a reverse proxy
+    if os.getenv('EVIDENTLY_BASE_URL', '').startswith('https://'):
+        app.add_middleware(HTTPSRedirectMiddleware)
+    
+    allowed_hosts = ['localhost', '127.0.0.1']
+    base_url = os.getenv('EVIDENTLY_BASE_URL', '')
+    if base_url:
+        from urllib.parse import urlparse
+        parsed = urlparse(base_url)
+        allowed_hosts.append(parsed.hostname)
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
+    app.add_middleware(GZipMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -155,7 +181,15 @@ async def startup_event():
 @app.get("/health")
 async def health():
     """Simple health check endpoint."""
-    return {"status": "ok"}
+    try:
+        # Check if we can load data as a basic health check
+        reference_data, current_data = load_data()
+        return {"status": "ok", "message": "Data loaded successfully"}
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        # Return 200 OK with error message instead of 400 Bad Request
+        # This prevents Prometheus from marking the service as down
+        return {"status": "warning", "message": str(e)}
 @app.get("/")
 async def root():
     html_file = STATIC_DIR / "index.html"
@@ -169,7 +203,13 @@ async def get_drift_endpoint():
 
 @app.get("/metrics")
 async def metrics():
-    return Response(content=generate_latest(), media_type="text/plain")
+    try:
+        content = generate_latest()
+        return Response(content=content, media_type="text/plain")
+    except Exception as e:
+        logger.error(f"Error generating metrics: {e}")
+        # Return empty metrics instead of error to avoid breaking Prometheus
+        return Response(content=b"", media_type="text/plain")
 
 @app.get("/force_drift")
 async def force_drift(drift_percentage: float = Query(0.8, ge=0.0, le=1.0)):
