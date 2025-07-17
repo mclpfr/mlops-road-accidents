@@ -51,6 +51,13 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 # Docker client
 docker_client = docker.from_env()
 
+def _list_container_names() -> list[str]:
+    """Return the list of all container names (lower-case)."""
+    try:
+        return [c.name.lower() for c in docker_client.containers.list(all=True)]
+    except Exception:
+        return []
+
 # Store active WebSocket connections
 active_connections: List[WebSocket] = []
 
@@ -415,6 +422,14 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             message = await websocket.receive_text()
             
+            # Détecter si c'est une simple salutation (mot unique ou début de message)
+            salutations = ["bonjour", "salut", "hello", "coucou", "hey", "bonsoir"]
+            message_clean = message.lower().strip().rstrip('!?.,;:')
+            is_greeting = message_clean in salutations or any(message_clean.startswith(greet + " ") for greet in salutations)
+            if is_greeting:
+                await manager.send_to_client(websocket, "👋 Bonjour ! Comment puis-je vous aider ?")
+                continue
+            
             # Handle special commands
             if await handle_command(message, websocket):
                 continue
@@ -486,11 +501,25 @@ async def websocket_endpoint(websocket: WebSocket):
 
             # Check for general status request
             is_general_status_request = any(kw in message_lower for kw in status_keywords)
-            # Check if a specific container is mentioned to avoid hijacking specific status requests
-            is_specific_container_mentioned = any(cn in message_lower for cn in _list_container_names())
+            all_container_names = _list_container_names()
+            is_specific_container_mentioned = None
+            words = [w for w in message_lower.replace("'", " ").split() if len(w) > 2]
+            for cn in all_container_names:
+                if cn in message_lower:
+                    is_specific_container_mentioned = cn
+                    break
+                for w in words:
+                    if w in cn:
+                        is_specific_container_mentioned = cn
+                        break
+                if is_specific_container_mentioned:
+                    break
 
-            if is_general_status_request and not is_specific_container_mentioned:
+            if is_general_status_request and is_specific_container_mentioned is None:
                 await handle_command("!status", websocket)
+                continue
+            elif is_general_status_request and is_specific_container_mentioned:
+                await handle_command(f"!status {is_specific_container_mentioned}", websocket)
                 continue
                 
             # Gérer les commandes de conteneur (démarrer, arrêter, redémarrer) par langage naturel
@@ -635,21 +664,12 @@ docker run -d --name loki grafana/loki:2.9.0
                     await manager.send_to_client(websocket, f"❌ Erreur lors de l'opération sur le conteneur : {str(e)}")
                     continue
 
-            # Détecter si c'est une simple salutation
-            salutations = ["bonjour", "salut", "hello", "coucou", "hey", "bonsoir"]
-            is_greeting = message.lower().strip().rstrip('!?.,;:') in salutations
-            
-            # Ne pas afficher de message pour les salutations simples
-            if not is_greeting:
-                # Déterminer si le message est une question
-                message_lower = message.lower().strip()
-                question_starters = ["qui", "que", "quoi", "quand", "où", "comment", "pourquoi", "quel", "est-ce que"]
-                is_a_question = message_lower.endswith('?') or any(message_lower.startswith(starter) for starter in question_starters)
+            # Afficher un message d'attente uniquement pour les requêtes techniques
+            message_lower = message.lower().strip()
+            question_starters = ["qui", "que", "quoi", "quand", "où", "comment", "pourquoi", "quel", "est-ce que"]
+            is_a_question = message_lower.endswith('?') or any(message_lower.startswith(starter) for starter in question_starters)
 
-                if is_a_question:
-                    await manager.send_to_client(websocket, "🧠 Je réfléchis à votre question...")
-                else:
-                    await manager.send_to_client(websocket, "🧠 Je traite votre demande...")
+            await manager.send_to_client(websocket, "🧠 Je réfléchis à votre question..." if is_a_question else "🧠 Je traite votre demande...")
             
             # Pour les salutations, utiliser un contexte vide
             # Pour les questions techniques, collecter les informations Docker
