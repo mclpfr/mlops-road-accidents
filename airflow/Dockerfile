@@ -46,10 +46,14 @@ RUN chmod +x /opt/airflow/scripts/entrypoint.sh && \
 
 COPY airflow/requirements.txt /tmp/requirements.txt
 
-# Install additional Python packages as the non-root ``airflow`` user to comply with the official image guidelines
 USER airflow
 RUN pip install --no-cache-dir --user -r /tmp/requirements.txt \
     --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.7.1/constraints-3.8.txt"
+
+# Création du répertoire pour les fichiers statiques
+RUN mkdir -p /opt/airflow/www/static && \
+    # Copie des fichiers statiques depuis le site-packages d'Airflow
+    find /home/airflow/.local -name 'static' -type d -path '*/airflow/*' | xargs -I {} cp -r {}/. /opt/airflow/www/static/ || echo "Aucun fichier statique trouvé dans le site-packages d'Airflow"
 
 ENTRYPOINT ["/opt/airflow/scripts/entrypoint.sh"]
 

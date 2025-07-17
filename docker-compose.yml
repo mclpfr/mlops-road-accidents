@@ -17,7 +17,6 @@ x-airflow-common: &airflow-common
   user: "0"
   environment:
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-
     - AIRFLOW_ADMIN_PASSWORD=admin
     - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
     - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
@@ -39,6 +38,7 @@ x-airflow-common: &airflow-common
     - /var/run/docker.sock:/var/run/docker.sock
     - airflow_logs:/opt/airflow/logs
     - ./.:/opt/project
+    - airflow_static:/opt/airflow/www/static
 
   deploy:
     resources:
@@ -597,12 +597,18 @@ services:
     command: webserver
     ports:
       - "8080:8080"
+    volumes:
+      - airflow_static:/opt/airflow/www/static
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:8080/health || exit 1"]
       interval: 30s
       timeout: 20s
       retries: 5
       start_period: 60s
+    environment:
+      - AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX=True
+      - AIRFLOW__WEBSERVER__BASE_URL=/airflow
+      - AIRFLOW__WEBSERVER__SECRET_KEY=mydummysecret123
     deploy:
       resources:
         limits:
@@ -683,4 +689,6 @@ volumes:
   alertmanager_data:
   postgres_airflow_data:
   airflow_logs:
+  airflow-static-volume:
+  airflow_static:
   agent_events:
