@@ -2,40 +2,54 @@ data_extraction:
   year: "2023"
   url: "https://www.data.gouv.fr/en/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/"
 
-evidently_host: "http://<host-ip>:8001"
+evidently_host: "http://evidently-api:8001"
 
 mlflow:
+  enabled: true
   tracking_uri: "https://dagshub.com/USERNAME/REPOSITORY.mlflow"
-  model_name: "MODEL_NAME"
+  model_name: "accident-severity-predictor"
   username: "USERNAME"
-  password: "YOUR_DAGSHUB_TOKEN" 
+  password: "YOUR_DAGSHUB_TOKEN"
 
 model:
   type: "RandomForestClassifier"
   random_state: 42
   test_size: 0.2
-  cv_folds: 5
-
-  hyperparameters:
-    n_estimators: 300
-    max_depth: 15
-    min_samples_split: 5
-    min_samples_leaf: 2
-    max_features: "sqrt"
+  cv_folds: 3
 
 postgresql:
   host: "postgres"
   port: "5432"
   user: "postgres"
   password: "YOUR_POSTGRES_PASSWORD"
-  database: "road_accidents" 
+  database: "road_accidents"
 
 dagshub:
   user: "USERNAME"
-  token: "YOUR_DAGSHUB_TOKEN" 
+  token: "YOUR_DAGSHUB_TOKEN"
+
+dvc:
+  dagshub_user: "USERNAME"
+  dagshub_token: "YOUR_DAGSHUB_TOKEN"
+
+grafana:
+  admin_user: "admin"
+  admin_password: "YOUR_GRAFANA_PASSWORD"
+
+airflow:
+  admin_user: "admin"
+  admin_password: "YOUR_AIRFLOW_PASSWORD"
 
 git:
   user:
-    name: "NAME"
-    email: "EMAIL"
-    token: "YOUR_TOKEN"
+    name: "YOUR_NAME"
+    email: "YOUR_EMAIL"
+
+agent:
+  log_level: "INFO"
+  agent_events_path: "/agent_events/agent_events.jsonl"
+  max_restarts: 10
+  llm_api_key: "YOUR_LLM_API_KEY"
+  model: "openai/gpt-3.5-turbo"
+  temperature: 0.7
+  max_tokens: 1000
