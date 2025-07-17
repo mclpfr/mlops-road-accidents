@@ -1265,7 +1265,7 @@ def show_mlflow():
 def show_airflow():
     """Affiche un bouton de redirection vers l'interface Airflow et les identifiants de connexion en lecture seule."""
     st.header("Airflow – Gestion des flux de données")
-    airflow_base = os.getenv("AIRFLOW_BASE_URL", "http://airflow-webserver:8080")
+    airflow_base = os.getenv("AIRFLOW_BASE_URL", "https://srv877984.hstgr.cloud/airflow")
     st.link_button("Ouvrir l'interface Airflow", airflow_base)
 
     # Affiche les identifiants de connexion lecture seule
