@@ -336,14 +336,25 @@ services:
       - ./agent/agent_events:/agent_events
     ports:
       - "8003:8003"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8003
+      - WEB_CONCURRENCY=1
+      - AGENT_EXTERNAL_URL=http://${HOSTNAME}:8003
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
-          cpus: '0.3'
-          memory: 512M
+          cpus: '0.5'
+          memory: 1G
         reservations:
-          cpus: '0.1'
-          memory: 128M
+          cpus: '0.2'
+          memory: 256M
 
   evidently-api:
     logging: *logging                       
@@ -600,11 +611,11 @@ services:
     volumes:
       - airflow_static:/opt/airflow/www/static
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "curl --fail http://localhost:8080/healthz || exit 0"]
       interval: 30s
       timeout: 20s
       retries: 5
-      start_period: 60s
+      start_period: 120s
     environment:
       - AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX=True
       - AIRFLOW__WEBSERVER__BASE_URL=/airflow

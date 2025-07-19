@@ -8,10 +8,21 @@ from __future__ import annotations
 import streamlit as st
 import os
 import docker
+import requests
 from pathlib import Path
 
 def show_chatbot_page():
     """Displays the chatbot page with an iframe to the agent interface."""
+    # Get agent external URL from environment variable or use default
+    agent_external_url = os.environ.get('AGENT_EXTERNAL_URL', 'http://localhost:8003')
+    
+    # Determine agent URL based on environment
+    is_docker = os.path.exists('/.dockerenv')
+    # L'URL interne pour les requêtes de serveur à serveur dans Docker
+    agent_internal_url = 'http://agent:8003' if is_docker else agent_external_url
+    # L'URL externe pour l'iframe côté client
+    agent_url_for_iframe = agent_external_url
+    
     # -----------------------------------------------------------------------------
     # Configuration de l'interface
     # -----------------------------------------------------------------------------
@@ -31,21 +42,84 @@ def show_chatbot_page():
     Interagissez directement avec Gérard dans l'interface ci-dessous.
     """)
     
-    # Déterminer l'URL de l'agent
-    # URL interne pour les communications entre conteneurs
-    agent_internal_url = "http://agent:8003"
-    # URL externe pour l'accès depuis le navigateur
-    # URL externe pour l'accès depuis le navigateur (port mappé dans docker-compose)
-    agent_external_url = os.environ.get("AGENT_EXTERNAL_URL", "http://localhost:8003")
+
     
-    # Créer un iframe pour afficher l'interface de l'agent avec un sandbox plus permissif
+    # Check if agent is reachable
+    agent_available = False
+    try:
+        # Utiliser l'URL interne pour la vérification de santé
+        response = requests.get(f"{agent_internal_url}/healthz", timeout=2)
+        agent_available = response.status_code == 200
+    except (requests.RequestException, ConnectionError):
+        pass
+    
+    if not agent_available:
+        st.warning("⚠️ L'agent MLOps n'est pas accessible. Veuillez démarrer le service 'agent'.")
+        if st.button("Rafraîchir l'état"):
+            st.rerun()
+        return
+    
+    # Create WebSocket connection URL (ws:// for local, wss:// for production)
+    ws_protocol = "ws" if "localhost" in agent_url_for_iframe or "127.0.0.1" in agent_url_for_iframe else "wss"
+    ws_url = agent_url_for_iframe.replace("http", "ws").replace("https", "wss") + "/ws"
+    
+    # Create iframe with proper WebSocket URL
     iframe_html = f"""
-        <iframe src=\"{agent_external_url}\" width=\"100%\" height=\"700\" style=\"border:none;\" sandbox=\"allow-forms allow-scripts allow-same-origin allow-popups allow-downloads\"></iframe>
+    <style>
+        .chat-container {{
+            width: 100%;
+            height: 700px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }}
+        .chat-iframe {{
+            width: 100%;
+            height: 100%;
+            border: none;
+        }}
+    </style>
+    <div class="chat-container">
+        <iframe 
+            src="{agent_url_for_iframe}" 
+            class="chat-iframe"
+            sandbox="allow-forms allow-scripts allow-same-origin allow-popups"
+            allow="microphone; camera; geolocation">
+        </iframe>
+    </div>
+    <script>
+        // Ensure WebSocket connection is properly established
+        const socket = new WebSocket('{ws_url}');
+        
+        socket.onopen = function(e) {{
+            console.log('[WebSocket] Connected to agent');
+        }};
+        
+        socket.onmessage = function(event) {{
+            console.log('[WebSocket] Message received:', event.data);
+            // Handle incoming messages if needed
+        }};
+        
+        socket.onclose = function(e) {{
+            if (e && e.wasClean) {{
+                const reason = e.reason || 'No reason provided';
+                console.log('[WebSocket] Connection closed cleanly, code=' + e.code + ' reason=' + reason);
+            }} else {{
+                console.error('[WebSocket] Connection died');
+                // Attempt to reconnect after 5 seconds
+                setTimeout(function() {{ window.location.reload(); }}, 5000);
+            }}
+        }};
+        
+        socket.onerror = function(error) {{
+            console.error(`[WebSocket] Error:`, error);
+        }};
+    </script>
     """
-    st.components.v1.html(iframe_html, height=700, scrolling=True)
+    st.components.v1.html(iframe_html, height=720, scrolling=False)
     
     # Ajouter un lien direct vers l'interface de l'agent en cas de problème avec l'iframe
-    st.markdown(f"""Si l'iframe ne s'affiche pas correctement, [cliquez ici pour accéder directement à l'interface de Gérard]({agent_external_url}).""")
+    st.markdown(f"""Si l'iframe ne s'affiche pas correctement, [cliquez ici pour accéder directement à l'interface de Gérard]({agent_url_for_iframe}).""")
 
     # Ajouter un bouton pour rafraîchir l'iframe si nécessaire
     if st.button("Rafraîchir l'interface"):
@@ -110,6 +184,6 @@ def show_chatbot_page():
     st.markdown(f"""
     <div style="margin-top: 20px; padding: 10px; background-color: #f0f2f6; border-radius: 5px;">
         <p>Si l'iframe ne s'affiche pas correctement, vous pouvez accéder directement à l'interface de Gérard à l'adresse suivante :</p>
-        <a href=\"{agent_external_url}\" target=\"_blank\">{agent_external_url}</a>
+        <a href=\"{agent_url_for_iframe}\" target=\"_blank\">{agent_url_for_iframe}</a>
     </div>
     """, unsafe_allow_html=True)

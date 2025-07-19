@@ -48,6 +48,21 @@ static_dir.mkdir(exist_ok=True)
 # Mount static files directory
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
+# Health check endpoint
+@app.get("/healthz")
+async def health_check():
+    """Health check endpoint for Docker and Kubernetes."""
+    try:
+        # Verify Docker daemon is accessible
+        docker_client = docker.from_env()
+        docker_client.ping()
+        return {"status": "ok", "docker": "connected"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={"status": "error", "message": f"Docker daemon error: {str(e)}"}
+        )
+
 # Docker client
 docker_client = docker.from_env()
 

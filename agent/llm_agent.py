@@ -61,20 +61,65 @@ Important :
 
 
 def load_api_key() -> str:
-    """Return the LLM API key from config.yaml."""
-    config_path = Path("/app/config.yaml")
-    if not config_path.exists():
-        raise FileNotFoundError("Le fichier de configuration config.yaml est introuvable.")
-        
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
-        
-    api_key = config.get("agent", {}).get("llm_api_key")
-    if not api_key:
-        raise ValueError("La clé 'llm_api_key' est introuvable dans la section 'agent' de config.yaml.")
-        
-    print("Clé API chargée depuis config.yaml.")
-    return api_key
+    """Return the LLM API key.
+
+    Recherche dans l'ordre :
+    1. Variable d'environnement ``LLM_API_KEY`` (recommandée pour l'exécution en conteneur).
+    2. Fichiers ``config.yaml`` courants (``/app/config.yaml``, ``/config.yaml``, racine du repo).
+
+    Le fichier YAML attendu doit contenir :
+
+    ```yaml
+    agent:
+      llm_api_key: "sk-..."
+    ```
+    """
+
+    # 1. Environment variable
+    env_key = os.getenv("LLM_API_KEY")
+    if env_key:
+        return env_key.strip()
+
+    # 2. Possible config locations
+    possible_paths = [
+        Path("/app/config.yaml"),
+        Path("/config.yaml"),
+        (Path(__file__).parent.parent / "config.yaml"),  # racine du repo montée en volume
+    ]
+
+    for cfg_path in possible_paths:
+        if not cfg_path.exists():
+            continue
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            # Détection simple d'un fichier Ansible Vault chiffré
+            if content.lstrip().startswith("$ANSIBLE_VAULT"):
+                raise ValueError(
+                    f"Le fichier {cfg_path} est chiffré (Ansible Vault). Définissez la clé via la variable d'environnement LLM_API_KEY ou fournissez un YAML en clair."
+                )
+            config = yaml.safe_load(content) or {}
+            if isinstance(config, dict):
+                api_key = (
+                    config.get("agent", {}).get("llm_api_key")
+                    or config.get("llm_api_key")
+                )
+                if api_key:
+                    print(f"Clé API chargée depuis {cfg_path}.")
+                    return str(api_key).strip()
+        except yaml.YAMLError as e:
+            # Essayer le chemin suivant si le YAML est invalide
+            print(f"⚠️ YAML invalide dans {cfg_path}: {e}. On continue la recherche…")
+            continue
+        except Exception as e:
+            # Journaliser puis continuer
+            print(f"⚠️ Impossible de lire {cfg_path}: {e}. On continue la recherche…")
+            continue
+
+    # Si aucune clé trouvée
+    raise ValueError(
+        "Clé API non trouvée. Définissez LLM_API_KEY ou fournissez un fichier config.yaml contenant agent.llm_api_key."
+    )
 
 
 def answer_question(question: str, context: str, api_key: Optional[str] = None) -> str:
