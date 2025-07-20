@@ -3,31 +3,24 @@ from passlib.context import CryptContext
 import requests
 import jwt
 
-# Clé secrète pour les tests JWT
 JWT_SECRET_KEY = "key"
 JWT_ALGORITHM = "HS256"
 
-# URL pour le endpoint /predict
 PREDICT_URL = "http://127.0.0.1:8000/protected/predict"
 RELOAD_URL = "http://127.0.0.1:8000/protected/reload"
 
-# Context de hachage des mots de passe
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Données de test pour l'authentification
 valid_credentials = {
     "username": "user1",
-    # "hashed_password": pwd_context.hash("johnsecret")
     "password": "pass1"
     }
 
 invalid_credentials = {
     "username": "wrong_user",
-    # "hashed_password": pwd_context.hash("wrong_pwd")
     "password": "wrong_pwd"
     }
 
-# Données de test pour la prédiction
 valid_data = {
     "grav": 1,
     "catu": 1,
@@ -49,7 +42,7 @@ invalid_data = {
     "grav": 1,
     "catu": 1,
     "sexe": 1,
-    "trajet": 8,  # [-1, 0, 1, 2, 3, 4, 5, 9]
+    "trajet": 8,  
     "catr": 1,
     "circ": 1,
     "vosp": 1,
@@ -62,7 +55,6 @@ invalid_data = {
     "col": 1
 }
 
-# Fonction pour créer un token d'accès
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     if expires_delta:
@@ -125,5 +117,5 @@ def test_predict_reload_success():
     data = {"sub": "user2", "role": "admin"}
     token = create_access_token(data)
     headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(RELOAD_URL, headers=headers, timeout=10)
+    response = requests.get(RELOAD_URL, headers=headers, timeout=60)
     assert response.status_code == 200

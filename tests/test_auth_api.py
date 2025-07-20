@@ -62,43 +62,6 @@ invalid_data = {
     "col": 1
 }
 
-# Exemple
-# fake_users_db = {
-#     "user1": {
-#         "username": "user1",
-#         "hashed_password": pwd_context.hash("johnsecret")
-#     }
-# }
-
-# def create_jwt_token(data: dict, expires_delta: datetime.timedelta = None):
-#     '''Créer un token JWT'''
-#     to_encode = data.copy()
-#     if expires_delta:
-#         expire = datetime.datetime.utcnow() + expires_delta
-#     else:
-#         expire = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-#     to_encode.update({"exp": expire})
-#     encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-#     return encoded_jwt
-
-# Fonction pour vérifier le mot de passe
-# def verify_password(plain_password, hashed_password):
-#     return pwd_context.verify(plain_password, hashed_password)
-
-# Fonction pour obtenir un utilisateur
-# def get_user(db, username: str):
-#     if username in db:
-#         user_dict = db[username]
-#         return User(**user_dict)
-
-# Fonction pour authentifier un utilisateur
-# def authenticate_user(fake_db, username: str, password: str):
-#     user = get_user(fake_db, username)
-#     if not user or not verify_password(password, user.hashed_password):
-#         return False
-#     return user
-
-# Fonction pour créer un token d'accès
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     if expires_delta:
