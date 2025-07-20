@@ -1,4 +1,4 @@
-FROM python:3.10-slim-buster
+FROM python:3.10-slim-bullseye
 
 ARG USER_ID=1000
 ARG GROUP_ID=1000

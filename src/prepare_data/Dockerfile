@@ -1,4 +1,4 @@
-FROM python:3.10-slim-buster
+FROM python:3.10-slim-bullseye
 
 # Arguments for UID and GID
 ARG USER_ID=1000
