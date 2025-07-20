@@ -14,7 +14,7 @@ from pathlib import Path
 def show_chatbot_page():
     """Displays the chatbot page with an iframe to the agent interface."""
     # Get agent external URL from environment variable or use default
-    agent_external_url = os.environ.get('AGENT_EXTERNAL_URL', 'http://localhost:8003')
+    agent_external_url = os.environ.get('AGENT_EXTERNAL_URL', 'https://srv877984.hstgr.cloud/agent/')
     
     # Determine agent URL based on environment
     is_docker = os.path.exists('/.dockerenv')

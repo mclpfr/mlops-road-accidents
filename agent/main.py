@@ -133,9 +133,8 @@ async def stream_container_logs(container_name: str, websocket: WebSocket):
                 target = c
                 break
         if not target:
-            await manager.send_to_client(websocket, f"❌ Conteneur '{container_name}' non trouvé.")
-            return
-
+            return f"❌ Conteneur '{container_name}' non trouvé."
+        
         # Stream logs continuously
         for line in target.logs(stream=True, follow=True, tail=0):
             await manager.send_to_client(websocket, line.decode(errors="ignore"))
@@ -146,10 +145,10 @@ async def stream_container_logs(container_name: str, websocket: WebSocket):
         await manager.send_to_client(websocket, f"❌ Erreur streaming logs: {str(e)}")
 
 
-async def handle_command(command: str, websocket: WebSocket) -> bool:
+async def handle_command(command: str, websocket: WebSocket) -> Optional[str]:
     """Handle special commands prefixed with '!'."""
     if not command.startswith("!"):
-        return False
+        return None
         
     cmd_parts = command[1:].strip().split(maxsplit=1)
     cmd = cmd_parts[0].lower()
@@ -176,15 +175,13 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
         help_text = "📚 **Commandes disponibles:**\n\n"
         for cmd_name, desc in commands.items():
             help_text += f"- `!{cmd_name}` : {desc}\n"
-        await manager.send_to_client(websocket, help_text)
-        return True
+        return help_text
         
     elif cmd == "logs":
         # Gestion du suivi temps réel avec -f / --follow
         follow, parts = _parse_follow(arg)
         if not parts:
-            await manager.send_to_client(websocket, "⚠️ Veuillez spécifier un nom de conteneur. Exemple: `!logs -f grafana`")
-            return True
+            return "⚠️ Veuillez spécifier un nom de conteneur. Exemple: `!logs -f grafana`"
 
         container_name = parts[0]
 
@@ -196,22 +193,9 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
                 del log_stream_tasks[key]
             task = asyncio.create_task(stream_container_logs(container_name, websocket))
             log_stream_tasks[key] = task
-            await manager.send_to_client(websocket, f"📡 Suivi en temps réel des logs pour '{container_name}' démarré. Tapez `!stoplogs {container_name}` pour arrêter.")
+            return f"📡 Suivi en temps réel des logs pour '{container_name}' démarré. Tapez `!stoplogs {container_name}` pour arrêter."
         else:
-            await manager.send_to_client(websocket, f"🔍 Récupération des logs pour '{container_name}'...")
-            logs = get_container_logs(container_name, tail=20)
-            formatted_logs = f"📜 **Logs pour {container_name}:**\n```\n{logs}\n```"
-            await manager.send_to_client(websocket, formatted_logs)
-        return True
-        if not arg:
-            await manager.send_to_client(websocket, "⚠️ Veuillez spécifier un nom de conteneur. Exemple: `!logs grafana`")
-            return True
-            
-        await manager.send_to_client(websocket, f"🔍 Récupération des logs pour '{arg}'...")
-        logs = get_container_logs(arg, tail=10)
-        formatted_logs = f"📜 **Logs pour {arg}:**\n```\n{logs}\n```"
-        await manager.send_to_client(websocket, formatted_logs)
-        return True
+            return f"🔍 Récupération des logs pour '{container_name}'..."
         
     elif cmd == "stoplogs":
         parts = arg.split()
@@ -224,41 +208,20 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
                 del log_stream_tasks[key]
                 cancelled = True
         if cancelled:
-            await manager.send_to_client(websocket, "🛑 Flux de logs arrêté.")
+            return "🛑 Flux de logs arrêté."
         else:
-            await manager.send_to_client(websocket, "⚠️ Aucun flux de logs en cours.")
-        return True
+            return "⚠️ Aucun flux de logs en cours."
 
     elif cmd == "restart":
         if not arg:
-            await manager.send_to_client(websocket, "⚠️ Veuillez spécifier un nom de conteneur. Exemple: `!restart grafana`")
-            return True
+            return "⚠️ Veuillez spécifier un nom de conteneur. Exemple: `!restart grafana`"
             
-        await manager.send_to_client(websocket, f"🔄 Tentative de redémarrage de '{arg}'...")
-        try:
-            # Find container by name or partial match
-            containers = docker_client.containers.list(all=True)
-            target_container = None
-            for container in containers:
-                if container.name.lower() == arg.lower() or arg.lower() in container.name.lower():
-                    target_container = container
-                    break
-                    
-            if not target_container:
-                await manager.send_to_client(websocket, f"❌ Conteneur '{arg}' non trouvé.")
-                return True
-                
-            target_container.restart()
-            await manager.send_to_client(websocket, f"✅ Conteneur '{target_container.name}' redémarré avec succès.")
-        except Exception as e:
-            await manager.send_to_client(websocket, f"❌ Erreur lors du redémarrage: {str(e)}")
-        return True
+        return f"🔄 Tentative de redémarrage de '{arg}'..."
         
     elif cmd in ["services", "service", "servic", "servces", "serivce", "servies"]:
         import shlex, subprocess
         if not arg:
-            await manager.send_to_client(websocket, "⚠️ Veuillez spécifier au moins un groupe de services à démarrer. Exemple : `!services start-ui start-ml`.")
-            return True
+            return "⚠️ Veuillez spécifier au moins un groupe de services à démarrer. Exemple : `!services start-ui start-ml`."
         if arg.strip().lower() == "help":
             import yaml
             try:
@@ -273,14 +236,12 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
                 for c in commands:
                     help_msg += f"- `{c}`\n"
                 help_msg += "\n**Exemples :**\n!services start-ui start-ml\n!services stop-ui\n!services restart-monitoring"
-                await manager.send_to_client(websocket, help_msg)
+                return help_msg
             except Exception as e:
-                await manager.send_to_client(websocket, f"❌ Impossible de lire la configuration des services : {str(e)}")
-            return True
+                return f"❌ Impossible de lire la configuration des services : {str(e)}"
         service_targets = shlex.split(arg)
         results = []
         for target in service_targets:
-            await manager.send_to_client(websocket, f"🚀 Starting service group `{target}`...")
             try:
                 result = subprocess.run(["make", target], capture_output=True, text=True, cwd="/home/ubuntu/mlops-road-accidents")
                 if result.returncode == 0:
@@ -289,28 +250,18 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
                     results.append(f"❌ Error starting `{target}`:\n" + "```\n" + result.stderr.strip() + "\n```")
             except Exception as e:
                 results.append(f"❌ Exception for `{target}`: {str(e)}")
-        await manager.send_to_client(websocket, "\n".join(results))
-        return True
+        return "\n".join(results)
 
     elif cmd == "status":
 
+        def humanize(bytes_val: int) -> str:
+            return f"{bytes_val / (1024*1024):.0f}MiB" if bytes_val else "0MiB"
+
         if not arg:
             # Show status of all containers
-            await manager.send_to_client(websocket, "📊 Récupération du statut de tous les conteneurs...")
             try:
                 containers = docker_client.containers.list(all=True)
-
-                def humanize(bytes_val: int) -> str:
-                    return f"{bytes_val / (1024*1024):.0f}MiB" if bytes_val else "0MiB"
-
-                headers = [
-                    "Conteneur",
-                    "État",
-                    "CPU %",
-                    "Mémoire utilisée / limite",
-                    "Mémoire utilisée %",
-                    "Erreur critique"
-                ]
+                headers = ["Conteneur", "État", "CPU %", "Mémoire", "Erreur"]
                 md_lines = [
                     "| " + " | ".join(headers) + " |",
                     "|" + "|".join(["-"*len(h) for h in headers]) + "|",
@@ -318,11 +269,7 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
 
                 for c in containers:
                     status = c.status
-                    # Default values
-                    cpu_pct = "-"
-                    mem_used = 0
-                    mem_limit = 0
-                    mem_pct = "-"
+                    cpu_pct, mem_combined = "-", "-"
                     if status == "running":
                         try:
                             stats = c.stats(stream=False)
@@ -333,79 +280,44 @@ async def handle_command(command: str, websocket: WebSocket) -> bool:
                                 cpu_pct = f"{cpu_pct_val:.2f} %"
                             mem_used = stats["memory_stats"].get("usage", 0)
                             mem_limit = stats["memory_stats"].get("limit", 0)
-                            mem_pct_val = (mem_used / mem_limit * 100.0) if mem_limit else 0.0
-                            mem_pct = f"{mem_pct_val:.2f} %"
+                            mem_combined = f"{humanize(mem_used)} / {humanize(mem_limit) if mem_limit else 'Illimitée'}"
                         except Exception:
                             pass
-                    # Humanize memory strings
-                    mem_used_str = humanize(mem_used)
-                    limit_str = humanize(mem_limit) if mem_limit else "Illimitée"
-                    mem_combined = f"{mem_used_str} / {limit_str}"
                     
                     emoji = "🟢" if status == "running" else "🔴"
-                    etat_str = f"{emoji} {status.capitalize()}"
+                    md_lines.append("| " + " | ".join([c.name, f"{emoji} {status.capitalize()}", cpu_pct, mem_combined, "Aucune"]) + " |")
 
-                    md_lines.append(
-                        "| " + " | ".join([
-                            c.name,
-                            etat_str,
-                            cpu_pct,
-                            mem_combined,
-                            mem_pct,
-                            "Aucune"
-                        ]) + " |"
-                    )
+                return "📊 **Statut des conteneurs :**\n\n" + "\n".join(md_lines) + "\n"
+            except Exception as e:
+                return f"❌ Erreur: {str(e)}"
+            
+        # Show status of specific container
+        try:
+            c = docker_client.containers.get(arg)
+            status = c.status
+            emoji = "🟢" if status == "running" else "🔴"
+            stats_text = ""
+            if status == "running":
+                try:
+                    stats = c.stats(stream=False)
+                    cpu_delta = stats["cpu_stats"]["cpu_usage"]["total_usage"] - stats["precpu_stats"]["cpu_usage"]["total_usage"]
+                    system_delta = stats["cpu_stats"].get("system_cpu_usage", 0) - stats["precpu_stats"].get("system_cpu_usage", 0)
+                    if system_delta > 0:
+                        cpu_pct = (cpu_delta / system_delta * stats["cpu_stats"].get("online_cpus", 1) * 100.0)
+                        stats_text += f"\n- CPU: {cpu_pct:.2f}%"
+                    mem_usage = stats["memory_stats"].get("usage", 0)
+                    mem_limit = stats["memory_stats"].get("limit", 1)
+                    stats_text += f"\n- Mémoire: {humanize(mem_usage)} / {humanize(mem_limit)}"
+                except Exception:
+                    stats_text = "\n- Statistiques non disponibles"
+            return f"{emoji} **{c.name}**: {status}{stats_text}"
+        except docker.errors.NotFound:
+            return f"❌ Conteneur '{arg}' non trouvé."
+        except Exception as e:
+            return f"❌ Erreur: {str(e)}"
 
-                status_text = "📊 **Statut des conteneurs :**\n\n" + "\n".join(md_lines) + "\n"
-                await manager.send_to_client(websocket, status_text)
-            except Exception as e:
-                await manager.send_to_client(websocket, f"❌ Erreur lors de la récupération des statuts: {str(e)}")
-        else:
-            # Show status of specific container
-            await manager.send_to_client(websocket, f"📊 Récupération du statut de '{arg}'...")
-            try:
-                containers = docker_client.containers.list(all=True)
-                target_container = None
-                for container in containers:
-                    if container.name.lower() == arg.lower() or arg.lower() in container.name.lower():
-                        target_container = container
-                        break
-                        
-                if not target_container:
-                    await manager.send_to_client(websocket, f"❌ Conteneur '{arg}' non trouvé.")
-                    return True
-                    
-                status = target_container.status
-                emoji = "🟢" if status == "running" else "🔴"
-                
-                # Get container stats if running
-                stats_text = ""
-                if status == "running":
-                    try:
-                        stats = target_container.stats(stream=False)
-                        # Calculate CPU and memory usage
-                        cpu_delta = stats["cpu_stats"]["cpu_usage"]["total_usage"] - stats["precpu_stats"]["cpu_usage"]["total_usage"]
-                        system_delta = stats["cpu_stats"].get("system_cpu_usage", 0) - stats["precpu_stats"].get("system_cpu_usage", 0)
-                        cpu_pct = 0.0
-                        if system_delta > 0:
-                            cpu_pct = (cpu_delta / system_delta * stats["cpu_stats"].get("online_cpus", 1) * 100.0)
-                            
-                        mem_usage = stats["memory_stats"].get("usage", 0)
-                        mem_limit = stats["memory_stats"].get("limit", 1)
-                        mem_pct = mem_usage / mem_limit * 100.0 if mem_limit else 0.0
-                        
-                        stats_text = f"\n- CPU: {cpu_pct:.2f}%\n- Mémoire: {mem_pct:.2f}% ({mem_usage / (1024*1024):.2f} MB / {mem_limit / (1024*1024):.2f} MB)"
-                    except Exception:
-                        stats_text = "\n- Statistiques non disponibles"
-                
-                status_text = f"{emoji} **{target_container.name}**: {status}{stats_text}"
-                await manager.send_to_client(websocket, status_text)
-            except Exception as e:
-                await manager.send_to_client(websocket, f"❌ Erreur lors de la récupération du statut: {str(e)}")
-        return True
-    
     # Command not recognized
-    return False
+    return None
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -446,7 +358,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
             
             # Handle special commands
-            if await handle_command(message, websocket):
+            response = await handle_command(message, websocket)
+            if response:
+                await manager.send_to_client(websocket, response)
                 continue
                 
             # Détecter les demandes d'affichage de logs en temps réel
@@ -531,10 +445,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     break
 
             if is_general_status_request and is_specific_container_mentioned is None:
-                await handle_command("!status", websocket)
+                response = await handle_command("!status", websocket)
+                if response:
+                    await manager.send_to_client(websocket, response)
                 continue
             elif is_general_status_request and is_specific_container_mentioned:
-                await handle_command(f"!status {is_specific_container_mentioned}", websocket)
+                response = await handle_command(f"!status {is_specific_container_mentioned}", websocket)
+                if response:
+                    await manager.send_to_client(websocket, response)
                 continue
                 
             # Gérer les commandes de conteneur (démarrer, arrêter, redémarrer) par langage naturel
@@ -604,12 +522,9 @@ async def websocket_endpoint(websocket: WebSocket):
 
             # Si aucune commande spéciale ou mot-clé n'est détecté, envoyer au LLM
             await manager.send_to_client(websocket, "🧠 Je traite votre demande...")
-            docker_info = await collect_docker_info()  # Collect fresh data
-            response_generator = answer_question(message, api_key, docker_info)
-            full_response = ""
-            async for chunk in response_generator:
-                full_response += chunk
-                await manager.send_to_client(websocket, chunk)
+            docker_info = collect_docker_info()  # Collect fresh data
+            answer = answer_question(message, docker_info, api_key)
+            await manager.send_to_client(websocket, answer)
 
             # Gérer les commandes de conteneur (démarrer, arrêter, redémarrer) par langage naturel
             message_lower = message.lower().strip()
