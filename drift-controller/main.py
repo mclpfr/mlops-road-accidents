@@ -77,7 +77,7 @@ def check_drift_and_trigger():
 
         if drift_score > DRIFT_THRESHOLD:
             logger.warning(f"Drift score {drift_score:.4f} exceeds threshold {DRIFT_THRESHOLD}. Triggering Airflow DAG.")
-            trigger_airflow_dag()
+            # trigger_airflow_dag()
 
     except Exception as e:
         logger.error(f"An error occurred during drift check: {e}", exc_info=True)

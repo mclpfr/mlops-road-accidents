@@ -4,17 +4,23 @@ Cette page affiche une interface iframe qui se connecte au service agent
 via WebSocket pour fournir une interface de chat en temps réel.
 """
 from __future__ import annotations
-
-import streamlit as st
 import os
-import docker
 import requests
+import streamlit as st
+import logging
+import docker
 from pathlib import Path
+from streamlit.components.v1 import html
 
-def show_chatbot_page():
+
+# Configuration du logger
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+def show_chatbot_page(config):
     """Displays the chatbot page with an iframe to the agent interface."""
-    # Get agent external URL from environment variable or use default
-    agent_external_url = os.environ.get('AGENT_EXTERNAL_URL', 'https://srv877984.hstgr.cloud/agent/')
+    # Get agent external URL from environment variable or use default from config
+    agent_external_url = config.get('agent', {}).get('external_url', os.environ.get('AGENT_EXTERNAL_URL'))
     
     # Determine agent URL based on environment
     is_docker = os.path.exists('/.dockerenv')
@@ -26,7 +32,7 @@ def show_chatbot_page():
     # -----------------------------------------------------------------------------
     # Configuration de l'interface
     # -----------------------------------------------------------------------------
-    st.title("🤖 Gérard - Agent MLOps Autonome")
+    st.title("🤖 Gérard")
     
     # Afficher une description de l'agent
     st.markdown("""
@@ -118,12 +124,7 @@ def show_chatbot_page():
     """
     st.components.v1.html(iframe_html, height=720, scrolling=False)
     
-    # Ajouter un lien direct vers l'interface de l'agent en cas de problème avec l'iframe
-    st.markdown(f"""Si l'iframe ne s'affiche pas correctement, [cliquez ici pour accéder directement à l'interface de Gérard]({agent_url_for_iframe}).""")
 
-    # Ajouter un bouton pour rafraîchir l'iframe si nécessaire
-    if st.button("Rafraîchir l'interface"):
-        st.rerun()
 
     # -----------------------------------------------------------------------------
     # Agent enable / disable controls
@@ -132,9 +133,13 @@ def show_chatbot_page():
         cli = docker.from_env()
         agent_container = cli.containers.get("agent")
         is_running = agent_container.status == "running"
-    except Exception:
+    except docker.errors.NotFound:
         agent_container = None
         is_running = False
+    except Exception as e:
+        agent_container = None
+        is_running = False
+        st.error(f"Une erreur inattendue est survenue en communiquant avec Docker : {e}")
 
     status_str = "🟢 Actif" if is_running else "🔴 Inactif"
     st.markdown(f"**Statut de l'agent :** {status_str}")
@@ -180,10 +185,4 @@ def show_chatbot_page():
     - "Y a-t-il des erreurs critiques dans les logs ?"
     """)
     
-    # Ajouter un lien pour accéder directement à l'interface de l'agent
-    st.markdown(f"""
-    <div style="margin-top: 20px; padding: 10px; background-color: #f0f2f6; border-radius: 5px;">
-        <p>Si l'iframe ne s'affiche pas correctement, vous pouvez accéder directement à l'interface de Gérard à l'adresse suivante :</p>
-        <a href=\"{agent_url_for_iframe}\" target=\"_blank\">{agent_url_for_iframe}</a>
-    </div>
-    """, unsafe_allow_html=True)
+

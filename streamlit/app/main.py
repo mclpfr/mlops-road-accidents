@@ -64,6 +64,9 @@ os.environ['GIT_PYTHON_REFRESH'] = 'quiet'
 
 # Disable warnings
 import warnings
+
+# Import utility for infrastructure URLs
+# Import supprimé: config_loader n'est plus utilisé
 warnings.filterwarnings('ignore')
 
 
@@ -197,7 +200,7 @@ def fetch_data_from_db(query: str):
         
         # Query execution with context management
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute("SET statement_timeout = 3000")  # Timeout de 3 secondes
+            cursor.execute("SET statement_timeout = 10000") # Timeout de 10 secondes
             cursor.execute(query)
             
             # Fetching results
@@ -375,12 +378,6 @@ def get_best_model_overview():
         st.error(f"Erreur lors de la récupération des informations du modèle : {str(e)}")
         return None
     
-
-
-
-
-
-@st.cache_data(ttl=600)
 def get_class_distribution():
     """Retrieve the Grave / Pas Grave distribution from the accidents table."""
     query = """
@@ -597,7 +594,7 @@ def create_sample_data():
 
     return model_metrics, class_distribution, drift_data, pipeline_steps
 
-def main(accidents_count):
+def main(accidents_count, config):
     st.sidebar.title("Navigation")
 
     # Initialize session state for the selected page
@@ -650,21 +647,21 @@ def main(accidents_count):
         show_interactive_demo()
     elif st.session_state.selected_page == "Monitoring du modèle":
         drift_data = None  # Placeholder
-        show_monitoring(drift_data)
+        show_monitoring(drift_data, config)
     elif st.session_state.selected_page == "Logs Infra":
-        show_logs_infra()
+        show_logs_infra(config)
     elif st.session_state.selected_page == "Infrastructure":
         pipeline_steps = {}  # Placeholder
         show_mlops_pipeline(pipeline_steps)
     elif st.session_state.selected_page == "MLflow":
         show_mlflow()
     elif st.session_state.selected_page == "Airflow":
-        show_airflow()
+        show_airflow(config)
     elif st.session_state.selected_page == "Evidently":
-        show_evidently()
+        show_evidently(config)
     elif st.session_state.selected_page == "Agent":
         from chatbot import show_chatbot_page
-        show_chatbot_page()
+        show_chatbot_page(config)
 
 def show_overview(model_metrics, accidents_count):
     if model_metrics is None:
@@ -1262,10 +1259,21 @@ def show_mlflow():
     st.link_button("Ouvrir le suivi d'expérimentations MLflow", mlflow_url)
 
 
-def show_airflow():
+def show_airflow(config):
     """Affiche un bouton de redirection vers l'interface Airflow et les identifiants de connexion en lecture seule."""
     st.header("Airflow – Gestion des flux de données")
-    airflow_base = os.getenv("AIRFLOW_BASE_URL", "https://srv877984.hstgr.cloud/airflow")
+    # Récupérer la base_url depuis la configuration
+    base_url = config.get('infrastructure', {}).get('base_url')
+    if base_url:
+        # S'assurer que l'URL a le bon format
+        if not base_url.startswith(('http://', 'https://')):
+            base_url = f"https://{base_url}"
+        airflow_base = f"{base_url}/airflow"
+    else:
+        # Fallback sur la variable d'environnement
+        airflow_base = os.getenv("AIRFLOW_BASE_URL", "").rstrip("/")
+        if not airflow_base:
+            st.error("URL de base Airflow non configurée. Veuillez définir la variable d'environnement AIRFLOW_BASE_URL ou configurer infrastructure.base_url dans config.yaml.")
     st.link_button("Ouvrir l'interface Airflow", airflow_base)
 
     # Affiche les identifiants de connexion lecture seule
@@ -1276,66 +1284,35 @@ def show_airflow():
         """)
 
 
-def show_monitoring(drift_data):
+def show_monitoring(drift_data, config):
     import requests
     from streamlit.components.v1 import html
     
-    st.header("Monitoring du Système")
+
     
     # No drift data display here - removed as per user request
     
-    # Drift control section
-    st.markdown("### Artificial Drift Control")
-    col1, col2 = st.columns(2)
-    
-    # Evidently API configuration (host configurable via config.yaml or environment variable)
-    cfg_path = Path(__file__).resolve().parent.parent / "config.yaml"
-    try:
-        with open(cfg_path, "r") as f:
-            _cfg_local = yaml.safe_load(f) or {}
-    except FileNotFoundError:
-        _cfg_local = {}
 
-    # Use the container name instead of localhost for Docker networking
-    evidently_host = _cfg_local.get("evidently_host") or os.getenv("EVIDENTLY_BASE_URL", "http://evidently-api:8001")
-    evidently_host = evidently_host.rstrip("/")
-    health_url = f"{evidently_host}/health"
-    set_drift_url = f"{evidently_host}/set_drift"
-
-    # Attempt to verify API (optional, buttons remain active even if API doesn't respond)
-    try:
-        response = requests.get(health_url, timeout=3)
-        drift_api_available = response.status_code == 200
-    except Exception:
-        drift_api_available = False
     
-    with col1:
-        if st.button("Forcer le drift", help="Ajoute du bruit aux données pour simuler un drift."):
-            try:
-                response = requests.get(f"{evidently_host}/force_drift", params={"drift_percentage": 0.8}, timeout=5)
-                if response.status_code == 200:
-                    st.success("Drift artificiel forcé (noise=0.8)")
-                else:
-                    st.error(f"Erreur lors de la requête: {response.status_code} - {response.text}")
-            except Exception as e:
-                st.error(f"Erreur lors de la connexion à l'API: {e}")
+    # Grafana dashboard URL (uses base URL from config)
+    # Récupérer la base_url depuis la configuration
+    base_url = config.get('infrastructure', {}).get('base_url')
     
-    with col2:
-        if st.button("Réinitialiser le drift", help="Réinitialise le drift (bruit) artificiel."):
-            try:
-                response = requests.get(f"{evidently_host}/reset_drift", timeout=5)
-                if response.status_code == 200:
-                    st.success("Drift artificiel réinitialisé")
-                else:
-                    st.error(f"Erreur lors de la requête: {response.status_code} - {response.text}")
-            except Exception as e:
-                st.error(f"Erreur lors de la connexion à l'API: {e}")
-    
-    # Grafana dashboard URL (uses base URL configured in environment)
-    grafana_base = os.getenv("GRAFANA_BASE_URL", "https://srv877984.hstgr.cloud/grafana").rstrip("/")
+    if base_url:
+        # S'assurer que l'URL a le bon format
+        if not base_url.startswith(('http://', 'https://')):
+            base_url = f"https://{base_url}"
+        grafana_base = f"{base_url}/grafana"
+    else:
+        # Fallback sur la variable d'environnement
+        grafana_base = os.getenv("GRAFANA_BASE_URL", "").rstrip("/")
+        if not grafana_base:
+            st.error("URL de base Grafana non configurée. Veuillez définir la variable d'environnement GRAFANA_BASE_URL ou configurer infrastructure.base_url dans config.yaml.")
     
     # Construire l'URL du tableau de bord avec les paramètres nécessaires
     dashboard_url = f"{grafana_base}/d/api_monitoring_dashboard_v2?orgId=1&refresh=5s&from=now-1h&to=now&kiosk&theme=light"
+    
+
 
     # Embed dashboard in an iframe with proper security headers
     st.markdown(
@@ -1503,12 +1480,23 @@ def show_interactive_demo():
 
 
 
-def show_logs_infra():
+def show_logs_infra(config):
     # URL du dashboard public Grafana
-    # Determine Grafana base URL from env var or fallback to public domain
-    grafana_base = os.getenv("GRAFANA_BASE_URL", "https://srv877984.hstgr.cloud/grafana").rstrip("/")
+    # Récupérer la base_url depuis la configuration
+    base_url = config.get('infrastructure', {}).get('base_url')
+    if base_url:
+        # S'assurer que l'URL a le bon format
+        if not base_url.startswith(('http://', 'https://')):
+            base_url = f"https://{base_url}"
+        grafana_base = f"{base_url}/grafana"
+    else:
+        # Fallback sur la variable d'environnement
+        grafana_base = os.getenv("GRAFANA_BASE_URL", "").rstrip("/")
+        if not grafana_base:
+            st.error("URL de base Grafana non configurée. Veuillez définir la variable d'environnement GRAFANA_BASE_URL ou configurer infrastructure.base_url dans config.yaml.")
+            grafana_base = "https://vmi2734167.contaboserver.net/grafana"  # URL par défaut basée sur la valeur de infrastructure.base_url
     # Public dashboard UID – adjust if you change the dashboard in Grafana
-    public_uid = "02e51b65ea8f4e8b83098ad46397b6b4"
+    public_uid = "449f1ea472a54a5a8462789850a0d91a"
     grafana_url = f"{grafana_base}/public-dashboards/{public_uid}"
     
     # Afficher l'iframe intégré
@@ -1520,7 +1508,7 @@ def show_logs_infra():
     )
 
 
-def show_evidently():
+def show_evidently(config):
     """Embed Evidently AI dashboard inside Streamlit."""
     st.header("Evidently Report")
 
@@ -1529,7 +1517,18 @@ def show_evidently():
     internal_host = os.getenv("EVIDENTLY_BASE_URL", "http://evidently-api:8001")
     
     # The URL for public access (via browser) may be different.
-    public_host = os.getenv("EVIDENTLY_PUBLIC_URL", "https://srv877984.hstgr.cloud/evidently")
+    # Récupérer la base_url depuis la configuration
+    base_url = config.get('infrastructure', {}).get('base_url')
+    if base_url:
+        # S'assurer que l'URL a le bon format
+        if not base_url.startswith(('http://', 'https://')):
+            base_url = f"https://{base_url}"
+        public_host = f"{base_url}/evidently"
+    else:
+        # Fallback sur la variable d'environnement
+        public_host = os.getenv("EVIDENTLY_PUBLIC_URL", "").rstrip("/")
+        if not public_host:
+            st.error("URL de base Evidently non configurée. Veuillez définir la variable d'environnement EVIDENTLY_PUBLIC_URL ou configurer infrastructure.base_url dans config.yaml.")
     
     embed_url = public_host.rstrip("/") + "/drift_full_report"
     health_url = internal_host.rstrip("/") + "/health"
@@ -1671,37 +1670,47 @@ def add_footer():
     """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
-    # --- Authentification ---
+    # Initialiser le client MLflow
+    setup_mlflow()
+
+    # Récupérer le nombre total d'accidents pour l'affichage
+    try:
+        accidents_count_df = fetch_data_from_db("SELECT COUNT(*) as count FROM accidents")
+        accidents_count = accidents_count_df['count'][0] if not accidents_count_df.empty else 0
+    except Exception as e:
+        accidents_count = 0  # Fallback en cas d'erreur
+        st.warning(f"Could not fetch accident count: {e}")
+
+    # Charger la configuration d'authentification
     authenticator = get_authenticator()
+
+    # Load app config
+    try:
+        config_path = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f)
+    except Exception as e:
+        st.error(f"Error loading application configuration: {e}")
+        config = {} # Fallback to empty config
+        st.stop()
+
+    # Processus d'authentification
     authenticator.login()
 
-    if st.session_state.get("authentication_status"):
-        st.sidebar.success(f"Bienvenue {st.session_state['name']}")
-        st.session_state['role'] = get_user_role(st.session_state['username'])
-        with st.sidebar:
-            authenticator.logout()
+    name = st.session_state.get('name')
+    authentication_status = st.session_state.get('authentication_status')
+    username = st.session_state.get('username')
 
-        # Get accident count at startup
-        accidents_count = 0
-        try:
-            result = fetch_data_from_db("SELECT COUNT(*) as count FROM accidents")
-            if not result.empty and 'count' in result.columns:
-                accidents_count = int(result.iloc[0]['count'])
-        except Exception as e:
-            st.sidebar.error(f"Erreur de connexion DB: {e}")
-
-        # Ajout des informations sidebar
-        add_sidebar_info(accidents_count)
+    if authentication_status:
+        st.sidebar.success(f"Welcome *{name}*")
+        authenticator.logout('Logout', 'sidebar')
+        st.session_state['role'] = get_user_role(username)
 
         # Application principale
-        main(accidents_count)
+        main(accidents_count, config)
 
-        # Footer - Ne pas afficher sur la page Agent
-        if st.session_state.selected_page != "Agent":
-            add_footer()
+    elif authentication_status is False:
+        st.error('Username/password is incorrect')
 
-    elif st.session_state.get("authentication_status") is False:
-        st.error("Nom d'utilisateur ou mot de passe incorrect")
-
-    elif st.session_state.get("authentication_status") is None:
-        st.warning("Veuillez entrer vos identifiants")
+    elif authentication_status is None:
+        st.warning('Please enter your username and password')

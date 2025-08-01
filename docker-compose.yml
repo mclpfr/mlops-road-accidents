@@ -307,6 +307,7 @@ services:
       dockerfile: streamlit/app/Dockerfile
     ports:
       - "8501:8501"
+    env_file: .env 
     environment:
       - AGENT_EVENTS_PATH=/agent_events/agent_events.jsonl
     volumes:
@@ -501,13 +502,13 @@ services:
     networks:
       - default
     environment:
-      - GF_SERVER_ROOT_URL=https://srv877984.hstgr.cloud/grafana
+      - GF_SERVER_ROOT_URL=https://vmi2734167.contaboserver.net/grafana
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - GF_SERVER_DOMAIN=srv877984.hstgr.cloud
+      - GF_SERVER_DOMAIN=${INFRASTRUCTURE_DOMAIN}
       - GF_SERVER_ENFORCE_DOMAIN=true
       - GF_SECURITY_COOKIE_SAMESITE=none
       - GF_SECURITY_COOKIE_SECURE=true
-      - GF_SECURITY_CONTENT_SECURITY_POLICY="frame-ancestors 'self' https://srv877984.hstgr.cloud;"
+      - GF_SECURITY_CONTENT_SECURITY_POLICY="frame-ancestors 'self' https://${INFRASTRUCTURE_DOMAIN};"
       - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_SECURITY_STRICT_TRANSPORT_SECURITY=true
       - GF_SECURITY_STRICT_TRANSPORT_SECURITY_MAX_AGE_DAYS=365

@@ -45,12 +45,14 @@ def init_auth_config():
         # Create a copy of the default configuration
         config = DEFAULT_CONFIG.copy()
         
-        # Set plain text passwords
-        config['credentials']['usernames']['admin']['password'] = 'admin123'
-        config['credentials']['usernames']['user']['password'] = 'user123'
-        
-        # Hash passwords with the new method
-        config['credentials'] = stauth.Hasher.hash_passwords(config['credentials'])
+        # Set plain text passwords (will be hashed below)
+        admin_pwd = 'admin123'
+        user_pwd = 'user123'
+
+        # Hash passwords with the correct Hasher API
+        hashed_pwds = stauth.Hasher([admin_pwd, user_pwd]).generate()
+        config['credentials']['usernames']['admin']['password'] = hashed_pwds[0]
+        config['credentials']['usernames']['user']['password'] = hashed_pwds[1]
         
         # Create parent directory if needed
         auth_file.parent.mkdir(parents=True, exist_ok=True)
@@ -67,7 +69,26 @@ def load_auth_config():
     
     # Load the configuration
     with open(auth_file) as f:
-        return yaml.load(f, Loader=SafeLoader)
+        config = yaml.load(f, Loader=SafeLoader)
+
+    # Auto-migrate: ensure stored passwords look hashed (start with '$')
+    migrated = False
+    plain_pwds = []
+    for user, data in config['credentials']['usernames'].items():
+        pwd = data.get('password','')
+        if not pwd.startswith('$2'):  # not bcrypt-like hash
+            plain_pwds.append((user, pwd))
+    if plain_pwds:
+        # Re-hash and update
+        hashes = stauth.Hasher([pwd for _, pwd in plain_pwds]).generate()
+        for (user,_), hashed in zip(plain_pwds, hashes):
+            config['credentials']['usernames'][user]['password'] = hashed
+        migrated = True
+    if migrated:
+        # Persist migrated file
+        with open(auth_file,'w') as f_out:
+            yaml.dump(config, f_out, default_flow_style=False)
+    return config
 
 def get_authenticator():
     """Returns a configured Streamlit authentication object."""
