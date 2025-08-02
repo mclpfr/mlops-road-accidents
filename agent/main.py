@@ -8,13 +8,28 @@ import asyncio
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 
-import docker
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+import uvicorn
+from fastapi import FastAPI, Request, Form, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+import yaml
+
+# Load configuration from YAML
+with open('/app/config.yaml', 'r') as file:
+    config = yaml.safe_load(file)
+
+server_config = config.get('agent_server', {})
+agent_config = config.get('agent', {})
+
+host = server_config.get('host', '0.0.0.0')
+port = server_config.get('port', 8003)
+web_concurrency = server_config.get('web_concurrency', 1)
+external_url = agent_config.get('external_url', 'http://localhost:8003')
+
+import docker
 from llm_agent import load_api_key, answer_question
 from docker_info_collector import collect_docker_info
 from docker_info_collector import get_container_logs, _list_container_names
@@ -223,7 +238,7 @@ async def handle_command(command: str, websocket: WebSocket) -> Optional[str]:
         if not arg:
             return "⚠️ Veuillez spécifier au moins un groupe de services à démarrer. Exemple : `!services start-ui start-ml`."
         if arg.strip().lower() == "help":
-            import yaml
+            
             try:
                 with open("/app/services.yml", "r") as f:
                     services_conf = yaml.safe_load(f)

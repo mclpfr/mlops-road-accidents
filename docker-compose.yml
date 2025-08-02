@@ -335,11 +335,7 @@ services:
       - ./agent/agent_events:/agent_events
     ports:
       - "8003:8003"
-    environment:
-      - HOST=0.0.0.0
-      - PORT=8003
-      - WEB_CONCURRENCY=1
-      - AGENT_EXTERNAL_URL=http://${HOSTNAME}:8003
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8003/healthz"]
       interval: 30s

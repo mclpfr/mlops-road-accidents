@@ -105,7 +105,7 @@ def load_api_key() -> str:
                     or config.get("llm_api_key")
                 )
                 if api_key:
-                    print(f"Clé API chargée depuis {cfg_path}.")
+                    print(f"API key loaded from {cfg_path}.")
                     return str(api_key).strip()
         except yaml.YAMLError as e:
             # Essayer le chemin suivant si le YAML est invalide
