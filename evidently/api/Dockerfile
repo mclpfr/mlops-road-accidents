@@ -20,6 +20,7 @@ RUN groupadd -g ${GROUP_ID} appuser && \
     mkdir -p /app/reference /app/current /app/static && \
     chown -R ${USER_ID}:${GROUP_ID} /app
 
+COPY config.yaml config.yaml
 COPY api.py api.py
 COPY static/ /app/static/
 

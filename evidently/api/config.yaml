@@ -1,0 +1,4 @@
+evidently:
+  project_name: "Road Accidents MLOps"
+  project_description: "Monitoring dashboard for road accident prediction model"
+  url_prefix: "/evidently"

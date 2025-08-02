@@ -359,10 +359,7 @@ services:
       - ./evidently/current:/app/current     
     ports:
       - "8001:8001"
-    environment:   
-      - EVIDENTLY_PROJECT_NAME=Road Accidents MLOps
-      - EVIDENTLY_PROJECT_DESCRIPTION=Monitoring dashboard for road accident prediction model
-      - EVIDENTLY_URL_PREFIX=/evidently
+
     restart: always
     deploy:
       resources:

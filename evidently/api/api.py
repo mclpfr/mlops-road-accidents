@@ -1,4 +1,5 @@
 import os
+import yaml
 import logging
 import pandas as pd
 import numpy as np
@@ -34,9 +35,14 @@ DRIFT_STATUS_FILE = BASE_DIR / "drift_status.json"
 STATIC_DIR = BASE_DIR / "static"
 
 # --- FastAPI App Initialization ---
+# Load config
+with open(BASE_DIR / 'config.yaml', 'r') as f:
+    config = yaml.safe_load(f)
+evidently_config = config.get('evidently', {})
+
 app = FastAPI(
     title="Evidently Data Drift API",
-    root_path=os.getenv('EVIDENTLY_URL_PREFIX', '')
+    root_path=evidently_config.get('url_prefix', os.getenv('EVIDENTLY_URL_PREFIX', ''))
 )
 
 # Middleware pour le reverse proxy
