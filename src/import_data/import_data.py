@@ -29,11 +29,11 @@ def load_config(config_path="/app/config.yaml"):
                 "password": os.getenv("MLFLOW_TRACKING_PASSWORD", "")
             },
             "postgresql": {
-                "host": os.getenv("POSTGRES_HOST", "localhost"),
-                "port": os.getenv("POSTGRES_PORT", "5432"),
-                "user": os.getenv("POSTGRES_USER", "postgres"),
-                "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
-                "database": os.getenv("POSTGRES_DB", "road_accidents")
+                "host": "localhost",
+                "port": "5432",
+                "user": "postgres",
+                "password": "postgres",
+                "database": "road_accidents"
             }
         }
 

@@ -136,9 +136,6 @@ services:
     container_name: import_data_service
     command: >
       sh -c "/app/wait-for-postgres.sh postgres 5432 && python import_data.py"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
     volumes:
       - ./data:/app/data
       - ./models:/app/models
