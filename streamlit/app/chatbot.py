@@ -20,7 +20,10 @@ logger = logging.getLogger(__name__)
 def show_chatbot_page(config):
     """Displays the chatbot page with an iframe to the agent interface."""
     # Get agent external URL from environment variable or use default from config
-    agent_external_url = config.get('agent', {}).get('external_url', os.environ.get('AGENT_EXTERNAL_URL'))
+    agent_external_url = config.get('agent', {}).get('external_url')
+    if not agent_external_url:
+        st.error("URL externe de l'agent non configurée. Veuillez la définir dans config.yaml (agent.external_url).")
+        return
     
     # Determine agent URL based on environment
     is_docker = os.path.exists('/.dockerenv')

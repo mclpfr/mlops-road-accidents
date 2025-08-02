@@ -2,6 +2,7 @@
 import os
 import sys
 import logging
+from pathlib import Path
 from logging.handlers import RotatingFileHandler
 import pandas as pd
 import requests
@@ -1271,9 +1272,11 @@ def show_airflow(config):
         airflow_base = f"{base_url}/airflow"
     else:
         # Fallback sur la variable d'environnement
-        airflow_base = os.getenv("AIRFLOW_BASE_URL", "").rstrip("/")
+        airflow_base = config.get('airflow', {}).get('public_url', '').rstrip('/')
         if not airflow_base:
-            st.error("URL de base Airflow non configurée. Veuillez définir la variable d'environnement AIRFLOW_BASE_URL ou configurer infrastructure.base_url dans config.yaml.")
+            st.error("URL publique d'Airflow non configurée. Veuillez la définir dans config.yaml (airflow.public_url).")
+            return
+
     st.link_button("Ouvrir l'interface Airflow", airflow_base)
 
     # Affiche les identifiants de connexion lecture seule
@@ -1305,9 +1308,9 @@ def show_monitoring(drift_data, config):
         grafana_base = f"{base_url}/grafana"
     else:
         # Fallback sur la variable d'environnement
-        grafana_base = os.getenv("GRAFANA_BASE_URL", "").rstrip("/")
+        grafana_base = config.get('grafana', {}).get('public_url', '').rstrip('/')
         if not grafana_base:
-            st.error("URL de base Grafana non configurée. Veuillez définir la variable d'environnement GRAFANA_BASE_URL ou configurer infrastructure.base_url dans config.yaml.")
+            st.error("URL publique de Grafana non configurée. Veuillez la définir dans config.yaml (grafana.public_url).")
     
     # Construire l'URL du tableau de bord avec les paramètres nécessaires
     dashboard_url = f"{grafana_base}/d/api_monitoring_dashboard_v2?orgId=1&refresh=5s&from=now-1h&to=now&kiosk&theme=light"
@@ -1427,11 +1430,11 @@ def show_interactive_demo():
         pred = None
         confidence = None
         import requests
-        predict_api_base = os.getenv("PREDICT_API_BASE_URL", "http://predict_api_service:8000")
-        auth_api_base = os.getenv("AUTH_API_BASE_URL", "http://auth_api_service:7999")
+        predict_api_base = config.get('predict_api', {}).get('base_url', 'http://predict_api_service:8000')
+        auth_api_base = config.get('auth_api', {}).get('base_url', 'http://auth_api_service:7999')
         try:
-            api_user = os.getenv("API_USER", "johndoe")
-            api_pwd = os.getenv("API_PASSWORD", "johnsecret")
+            api_user = config.get('auth_api', {}).get('username', 'johndoe')
+            api_pwd = config.get('auth_api', {}).get('password', 'johnsecret')
             token_resp = requests.post(
                 f"{auth_api_base}/auth/token",
                 data={"username": api_user, "password": api_pwd},
@@ -1491,9 +1494,9 @@ def show_logs_infra(config):
         grafana_base = f"{base_url}/grafana"
     else:
         # Fallback sur la variable d'environnement
-        grafana_base = os.getenv("GRAFANA_BASE_URL", "").rstrip("/")
+        grafana_base = config.get('grafana', {}).get('public_url', '').rstrip('/')
         if not grafana_base:
-            st.error("URL de base Grafana non configurée. Veuillez définir la variable d'environnement GRAFANA_BASE_URL ou configurer infrastructure.base_url dans config.yaml.")
+            st.error("URL publique de Grafana non configurée. Veuillez la définir dans config.yaml (grafana.public_url).")
             grafana_base = "https://vmi2734167.contaboserver.net/grafana"  # URL par défaut basée sur la valeur de infrastructure.base_url
     # Public dashboard UID – adjust if you change the dashboard in Grafana
     public_uid = "449f1ea472a54a5a8462789850a0d91a"
@@ -1514,7 +1517,7 @@ def show_evidently(config):
 
     # The URL for internal communication is retrieved from environment variables,
     # ce qui est la bonne pratique avec Docker.
-    internal_host = os.getenv("EVIDENTLY_BASE_URL", "http://evidently-api:8001")
+    internal_host = config.get('evidently', {}).get('base_url', 'http://evidently-api:8001')
     
     # The URL for public access (via browser) may be different.
     # Récupérer la base_url depuis la configuration
@@ -1526,9 +1529,9 @@ def show_evidently(config):
         public_host = f"{base_url}/evidently"
     else:
         # Fallback sur la variable d'environnement
-        public_host = os.getenv("EVIDENTLY_PUBLIC_URL", "").rstrip("/")
+        public_host = config.get('evidently', {}).get('public_url', '').rstrip('/')
         if not public_host:
-            st.error("URL de base Evidently non configurée. Veuillez définir la variable d'environnement EVIDENTLY_PUBLIC_URL ou configurer infrastructure.base_url dans config.yaml.")
+            st.error("URL publique d'Evidently non configurée. Veuillez la définir dans config.yaml (evidently.public_url).")
     
     embed_url = public_host.rstrip("/") + "/drift_full_report"
     health_url = internal_host.rstrip("/") + "/health"
@@ -1686,12 +1689,12 @@ if __name__ == "__main__":
 
     # Load app config
     try:
-        config_path = Path(__file__).resolve().parent.parent.parent / "config.yaml"
-        with open(config_path, "r") as f:
+        # Use an absolute path to ensure the config file is always found
+        config_path = Path(__file__).resolve().parent.parent.parent / 'config.yaml'
+        with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
-    except Exception as e:
-        st.error(f"Error loading application configuration: {e}")
-        config = {} # Fallback to empty config
+    except (FileNotFoundError, yaml.YAMLError) as e:
+        st.error(f"Erreur critique lors du chargement de la configuration : {e}\nChemin testé : {config_path}")
         st.stop()
 
     # Processus d'authentification

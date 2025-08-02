@@ -228,7 +228,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 1G
+          memory: 2G
         reservations:
           cpus: '0.3'
           memory: 512M
@@ -307,13 +307,11 @@ services:
       dockerfile: streamlit/app/Dockerfile
     ports:
       - "8501:8501"
-    env_file: .env 
-    environment:
-      - AGENT_EVENTS_PATH=/agent_events/agent_events.jsonl
+ 
     volumes:
       - ./:/app
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./agent_events:/agent_events
+      - ./agent/agent_events:/agent_events
     deploy:
       resources:
         limits:

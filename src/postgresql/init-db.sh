@@ -56,6 +56,9 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         vma TEXT,
         PRIMARY KEY (Num_Acc, num_veh)  -- Clé composite car un accident peut avoir plusieurs véhicules
     );
+
+    -- Index for grav column to speed up queries
+    CREATE INDEX idx_grav ON accidents (grav);
     
     -- Table for best model metrics
     CREATE TABLE best_model_metrics (
