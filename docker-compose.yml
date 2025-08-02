@@ -207,13 +207,10 @@ services:
       context: .
       dockerfile: src/postgresql/Dockerfile
     container_name: postgres_service
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: road_accidents
     ports:
       - "5432:5432"
     volumes:
+      - ./config.yaml:/app/config.yaml
       - postgres_data:/var/lib/postgresql/data
       - ./src/postgresql/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
