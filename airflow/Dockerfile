@@ -41,8 +41,8 @@ RUN mkdir -p /opt/project && \
 COPY --chown=$USER_ID:$GROUP_ID airflow/airflow.cfg /opt/airflow/airflow.cfg
 COPY --chown=$USER_ID:$GROUP_ID airflow/scripts/ /opt/airflow/scripts/
 RUN chmod +x /opt/airflow/scripts/entrypoint.sh && \
-    chmod 644 /opt/airflow/airflow.cfg && \
-    ls -l /opt/airflow/scripts/entrypoint.sh
+    chmod +x /opt/airflow/scripts/load_config.py && \
+    chmod 644 /opt/airflow/airflow.cfg
 
 COPY airflow/requirements.txt /tmp/requirements.txt
 

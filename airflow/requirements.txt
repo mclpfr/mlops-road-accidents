@@ -1,4 +1,5 @@
 apache-airflow-providers-docker
+PyYAML
 apache-airflow-providers-postgres
 psycopg2-binary
 pyyaml

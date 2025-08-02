@@ -64,24 +64,23 @@ else
     
     # Try to read from config file if it exists
     CONFIG_FILE="/opt/project/config.yaml"
-    if [ -f "$CONFIG_FILE" ] && [ -r "$CONFIG_FILE" ]; then
-        # Check if python yaml module is available
-        if python -c "import yaml" 2>/dev/null; then
-            # Read password from config file
-            ADMIN_PWD=$(python - <<'PY'
-import yaml, sys, os
-cfg = {}
-try:
-    with open(sys.argv[1], 'r') as f:
-        cfg = yaml.safe_load(f) or {}
-except Exception as e:
-    print(f"Error reading config: {e}", file=sys.stderr)
-print(cfg.get('airflow', {}).get('admin_password', 'admin'))
-PY
-            "$CONFIG_FILE")
+    if [ -f "$CONFIG_FILE" ]; then
+        # Ensure the config file is readable by the airflow user
+        chmod 644 "$CONFIG_FILE"
+
+        echo "Loading Airflow configuration from $CONFIG_FILE..."
+        TEMP_CONFIG_FILE="/tmp/airflow_config.sh"
+
+        # Generate the config file as the airflow user and source it.
+        if run_as_airflow "python3 /opt/airflow/scripts/load_config.py > $TEMP_CONFIG_FILE"; then
+            . "$TEMP_CONFIG_FILE"
+            rm -f "$TEMP_CONFIG_FILE"
         else
-            echo "Warning: Python yaml module not available, using default admin password"
+            echo "Warning: Failed to load configuration from $CONFIG_FILE. Using defaults."
         fi
+
+        # Set ADMIN_PWD from the exported variable or use default
+        ADMIN_PWD=${AIRFLOW__ADMIN_PASSWORD:-admin}
     else
         echo "Warning: Config file $CONFIG_FILE not found or not readable, using default admin password"
     fi

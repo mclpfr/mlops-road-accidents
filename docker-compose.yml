@@ -16,22 +16,7 @@ x-airflow-common: &airflow-common
       <<: *user-info
   user: "0"
   environment:
-    - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-    - AIRFLOW_ADMIN_PASSWORD=admin
-    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
-    - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
-    - AIRFLOW__CORE__LOAD_EXAMPLES=False
-    - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
-    - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=True
-    - AIRFLOW__WEBSERVER__RBAC=False
-    - AIRFLOW__WEBSERVER__AUTHENTICATE=True
-    - AIRFLOW__WEBSERVER__SECRET_KEY=mydummysecret123
     - AIRFLOW_HOME=/opt/airflow
-    - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
-    - AIRFLOW__CORE__PARALLELISM=8
-    - AIRFLOW__CORE__DAG_CONCURRENCY=8
-    - AIRFLOW__WEBSERVER__WORKERS=2
-    - AIRFLOW__SCHEDULER__MAX_THREADS=2
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
@@ -54,7 +39,7 @@ x-airflow-common: &airflow-common
       condition: service_healthy
 
 
-x-airflow-common-env: &airflow-common-env {}
+
 
 services:
   extract_data:
@@ -258,7 +243,6 @@ services:
           cpus: '0.2'
           memory: 256M
 
-
   predict_api:
     container_name: predict_api_service
     build:
@@ -290,7 +274,6 @@ services:
           cpus: '0.2'
           memory: 256M
 
-
   streamlit:
     logging: *logging
     container_name: streamlit
@@ -299,7 +282,6 @@ services:
       dockerfile: streamlit/app/Dockerfile
     ports:
       - "8501:8501"
- 
     volumes:
       - ./:/app
       - /var/run/docker.sock:/var/run/docker.sock
@@ -473,7 +455,6 @@ services:
           cpus: '0.1'
           memory: 128M
 
-
   grafana:
     logging: *logging
     build:
@@ -501,7 +482,6 @@ services:
         reservations:
           cpus: '0.2'
           memory: 256M
-
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.2
@@ -568,25 +548,18 @@ services:
           cpus: '0.2'
           memory: 512M
 
-
   airflow-webserver:
     <<: *airflow-common
     container_name: airflow-webserver
     command: webserver
     ports:
       - "8080:8080"
-    volumes:
-      - airflow_static:/opt/airflow/www/static
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:8080/healthz || exit 0"]
       interval: 30s
       timeout: 20s
       retries: 5
       start_period: 120s
-    environment:
-      - AIRFLOW__WEBSERVER__ENABLE_PROXY_FIX=True
-      - AIRFLOW__WEBSERVER__BASE_URL=/airflow
-      - AIRFLOW__WEBSERVER__SECRET_KEY=mydummysecret123
     deploy:
       resources:
         limits:
@@ -619,15 +592,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 1G
-
-
-    environment:
-      <<: *airflow-common-env
-      AIRFLOW_ADMIN_PASSWORD: admin
-      AIRFLOW__CORE__KILLED_TASK_CLEANUP_TIME: 60
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
-      AIRFLOW__CORE__SCHEDULER__SCHEDULER_HEARTBEAT_SEC: 5
 
   drift-controller:
     build:
