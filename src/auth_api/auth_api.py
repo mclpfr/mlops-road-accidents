@@ -5,14 +5,22 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 import jwt
+import yaml
 
+# Load configuration from YAML file
+def load_config():
+    with open('/app/config.yaml', 'r') as f:
+        return yaml.safe_load(f)
+
+config = load_config()
+auth_config = config.get('auth_api', {})
 
 router = APIRouter()
 
 # Configuration de la sécurité
-JWT_SECRET_KEY = "key"
-JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+JWT_SECRET_KEY = auth_config.get('jwt_secret_key', 'default-secret-key')
+JWT_ALGORITHM = auth_config.get('jwt_algorithm', 'HS256')
+ACCESS_TOKEN_EXPIRE_MINUTES = auth_config.get('access_token_expire_minutes', 30)
 
 # Context de hachage des mots de passe
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

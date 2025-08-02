@@ -234,9 +234,8 @@ services:
       dockerfile: src/auth_api/Dockerfile
     environment:
       - PYTHONUNBUFFERED=1
-      - LOG_LEVEL=INFO
-      - LOG_FORMAT=json
     volumes:
+      - ./config.yaml:/app/config.yaml
       - ./models:/app/models
       - ./data:/app/data
     ports:
@@ -267,9 +266,8 @@ services:
       dockerfile: src/predict_api/Dockerfile
     environment:
       - PYTHONUNBUFFERED=1
-      - LOG_LEVEL=INFO
-      - LOG_FORMAT=json
     volumes:
+      - ./config.yaml:/app/config.yaml
       - ./models:/app/models
       - ./data:/app/data
     ports:

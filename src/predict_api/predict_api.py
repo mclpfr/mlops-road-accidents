@@ -31,8 +31,16 @@ import jwt
 #         async def get_current_user(token: str = None):
 #             return User()
 
-SECRET_KEY = "key"
-ALGORITHM = "HS256"
+# Load configuration for JWT
+with open("config.yaml", "r") as file:
+    config = yaml.safe_load(file)
+auth_config = config.get('auth_api', {})
+
+SECRET_KEY = auth_config.get('jwt_secret_key')
+ALGORITHM = auth_config.get('jwt_algorithm')
+
+if not SECRET_KEY or not ALGORITHM:
+    raise ValueError("JWT_SECRET_KEY and JWT_ALGORITHM must be set in config.yaml for predict_api")
 
 router = APIRouter()
 security = HTTPBearer()
@@ -80,25 +88,15 @@ class InputData(BaseModel):
     col: Literal[-1, 1, 2, 3, 4, 5, 6, 7] = 1
 
 def load_config(config_path="config.yaml"):
+    """Load configuration from a YAML file."""
     try:
-        with open(config_path, "r") as file:
-            config = yaml.safe_load(file)
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f)
             logger.info(f"Configuration loaded from {config_path}")
             return config
-    except FileNotFoundError:
-        logger.warning(f"Config file {config_path} not found, using environment variables")
-        config = {
-            "data_extraction": {
-                "year": os.getenv("DATA_YEAR", "2023"),
-                "url": os.getenv("DATA_URL", "https://www.data.gouv.fr/en/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2023/")
-            },
-            "mlflow": {
-                "tracking_uri": os.getenv("MLFLOW_TRACKING_URI"),
-                "username": os.getenv("MLFLOW_TRACKING_USERNAME"),
-                "password": os.getenv("MLFLOW_TRACKING_PASSWORD")
-            },
-        }
-        return config
+    except FileNotFoundError as e:
+        logger.error(f"Config file {config_path} not found.")
+        raise e
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
