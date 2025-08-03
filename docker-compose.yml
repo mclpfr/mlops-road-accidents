@@ -110,7 +110,6 @@ services:
           cpus: '0.5'
           memory: 512M
 
-      
   import_data:
     logging: *logging
     build:
@@ -135,7 +134,6 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-
 
   train_model:
     logging: *logging

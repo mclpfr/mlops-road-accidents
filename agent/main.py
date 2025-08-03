@@ -14,6 +14,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from loki_monitor import monitor_loop
+from problem_utils import recent_problems
 
 import yaml
 
@@ -36,6 +38,11 @@ from docker_info_collector import get_container_logs, _list_container_names
 
 # Initialize FastAPI app
 app = FastAPI(title="Gérard - Agent MLOps Autonome")
+
+# Start Loki monitor background task
+@app.on_event("startup")
+async def _startup_bg():
+    asyncio.create_task(monitor_loop())
 
 # Add CORS middleware to allow iframe embedding and WebSocket connections
 app.add_middleware(
@@ -136,6 +143,21 @@ manager = WebSocketManager()
 
 # Tasks streaming logs per (websocket, container_name)
 log_stream_tasks: Dict[Tuple[WebSocket, str], asyncio.Task] = {}
+
+# Keep-alive tasks for each active WebSocket
+ping_tasks: Dict[WebSocket, asyncio.Task] = {}
+
+async def _keepalive(ws: WebSocket, interval: int = 20):
+    """Maintain WebSocket connection by checking if it's still open periodically."""
+    try:
+        while True:
+            await asyncio.sleep(interval)
+            # Just check if the connection is still open
+            # This will raise an exception if the connection is closed
+            await ws.receive_bytes(0)
+    except Exception:
+        # Connection closed or task cancelled
+        pass
 
 async def stream_container_logs(container_name: str, websocket: WebSocket):
     """Stream Docker container logs to the websocket until cancelled."""
@@ -335,6 +357,12 @@ async def handle_command(command: str, websocket: WebSocket) -> Optional[str]:
     return None
 
 
+@app.get("/status/problems")
+async def get_problem_status():
+    """Return aggregated recent problems from logs table."""
+    return recent_problems(24)
+
+
 @app.get("/", response_class=HTMLResponse)
 async def get_index():
     """Serve the main HTML page."""
@@ -348,6 +376,9 @@ async def get_index():
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time communication with the agent."""
     await manager.connect(websocket)
+    # Start keep-alive ping task
+    ka_task = asyncio.create_task(_keepalive(websocket))
+    ping_tasks[websocket] = ka_task
     
     # Send welcome message
     await manager.send_to_client(
@@ -363,13 +394,55 @@ async def websocket_endpoint(websocket: WebSocket):
         
         while True:
             message = await websocket.receive_text()
-            
-            # Détecter si c'est une simple salutation (mot unique ou début de message)
-            salutations = ["bonjour", "salut", "hello", "coucou", "hey", "bonsoir"]
+
+            # Nettoyage du message pour analyse
             message_clean = message.lower().strip().rstrip('!?.,;:')
-            is_greeting = message_clean in salutations or any(message_clean.startswith(greet + " ") for greet in salutations)
+
+            # Détecter immédiatement si c'est une salutation pour éviter le message "je réfléchis" inutile
+            salutations = [
+                "bonjour", "salut", "hello", "coucou", "hey", "bonsoir",
+                "ça va", "ca va", "comment ça va", "comment ca va",
+                "comment vas-tu", "comment vas tu"
+            ]
+            is_greeting_initial = any(
+                message_clean == greet or message_clean.startswith(greet + " ")
+                for greet in salutations
+            )
+
+            # Flag pour éviter les doublons de messages "thinking"
+            sent_thinking_msg = False
+
+            # Envoyer le message "je réfléchis" uniquement si ce n'est PAS une salutation
+            if not is_greeting_initial and message_clean and message_clean not in ["typing..."]:
+                # Déterminer si c'est une question (présence de '?' ou mot interrogatif en début)
+                question_starters = [
+                    "qui", "que", "quoi", "quand", "où", "ou", "comment", "pourquoi", "quel", "quelle", "quelles", "quels", "est-ce que"
+                ]
+                is_a_question_initial = message_clean.endswith('?') or any(message_clean.startswith(st) for st in question_starters)
+                thinking_msg = "🧠 Je réfléchis à votre question…" if is_a_question_initial else "🧠 Je traite votre demande..."
+                await manager.send_to_client(websocket, thinking_msg)
+                sent_thinking_msg = True
+            
+            # Réutiliser message_clean plus loin
+            salutations = [
+                "bonjour", "salut", "hello", "coucou", "hey", "bonsoir",
+                "ça va", "ca va", "comment ça va", "comment ca va",
+                "comment vas-tu", "comment vas tu"
+            ]
+            message_clean = message.lower().strip().rstrip('!?.,;:')
+            is_greeting = any(
+                message_clean == greet or message_clean.startswith(greet + " ")
+                for greet in salutations
+            )
             if is_greeting:
-                await manager.send_to_client(websocket, "👋 Bonjour ! Comment puis-je vous aider ?")
+                # Réponse naturelle pour les questions "ça va" et variantes
+                if "ça va" in message_clean or "ca va" in message_clean or "comment" in message_clean:
+                    await manager.send_to_client(
+                        websocket,
+                        "😊 Très bien, merci ! Prêt à vous assister avec votre plateforme MLOps. Que puis-je faire pour vous ?"
+                    )
+                else:
+                    await manager.send_to_client(websocket, "👋 Bonjour ! Comment puis-je vous aider ?")
                 continue
             
             # Handle special commands
@@ -535,11 +608,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     await manager.send_to_client(websocket, f"❌ Erreur lors de la recherche du conteneur : {str(e)}")
                     continue
 
-            # Si aucune commande spéciale ou mot-clé n'est détecté, envoyer au LLM
-            await manager.send_to_client(websocket, "🧠 Je traite votre demande...")
-            docker_info = collect_docker_info()  # Collect fresh data
-            answer = answer_question(message, docker_info, api_key)
-            await manager.send_to_client(websocket, answer)
+            # Ancienne logique de réponse immédiate supprimée pour éviter les doublons ;
+            # la gestion complète est effectuée plus bas dans la boucle.
+            # (Les informations Docker et l'appel LLM se font désormais après les vérifications de small-talk et commandes.)
+            pass
 
             # Gérer les commandes de conteneur (démarrer, arrêter, redémarrer) par langage naturel
             message_lower = message.lower().strip()
@@ -609,22 +681,52 @@ docker run -d --name loki grafana/loki:2.9.0
                     await manager.send_to_client(websocket, f"❌ Erreur lors de l'opération sur le conteneur : {str(e)}")
                     continue
 
-            # Afficher un message d'attente uniquement pour les requêtes techniques
+            # Logique pour les messages d'attente et le small talk
             message_lower = message.lower().strip()
-            question_starters = ["qui", "que", "quoi", "quand", "où", "comment", "pourquoi", "quel", "est-ce que"]
-            is_a_question = message_lower.endswith('?') or any(message_lower.startswith(starter) for starter in question_starters)
 
-            await manager.send_to_client(websocket, "🧠 Je réfléchis à votre question..." if is_a_question else "🧠 Je traite votre demande...")
+            # Détection des salutations pour éviter les messages d'attente inutiles
+            greetings = ["bonjour", "salut", "hello"]
+            is_greeting = any(message_lower.startswith(g) for g in greetings)
+
+            # Détection du small talk pour une réponse directe
+            small_talk_starters = ["ça va", "ca va", "comment vas-tu", "comment allez-vous"]
+            is_small_talk = any(message_lower.startswith(starter) for starter in small_talk_starters)
+
+            if is_small_talk:
+                await manager.send_to_client(websocket, "🤖 Tout va bien pour moi, merci ! Comment puis-je vous aider avec votre plateforme MLOps ?")
+                continue  # On ne passe pas la main au LLM
+
+            # Réponse rapide pour l'état global de la plateforme sans passer par le LLM
+            if (
+                any(tok in message_lower for tok in ["état", "etat", "status", "santé", "health"]) and
+                any(tok in message_lower for tok in ["plateforme", "platform", "conteneurs", "conteneur", "containers", "container"])
+            ):
+                await manager.send_to_client(websocket, "📊 Récupération du statut de la plateforme...")
+                status_resp = await handle_command("!status", websocket)
+                if status_resp:
+                    await manager.send_to_client(websocket, status_resp)
+                continue
+
+            # Afficher un message d'attente uniquement pour les vraies questions/commandes
+            if not is_greeting and not sent_thinking_msg:
+                question_starters = ["qui", "que", "quoi", "quand", "où", "comment", "pourquoi", "quel", "est-ce que"]
+                is_a_question = message_lower.endswith('?') or any(message_lower.startswith(starter) for starter in question_starters)
+                await manager.send_to_client(websocket, "🧠 Je réfléchis à votre question..." if is_a_question else "🧠 Je traite votre demande...")
             
             # Pour les salutations, utiliser un contexte vide
             # Pour les questions techniques, collecter les informations Docker
             if is_greeting:
                 context = ""
             else:
-                # Gather context for LLM
-                docker_info = collect_docker_info()
+                # Gather context for the LLM.
+                # Utilise le mode 'rapide' par défaut pour minimiser la latence ;
+                # bascule en mode complet si la question semble demander un diagnostic détaillé.
+                heavy_kw = ["erreur", "error", "logs", "log", "inspect", "diagnostic"]
+                quick_mode = not any(word in message_lower for word in heavy_kw)
+
+                docker_info = collect_docker_info(quick=quick_mode)
                 context = "\n\n".join([f"### {k} ###\n{v}" for k, v in docker_info.items()])
-                # Hard limit ~15000 chars to stay within Together token limit
+                # Hard limit ~15000 chars to stay within token budget
                 context = context[:15000]
             
             try:
@@ -651,6 +753,9 @@ docker run -d --name loki grafana/loki:2.9.0
                 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+        if websocket in ping_tasks:
+            ping_tasks[websocket].cancel()
+            del ping_tasks[websocket]
         # Annuler les flux de logs associés à cette connexion
         for key in list(log_stream_tasks):
             if key[0] == websocket:
@@ -659,6 +764,9 @@ docker run -d --name loki grafana/loki:2.9.0
     except Exception as e:
         print(f"Error in websocket connection: {str(e)}")
         manager.disconnect(websocket)
+        if websocket in ping_tasks:
+            ping_tasks[websocket].cancel()
+            del ping_tasks[websocket]
         for key in list(log_stream_tasks):
             if key[0] == websocket:
                 log_stream_tasks[key].cancel()
@@ -667,4 +775,13 @@ docker run -d --name loki grafana/loki:2.9.0
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8003, reload=True)
+
+    # Active ou non le mode autoreload selon la variable d'environnement AGENT_RELOAD (défaut: False)
+    reload_flag = os.getenv("AGENT_RELOAD", "false").lower() in ("true", "1", "yes")
+
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8003,
+        reload=reload_flag,
+    )

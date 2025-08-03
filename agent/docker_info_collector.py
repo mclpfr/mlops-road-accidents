@@ -11,19 +11,31 @@ def _run(cmd: str) -> str:
     return output
 
 
-def collect_docker_info() -> Dict[str, str]:
-    """Collect various docker diagnostics and return them in a dict."""
+def collect_docker_info(quick: bool = False) -> Dict[str, str]:
+    """Collect docker diagnostics.
+
+    Args:
+        quick: If True, run only lightweight commands (stats & ps) to minimise latency.
+
+    Returns:
+        Dict[str, str] mapping section name -> output.
+    """
     info: Dict[str, str] = {}
 
-    info["docker_stats"] = _run("docker stats --no-stream")
-    info["docker_ps"] = _run("docker ps -a")
-    # Show process lists for at most 5 containers (avoid huge output)
-    info["docker_top"] = _run("docker ps -q | head -n 5 | xargs -r docker top")
-    # Inspect at most 3 containers to reduce payload size
-    info["docker_inspect"] = _run("docker ps -q | head -n 3 | xargs -r docker inspect")
+    # Always include basic stats & ps (already buffered to one-shot commands)
+    info["docker_stats"] = _run("docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}'")
+    info["docker_ps"] = _run("docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.RunningFor}}'")
 
-    # Show the last 50 log lines from the first running container (if any)
-    info["docker_logs"] = _run("docker logs --tail 50 $(docker ps -q | head -n 1)")
+    if quick:
+        return info  # skip heavy calls below
+
+    # Additional (heavier) diagnostics – only when full mode is required
+    # Show process lists for at most 3 containers (avoid huge output)
+    info["docker_top"] = _run("docker ps -q | head -n 3 | xargs -r docker top")
+    # Inspect at most 2 containers to reduce payload size
+    info["docker_inspect"] = _run("docker ps -q | head -n 2 | xargs -r docker inspect --format '{{json .Config}}'")
+    # Show the last 30 log lines from the first running container (if any)
+    info["docker_logs"] = _run("docker logs --tail 30 $(docker ps -q | head -n 1)")
 
     return info
 

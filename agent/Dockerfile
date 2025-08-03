@@ -7,7 +7,7 @@ WORKDIR /app
 # Install runtime dependencies and Docker CLI
 RUN apt-get update && apt-get install -y --no-install-recommends docker.io \
     && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir requests pyyaml docker fastapi uvicorn websockets
+    && pip install --no-cache-dir requests pyyaml docker fastapi uvicorn websockets aiohttp psycopg2-binary
 
 # Copy source code
 COPY . .
@@ -27,4 +27,4 @@ ENV LOG_DIR=/app/logs \
 EXPOSE 8003
 
 # Run both the monitoring daemon and the FastAPI server
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003", "--reload"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8003"]
