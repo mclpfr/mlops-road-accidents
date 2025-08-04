@@ -17,6 +17,8 @@ x-airflow-common: &airflow-common
   user: "0"
   environment:
     - AIRFLOW_HOME=/opt/airflow
+    - AIRFLOW__WEBSERVER__BASE_URL=https://vmi2734167.contaboserver.net/airflow
+    - AIRFLOW__WEBSERVER__EXPOSED_URL_PREFIX=/airflow
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
@@ -205,7 +207,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 2G
+          memory: 4G
         reservations:
           cpus: '0.3'
           memory: 512M
@@ -402,6 +404,24 @@ services:
           memory: 128M
     networks:
       - default
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx_service
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - airflow_static:/var/www/static
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - airflow-webserver
+      - streamlit
+    networks:
+      - default
+    restart: always
 
   loki:
     image: grafana/loki:2.9.0

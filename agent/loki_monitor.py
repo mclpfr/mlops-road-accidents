@@ -17,6 +17,9 @@ POSTGRES_USER = os.getenv("POSTGRES_USER", "")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "")
 
 import yaml
+
+# Retention in days (default 30) can be overridden via env or config.yaml
+RETENTION_DAYS = int(os.getenv("LOG_RETENTION_DAYS", "30"))  # default 30
 from pathlib import Path
 
 if not (POSTGRES_HOST and POSTGRES_PORT and POSTGRES_DB and POSTGRES_USER and POSTGRES_PASSWORD):
@@ -30,6 +33,9 @@ if not (POSTGRES_HOST and POSTGRES_PORT and POSTGRES_DB and POSTGRES_USER and PO
             POSTGRES_PORT = pg_cfg.get("port", "5432")
             POSTGRES_USER = POSTGRES_USER or pg_cfg.get("user", "postgres")
             POSTGRES_PASSWORD = POSTGRES_PASSWORD or pg_cfg.get("password", "")
+            # Optional log retention key
+            if not os.getenv("LOG_RETENTION_DAYS"):
+                RETENTION_DAYS = int(cfg.get("log_retention_days", RETENTION_DAYS))
             POSTGRES_DB = POSTGRES_DB or pg_cfg.get("database", "road_accidents")
         except Exception as e:
             print(f"⚠️ Impossible de lire config.yaml pour le mot de passe PG: {e}")
@@ -46,7 +52,8 @@ CREATE TABLE IF NOT EXISTS logs (
 );
 """
 
-QUERY = '{level=~"error|warning"}'  # Loki LogQL filter
+# LogQL query: select all logs then regex filter for error/warning (case-insensitive)
+QUERY = '{container=~".+"} |~ "(?i)(error|warning)"'
 
 async def _fetch_loki_logs(session: aiohttp.ClientSession, since: int) -> List[Dict]:
     """Fetch logs newer than `since` (unix ns) matching error/warning."""
@@ -112,9 +119,20 @@ async def monitor_loop(interval: int = 300):
         while True:
             try:
                 logs = await _fetch_loki_logs(session, since=last_ts_ns)
+                print(f"[loki_monitor] fetched {len(logs)} logs")
                 if logs:
                     last_ts_ns = int(max(l["timestamp"] for l in logs).timestamp() * 1e9) + 1
                     _insert_logs(conn, logs)
+                    print(f"[loki_monitor] inserted {len(logs)} logs into PG")
+
+                # Purge old logs once a day after insertion batch
+                try:
+                    cutoff_ts = dt.datetime.utcnow() - dt.timedelta(days=RETENTION_DAYS)
+                    with conn.cursor() as cur:
+                        cur.execute("DELETE FROM logs WHERE timestamp < %s", (cutoff_ts,))
+                    conn.commit()
+                except Exception as e:
+                    print(f"[loki_monitor] purge error: {e}")
             except Exception as e:
                 print(f"[loki_monitor] error: {e}")
             await asyncio.sleep(interval)

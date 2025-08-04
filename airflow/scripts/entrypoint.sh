@@ -25,6 +25,22 @@ exec_as_airflow() {
     fi
 }
 
+# Ensure Airflow static assets are available in shared volume
+if [ ! "$(ls -A /opt/airflow/www/static 2>/dev/null)" ]; then
+    echo "Populating Airflow static assets into /opt/airflow/www/static..."
+    STATIC_SRC=$(find /home/airflow/.local -name 'static' -type d -path '*/airflow/*' | head -n 1 || true)
+    if [ -n "$STATIC_SRC" ]; then
+        cp -r ${STATIC_SRC}/* /opt/airflow/www/static/ || echo "Failed to copy static assets"
+        # Ensure readable permissions for nginx host
+        chmod -R a+rX /opt/airflow/www/static || true
+        echo "Static assets copied from ${STATIC_SRC}"
+    else
+        echo "Warning: Could not locate Airflow static assets directory."
+    fi
+else
+    echo "Airflow static assets already present in /opt/airflow/www/static"
+fi
+
 # Check if current user is root
 if [ "$(id -u)" = "0" ]; then
     # Configure docker group for socket access (as root)

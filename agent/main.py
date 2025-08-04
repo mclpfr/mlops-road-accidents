@@ -42,7 +42,19 @@ app = FastAPI(title="Gérard - Agent MLOps Autonome")
 # Start Loki monitor background task
 @app.on_event("startup")
 async def _startup_bg():
-    asyncio.create_task(monitor_loop())
+    # Create Loki monitor task with error handling
+    monitor_task = asyncio.create_task(monitor_loop())
+    
+    # Add error logging for the monitor task
+    def log_monitor_error(task):
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            print(f"[ERROR] Loki monitor task failed: {e}")
+            
+    monitor_task.add_done_callback(log_monitor_error)
 
 # Add CORS middleware to allow iframe embedding and WebSocket connections
 app.add_middleware(
