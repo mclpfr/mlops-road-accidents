@@ -22,39 +22,25 @@ scrape_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
     relabel_configs:
-      # Récupère le nom du conteneur
       - source_labels: ['__meta_docker_container_name']
         regex: '/(.*)'
         target_label: 'container'
-      # Récupère le nom du service depuis les labels Docker
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         target_label: 'service'
-      # Récupère le nom du projet depuis les labels Docker
       - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
         target_label: 'project'
-      # Ajoute le job depuis les labels Docker
       - source_labels: ['__meta_docker_container_label_logging_job']
         target_label: 'job'
-      # Filtre les conteneurs sans service
       - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
         regex: '.+'
         action: keep
-      # Ajoute l'ID du conteneur
       - source_labels: ['__meta_docker_container_id']
         target_label: 'container_id'
-      # Ajoute le nom de l'image
       - source_labels: ['__meta_docker_container_image']
         target_label: 'image'
     pipeline_stages:
       - docker: {}
       - regex:
-          expression: '^(?P<log>.*)'
-      - timestamp:
-          source: time
-          format: RFC3339Nano
+          expression: '^(?i)level=(?P<level>\w+)'
       - labels:
-          job: ""
-          service: ""
-          container: ""
-          project: ""
-
+          level:

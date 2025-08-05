@@ -22,7 +22,8 @@ UI_SERVICES = \
   streamlit \
   agent \
   predict_api \
-  auth_api 
+  auth_api \
+  nginx
 
 AIRFLOW_SERVICES = \
   postgres-airflow \

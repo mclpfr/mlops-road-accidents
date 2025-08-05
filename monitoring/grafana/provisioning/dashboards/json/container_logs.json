@@ -16,12 +16,69 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": 4,
+  "templating": {
+    "list": [
+      {
+        "name": "log_level",
+        "type": "custom",
+        "query": "info,debug,warning,error,critical,trace",
+        "datasource": null,
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": ""
+        },
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": ""
+          },
+          {
+            "selected": false,
+            "text": "Info",
+            "value": "info"
+          },
+          {
+            "selected": false,
+            "text": "Debug",
+            "value": "debug"
+          },
+          {
+            "selected": false,
+            "text": "Warning",
+            "value": "warning"
+          },
+          {
+            "selected": false,
+            "text": "Error",
+            "value": "error"
+          },
+          {
+            "selected": false,
+            "text": "Critical",
+            "value": "critical"
+          },
+          {
+            "selected": false,
+            "text": "Trace",
+            "value": "trace"
+          }
+        ],
+        "multi": false,
+        "label": "Log Level",
+        "skipUrlSync": false,
+        "includeAll": true,
+        "allValue": ".*"
+      }
+    ]
+  },
   "links": [],
   "liveNow": true,
   "panels": [
     {
       "datasource": "Loki",
-      "description": "Displays real-time logs for all containers",
+      "description": "Displays real-time logs for all containers with level filtering",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -94,111 +151,19 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "{container=~\".+\"}",
+          "expr": "{container=~\".+\", level=~\"$log_level\"}",
           "queryType": "range",
           "refId": "A"
         }
       ],
       "title": "Container logs",
       "type": "logs"
-    },
-    {
-      "datasource": "Loki",
-      "description": "Affiche le nombre de logs par conteneur",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "smooth",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 24
-      },
-      "id": 3,
-      "options": {
-        "legend": {
-          "calcs": [
-            "mean",
-            "max",
-            "lastNotNull"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "Loki"
-          },
-          "editorMode": "code",
-          "expr": "sum by(container) (count_over_time({job=~\".+\"} [1m]))",
-          "legendFormat": "{{container}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Taux de logs par conteneur (par minute)",
-      "type": "timeseries"
     }
   ],
   "refresh": "5s",
   "schemaVersion": 36,
   "style": "dark",
-  "tags": ["logs", "containers", "monitoring"],
-  "templating": {
-    "list": []
-  },
+  "tags": ["loki", "logs"],
   "time": {
     "from": "now-1h",
     "to": "now"
@@ -208,8 +173,7 @@
     "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
   },
   "timezone": "browser",
-  "title": "Container logs",
-  "uid": "container-logs-dashboard",
-  "version": 1,
-  "weekStart": ""
+  "title": "Container Logs",
+  "uid": "container_logs_dashboard",
+  "version": 2
 }
