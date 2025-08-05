@@ -113,9 +113,15 @@ from sklearn.model_selection import train_test_split
 from pathlib import Path
 import sys
 try:
-    # Ajouter le répertoire src au PYTHONPATH
-    # src directory is two levels up (project_root/src)
-    src_dir = str(Path(__file__).resolve().parents[2] / 'src')
+    # Add the `src` directory (project root) to PYTHONPATH in a robust way
+    file_path = Path(__file__).resolve()
+    # If there are at least 3 parents we assume the structure <root>/streamlit/app/main.py
+    # Otherwise fall back to the immediate parent directory.
+    if len(file_path.parents) >= 3:
+        project_root = file_path.parents[2]
+    else:
+        project_root = file_path.parent
+    src_dir = str(project_root / 'src')
     if src_dir not in sys.path:
         sys.path.insert(0, src_dir)
     from predict_api.predict_api import find_best_model as _find_best_model
@@ -1689,8 +1695,15 @@ if __name__ == "__main__":
 
     # Load app config
     try:
-        # Use an absolute path to ensure the config file is always found
-        config_path = Path(__file__).resolve().parent.parent.parent / 'config.yaml'
+        # Robustly locate config.yaml (mounted at /app/config.yaml in container)
+        candidate_paths = [
+            Path('/app/config.yaml'),  # expected mount point in container
+            Path(__file__).resolve().parent.parent.parent / 'config.yaml',  # project root when running locally
+            Path.cwd() / 'config.yaml'  # fallback current working dir
+        ]
+        config_path = next((p for p in candidate_paths if p.exists()), None)
+        if config_path is None:
+            raise FileNotFoundError('config.yaml not found in any candidate location')
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
     except (FileNotFoundError, yaml.YAMLError) as e:

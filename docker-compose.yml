@@ -282,18 +282,38 @@ services:
       dockerfile: streamlit/app/Dockerfile
     ports:
       - "8501:8501"
+    command: streamlit run main.py --server.port=8501 --server.address=0.0.0.0
     volumes:
-      - ./:/app
+      - ./streamlit/app:/app
+      - ./streamlit/config:/app/.streamlit
+      # Mount project src so that `predict_api` and other modules are importable
+      - ./src:/app/src
+      # Provide global configuration file
+      - ./config.yaml:/app/config.yaml
       - /var/run/docker.sock:/var/run/docker.sock
       - ./agent/agent_events:/agent_events
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
+      - STREAMLIT_SERVER_MAX_UPLOAD_SIZE=2000
+      - STREAMLIT_SERVER_MAX_MESSAGE_SIZE=2000
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_BROWSER_SERVER_PORT=8501
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 2G
+          cpus: '4.0'
+          memory: 8G
         reservations:
-          cpus: '0.2'
-          memory: 256M
+          cpus: '1.0'
+          memory: 2G
+    restart: always
+    networks:
+      - default
 
 
   agent:
