@@ -290,6 +290,8 @@ services:
       - ./src:/app/src
       # Provide global configuration file
       - ./config.yaml:/app/config.yaml
+      # Mount data directory to access CSV files
+      - ./data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
       - ./agent/agent_events:/agent_events
     depends_on:
@@ -303,6 +305,7 @@ services:
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
       - STREAMLIT_SERVER_HEADLESS=true
       - STREAMLIT_BROWSER_SERVER_PORT=8501
+      - MLFLOW_TRACKING_URI=http://mlflow_server:5000
     deploy:
       resources:
         limits:
@@ -657,6 +660,7 @@ services:
       - "8002:8000"
     environment:
       - PROMETHEUS_URL=http://prometheus:9090
+      - MLFLOW_TRACKING_URI=http://mlflow_server:5000
       - AIRFLOW_URL=http://airflow-webserver:8080/api/v1/dags/road_accidents/dagRuns
       - AIRFLOW_USER=airflow
       - AIRFLOW_PASSWORD=airflow

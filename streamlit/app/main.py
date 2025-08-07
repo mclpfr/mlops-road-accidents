@@ -129,12 +129,48 @@ except ImportError as e:
     st.error(f"Erreur d'importation : {e}")
     _find_best_model = None
 
-def setup_mlflow():
-    """Sets up MLflow tracking URI."""
-    # The following environment variables must be set for DagsHub:
-    # export MLFLOW_TRACKING_USERNAME="your_username"
-    # export MLFLOW_TRACKING_PASSWORD="your_dagshub_token"
-    mlflow.set_tracking_uri(os.getenv('MLFLOW_TRACKING_URI', 'https://dagshub.com/mclpfr/mlops-road-accidents.mlflow'))
+# ------------------------------------------------------------------
+# Chargement des identifiants MLflow depuis un fichier config.yml (si présent)
+# ------------------------------------------------------------------
+
+def _load_mlflow_secrets() -> None:
+    """Lit le fichier `config.yml` à la racine du projet et peuple les
+    variables d'environnement nécessaires à MLflow si elles ne sont pas déjà
+    définies. Structure attendue :
+
+    mlflow:
+      tracking_uri: "https://dagshub.com/<user>/<repo>.mlflow"
+      username: "<USERNAME>"
+      password: "<TOKEN>"
+    """
+    try:
+        cfg_path = Path(__file__).resolve().parents[2] / "config.yml"
+        if not cfg_path.exists():
+            return  # Pas de fichier -> on ne fait rien
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+        ml_cfg = cfg.get("mlflow", {})
+        os.environ.setdefault("MLFLOW_TRACKING_URI", ml_cfg.get("tracking_uri", ""))
+        os.environ.setdefault("MLFLOW_TRACKING_USERNAME", ml_cfg.get("username", ""))
+        os.environ.setdefault("MLFLOW_TRACKING_PASSWORD", ml_cfg.get("password", ""))
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Impossible de charger config.yml : {e}")
+
+
+def setup_mlflow() -> None:
+    """Configure la connexion MLflow.
+
+    1. Charge d'abord les secrets depuis `config.yml` s'ils existent.
+    2. Définit l'URI de suivi, avec une valeur par défaut publique si rien
+       n'est spécifié.
+    """
+    _load_mlflow_secrets()
+    mlflow.set_tracking_uri(
+        os.getenv(
+            "MLFLOW_TRACKING_URI",
+            "https://dagshub.com/mclpfr/mlops-road-accidents.mlflow",
+        )
+    )
 
 @st.cache_resource(ttl=3600)
 def load_local_model():
@@ -489,21 +525,44 @@ def fetch_best_model_info():
 
         # Load prepared data to calculate the confusion matrix
         year = os.getenv("DATA_YEAR", "2023")
-        candidate_paths = [
-            f"data/processed/prepared_accidents_{year}.csv",
-            f"/app/data/processed/prepared_accidents_{year}.csv"
-        ]
-        st.info(f"Recherche des données dans : {candidate_paths}")
+
+        # Tentatives de chemins absolus et relatifs afin de fonctionner
+        # correctement aussi bien en local que dans un conteneur Docker.
+        candidate_paths = []
+        try:
+            # Racine du projet - priorité la plus élevée
+            root_dir = Path(__file__).resolve().parents[2]  # Racine du projet
+            candidate_paths.append(root_dir / "data" / "processed" / f"prepared_accidents_{year}.csv")
+        except IndexError:
+            # This can happen inside a container where the directory structure is flatter
+            pass
         
+        # Ajout du chemin absolu direct vers le fichier connu
+        candidate_paths.append(Path("/home/ubuntu/mlops-road-accidents/data/processed/") / f"prepared_accidents_{year}.csv")
+        
+        candidate_paths.extend([
+            Path.cwd() / "data" / "processed" / f"prepared_accidents_{year}.csv",  # cwd lors de l'exécution
+            Path(f"data/processed/prepared_accidents_{year}.csv"),                 # chemin relatif historique
+            Path(f"/app/data/processed/prepared_accidents_{year}.csv")              # chemin absolu en conteneur
+        ])
+        candidate_paths = [str(p) for p in candidate_paths]
+        st.info(f"Recherche des données dans : {candidate_paths}")
+
         data_path = next((p for p in candidate_paths if os.path.exists(p)), None)
         if data_path is None:
-            st.warning(f"Aucun fichier de données trouvé dans les chemins : {candidate_paths}")
-            # Fallback to artifact if it exists
-            if cm_artifact is not None:
-                st.info("Utilisation de l'artefact de la matrice de confusion comme fallback.")
-                st.session_state.confusion_matrix = cm_artifact
-                return hyperparams_dict, cm_artifact
-            return hyperparams_dict, None  # No data, no artifact -> No matrix
+            # Vérifier si le fichier existe réellement à l'emplacement connu
+            known_path = "/home/ubuntu/mlops-road-accidents/data/processed/prepared_accidents_" + str(year) + ".csv"
+            if os.path.exists(known_path):
+                data_path = known_path
+                st.success(f"Fichier de données trouvé à l'emplacement connu: {known_path}")
+            else:
+                st.warning(f"Aucun fichier de données trouvé dans les chemins : {candidate_paths}")
+                # Fallback to artifact if it exists
+                if cm_artifact is not None:
+                    st.info("Utilisation de l'artefact de la matrice de confusion comme fallback.")
+                    st.session_state.confusion_matrix = cm_artifact
+                    return hyperparams_dict, cm_artifact
+                return hyperparams_dict, None  # No data, no artifact -> No matrix
 
         st.info(f"Chargement des données depuis : {data_path}")
         
@@ -553,6 +612,7 @@ def fetch_best_model_info():
         # Logging Streamlit sans interrompre l'app
         logging.getLogger(__name__).warning(f"Impossible de récupérer les infos MLflow : {e}")
         st.warning("Informations MLflow non disponibles pour le moment. Merci de réessayer plus tard.")
+        logging.getLogger(__name__).error(f"Erreur détaillée lors de la récupération des informations MLflow : {e}", exc_info=True)
         return None, None
 
 
@@ -1019,10 +1079,17 @@ def show_model_analysis(model_metrics):
             try:
                 from pathlib import Path
                 year = os.getenv("DATA_YEAR", "2023")
+                file_path = Path(__file__).resolve()
+                # Racine du projet : si la hiérarchie est trop courte, on prend le parent immédiat
+                if len(file_path.parents) >= 3:
+                    project_root = file_path.parents[2]
+                else:
+                    project_root = file_path.parents[1]
+
                 candidates = [
-                    Path(__file__).resolve().parents[2] / "models" / f"confusion_matrix_best_model_{year}.png",
-                    Path(__file__).resolve().parent.parent / "models" / f"confusion_matrix_best_model_{year}.png",
-                    Path("models") / f"confusion_matrix_best_model_{year}.png"
+                    project_root / "models" / f"confusion_matrix_best_model_{year}.png",  # chemin absolu depuis la racine
+                    Path.cwd() / "models" / f"confusion_matrix_best_model_{year}.png",    # cwd exécution
+                    Path("models") / f"confusion_matrix_best_model_{year}.png"            # relatif historique
                 ]
                 for p in candidates:
                     if p.exists():
