@@ -1504,9 +1504,8 @@ def show_logs_infra(config):
         if not grafana_base:
             st.error("URL publique de Grafana non configurée. Veuillez la définir dans config.yaml (grafana.public_url).")
             grafana_base = "https://vmi2734167.contaboserver.net/grafana"  # URL par défaut basée sur la valeur de infrastructure.base_url
-    # Public dashboard UID – adjust if you change the dashboard in Grafana
-    public_uid = "449f1ea472a54a5a8462789850a0d91a"
-    grafana_url = f"{grafana_base}/public-dashboards/{public_uid}"
+    # Dashboard path fourni par l'utilisateur (lien goto)
+    grafana_url = "https://vmi2734167.contaboserver.net/grafana/goto/GMjYDG_Hg?orgId=1"
     
     # Afficher l'iframe intégré
     st.components.v1.iframe(

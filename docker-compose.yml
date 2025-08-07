@@ -316,6 +316,22 @@ services:
       - default
 
 
+  log_processor:
+    container_name: log_processor_service
+    build:
+      context: ./log_processor/app
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8000"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
   agent:
     logging: *logging
     container_name: agent
@@ -509,6 +525,7 @@ services:
       - ./config.yaml:/app/config.yaml:ro
       - ./monitoring/grafana/config/grafana.ini:/etc/grafana/grafana.ini
       - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./monitoring/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
       - ./monitoring/grafana/provisioning/dashboards/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
       - ./monitoring/grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json
       - grafana_data:/var/lib/grafana
@@ -657,6 +674,8 @@ services:
 
     networks:
       - default
+
+
 
 networks:
   default:

@@ -16,6 +16,8 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": 4,
+  "uid": "container-logs-dashboard",
+  "title": "Container Logs",
   "templating": {
     "list": [
       {

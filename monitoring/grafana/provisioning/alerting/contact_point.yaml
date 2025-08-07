@@ -1,0 +1,10 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: log-processor-webhook
+    receivers:
+      - uid: log-processor-webhook-receiver
+        type: webhook
+        settings:
+          url: http://log_processor_service:8000/webhook

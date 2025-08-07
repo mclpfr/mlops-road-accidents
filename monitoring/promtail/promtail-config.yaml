@@ -40,7 +40,21 @@ scrape_configs:
         target_label: 'image'
     pipeline_stages:
       - docker: {}
+      # Détecte les niveaux de logs (error, warn, info, debug) dans la ligne, insensible à la casse
       - regex:
-          expression: '^(?i)level=(?P<level>\w+)'
+          # Capture:
+          #   • JSON/kv style: level=error or level=ERROR
+          #   • Plain text with separated word:  ... ERROR ...
+          expression: "(?i)(?:level[=: ]+)(?P<level>error|warn|warning|info|debug)|\\b(?P<level2>ERROR|WARN|INFO|DEBUG)\\b"
+          # Drop optional "warning" to "warn" for consistency
+      - replace:
+          expression: '(?i)warning'
+          replace: 'warn'
+      # Convertit en minuscules pour homogénéiser
+      - replace:
+          expression: '(?i)(error|warn|info|debug)'
+          replace: '$1'
+      - labels:
+          level:
       - labels:
           level:
