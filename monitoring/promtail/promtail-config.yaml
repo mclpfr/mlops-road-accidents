@@ -39,22 +39,34 @@ scrape_configs:
       - source_labels: ['__meta_docker_container_image']
         target_label: 'image'
     pipeline_stages:
+      # 1) Parse Docker JSON log envelope; adds labels like container, stream, etc.
       - docker: {}
-      # Détecte les niveaux de logs (error, warn, info, debug) dans la ligne, insensible à la casse
+      
+      # 2) Try to extract structured fields if the application logs JSON
+      - json:
+          expressions:
+            level:
+            severity:
+            status:
+            message:
+          # Do not fail if not JSON
+          drop_malformed: true
+      
+      # 3) Fallback regex for plain-text levels (ERROR/WARN/INFO/DEBUG) or key-value level=ERROR
       - regex:
-          # Capture:
-          #   • JSON/kv style: level=error or level=ERROR
-          #   • Plain text with separated word:  ... ERROR ...
-          expression: "(?i)(?:level[=: ]+)(?P<level>error|warn|warning|info|debug)|\\b(?P<level2>ERROR|WARN|INFO|DEBUG)\\b"
-          # Drop optional "warning" to "warn" for consistency
+          expression: '(?i)(?:\blevel[=: ]+)(?P<level_kv>error|warn|warning|info|debug)|\b(?P<level_word>error|warn|warning|info|debug)\b'
+      
+      # 4) Normalize into a single 'level' variable, preferring JSON 'level'/'severity'
+      - template:
+          source: level
+          template: '{{ if .level }}{{ ToLower .level }}{{ else if .severity }}{{ ToLower .severity }}{{ else if .level_kv }}{{ ToLower .level_kv }}{{ else if .level_word }}{{ ToLower .level_word }}{{ end }}'
+      
+      # 5) Normalize 'warning' to 'warn'
       - replace:
-          expression: '(?i)warning'
+          source: level
+          expression: '(?i)^warning$'
           replace: 'warn'
-      # Convertit en minuscules pour homogénéiser
-      - replace:
-          expression: '(?i)(error|warn|info|debug)'
-          replace: '$1'
-      - labels:
-          level:
+      
+      # 6) Promote level to label only when it exists; this does NOT use stderr/stdout mapping
       - labels:
           level:

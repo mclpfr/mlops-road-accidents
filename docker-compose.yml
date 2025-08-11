@@ -192,8 +192,6 @@ services:
       context: .
       dockerfile: src/postgresql/Dockerfile
     container_name: postgres_service
-    ports:
-      - "5432:5432"
     volumes:
       - ./config.yaml:/app/config.yaml
       - postgres_data:/var/lib/postgresql/data
@@ -207,10 +205,12 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 4G
+          memory: 6G
         reservations:
           cpus: '0.3'
           memory: 512M
+    networks:
+      - streamlit_pg
 
   auth_api:
     container_name: auth_api_service
@@ -317,6 +317,7 @@ services:
     restart: always
     networks:
       - default
+      - streamlit_pg
 
 
   log_processor:
@@ -455,6 +456,8 @@ services:
     volumes:
       - airflow_static:/var/www/static
       - /etc/letsencrypt:/etc/letsencrypt:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - airflow-webserver
       - streamlit
@@ -683,6 +686,8 @@ services:
 
 networks:
   default:
+    driver: bridge
+  streamlit_pg:
     driver: bridge
 
 volumes:
