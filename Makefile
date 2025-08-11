@@ -22,8 +22,9 @@ UI_SERVICES = \
   streamlit \
   agent \
   predict_api \
-  auth_api \
-  nginx
+  auth_api
+
+PROXY_SERVICE = nginx
 
 AIRFLOW_SERVICES = \
   postgres-airflow \
@@ -50,6 +51,10 @@ start-ui:
 	@echo "$(BLUE)[START] Starting user interface (Streamlit + Agent)...$(RESET)"
 	docker compose up -d --no-deps $(UI_SERVICES)
 
+start-proxy:
+	@echo "$(BLUE)[START] Starting nginx proxy...$(RESET)"
+	docker compose up -d --no-deps $(PROXY_SERVICE)
+
 start-airflow:
 	@echo "$(BLUE)[START] Starting Airflow...$(RESET)"
 	docker compose up -d $(AIRFLOW_SERVICES)
@@ -67,6 +72,10 @@ stop-ui:
 	@echo "$(RED)[STOP] Stopping user interface and database...$(RESET)"
 	docker compose stop $(UI_SERVICES) postgres
 
+stop-proxy:
+	@echo "$(RED)[STOP] Stopping nginx proxy...$(RESET)"
+	docker compose stop $(PROXY_SERVICE)
+
 stop-airflow:
 	@echo "$(RED)[STOP] Stopping Airflow...$(RESET)"
 	docker compose stop $(AIRFLOW_SERVICES)
@@ -79,12 +88,14 @@ restart-ml: stop-ml start-ml
 
 restart-ui: stop-ui start-ui
 
+restart-proxy: stop-proxy start-proxy
+
 restart-airflow: stop-airflow start-airflow
 
 ### START/STOP ALL ###
-start-all: start-db start-ml start-monitoring start-airflow start-ui
+start-all: start-db start-ml start-monitoring start-airflow start-ui start-proxy
 
-stop-all: stop-ui stop-airflow stop-monitoring stop-ml stop-db
+stop-all: stop-ui stop-airflow stop-monitoring stop-ml stop-db stop-proxy
 
 restart-all: stop-all start-all
 
@@ -104,16 +115,19 @@ help:
 	@echo "  start-ml          : Start ML services"
 	@echo "  start-monitoring  : Start monitoring"
 	@echo "  start-ui          : Start user interface (Streamlit + agent)"
+	@echo "  start-proxy       : Start nginx proxy only"
 	@echo ""
 	@echo "  stop-airflow      : Stop Airflow services"
 	@echo "  stop-ml           : Stop ML services"
 	@echo "  stop-monitoring   : Stop monitoring"
 	@echo "  stop-ui           : Stop user interface"
+	@echo "  stop-proxy        : Stop nginx proxy only"
 	@echo ""
 	@echo "  restart-airflow   : Restart Airflow services"
 	@echo "  restart-ml        : Restart ML services"
 	@echo "  restart-monitoring: Restart monitoring"
 	@echo "  restart-ui        : Restart user interface"
+	@echo "  restart-proxy     : Restart nginx proxy only"
 	@echo ""
 	@echo "  start-all         : Start all services"
 	@echo "  stop-all          : Stop all services"
