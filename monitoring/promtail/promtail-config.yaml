@@ -1,7 +1,7 @@
 server:
   http_listen_port: 9080
   grpc_listen_port: 0
-  log_level: debug
+  log_level: info
 
 positions:
   filename: /tmp/positions.yaml
@@ -38,35 +38,9 @@ scrape_configs:
         target_label: 'container_id'
       - source_labels: ['__meta_docker_container_image']
         target_label: 'image'
+      # Important: point Promtail at the Docker JSON log file for each container
+      - source_labels: ['__meta_docker_container_id']
+        target_label: '__path__'
+        replacement: '/var/lib/docker/containers/$1/*-json.log'
     pipeline_stages:
-      # 1) Parse Docker JSON log envelope; adds labels like container, stream, etc.
       - docker: {}
-      
-      # 2) Try to extract structured fields if the application logs JSON
-      - json:
-          expressions:
-            level:
-            severity:
-            status:
-            message:
-          # Do not fail if not JSON
-          drop_malformed: true
-      
-      # 3) Fallback regex for plain-text levels (ERROR/WARN/INFO/DEBUG) or key-value level=ERROR
-      - regex:
-          expression: '(?i)(?:\blevel[=: ]+)(?P<level_kv>error|warn|warning|info|debug)|\b(?P<level_word>error|warn|warning|info|debug)\b'
-      
-      # 4) Normalize into a single 'level' variable, preferring JSON 'level'/'severity'
-      - template:
-          source: level
-          template: '{{ if .level }}{{ ToLower .level }}{{ else if .severity }}{{ ToLower .severity }}{{ else if .level_kv }}{{ ToLower .level_kv }}{{ else if .level_word }}{{ ToLower .level_word }}{{ end }}'
-      
-      # 5) Normalize 'warning' to 'warn'
-      - replace:
-          source: level
-          expression: '(?i)^warning$'
-          replace: 'warn'
-      
-      # 6) Promote level to label only when it exists; this does NOT use stderr/stdout mapping
-      - labels:
-          level:

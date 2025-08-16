@@ -16,8 +16,7 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": 4,
-  "uid": "container-logs-dashboard",
-  "title": "Container Logs",
+  "_meta": "container-logs",
   "templating": {
     "list": [
       {
@@ -28,13 +27,13 @@
         "current": {
           "selected": false,
           "text": "All",
-          "value": ""
+          "value": ".*"
         },
         "options": [
           {
             "selected": true,
             "text": "All",
-            "value": ""
+            "value": ".*"
           },
           {
             "selected": false,
@@ -143,7 +142,7 @@
             "uid": "Loki"
           },
           "editorMode": "code",
-          "expr": "{container=~\".+\"} |~ \"(?i)$log_level\"",
+          "expr": "{container=~\".+\"} |~ \"(?i)${log_level:regex}\"",
           "queryType": "range",
           "refId": "A"
         }

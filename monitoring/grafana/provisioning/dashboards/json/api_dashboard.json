@@ -52,15 +52,13 @@
         "colorMode": "value",
         "graphMode": "area",
         "justifyMode": "auto",
-        "orientation": "horizontal",
         "reduceOptions": {
           "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
         "textMode": "auto",
-        "showUnfilled": true,
-        "orientation": "horizontal"
+        "showUnfilled": true
       }
     },
     {
@@ -342,19 +340,14 @@
       "id": 13,
       "title": "API Logs",
       "type": "logs",
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 32
-      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
       "datasource": {
         "type": "loki",
         "uid": "Loki"
       },
       "targets": [
         {
-          "expr": "{job=\"api\"}",
+          "expr": "{service=~\"auth_api|predict_api\"}",
           "refId": "A",
           "datasource": {
             "type": "loki",
