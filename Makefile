@@ -93,9 +93,9 @@ restart-proxy: stop-proxy start-proxy
 restart-airflow: stop-airflow start-airflow
 
 ### START/STOP ALL ###
-start-all: start-db start-ml start-monitoring start-airflow start-ui start-proxy
+start-all: start-db start-ml start-monitoring start-airflow start-ui
 
-stop-all: stop-ui stop-airflow stop-monitoring stop-ml stop-db stop-proxy
+stop-all: stop-ui stop-airflow stop-monitoring stop-ml stop-db
 
 restart-all: stop-all start-all
 

@@ -14,5 +14,10 @@ credentials:
       name: Standard user
       password: $2b$12$ijreYwVQVDKyVXrKDBFnOulmQLvhH.IHEZEBQ1FqwtQ9NrMQ7F4M6
       role: user
+    demo:
+      email: demo@example.com
+      name: Demo Admin
+      password: $2b$12$gYB.8o2Ni6vt.hBvawgCi.ztsOTA69vgkx5T0HbTfPCjq1.4b.KCC
+      role: admin
 preauthorized:
   emails: []
