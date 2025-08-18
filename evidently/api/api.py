@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from fastapi import FastAPI, HTTPException, Request, Query
 from prometheus_client import Gauge, generate_latest
-from fastapi.responses import Response, FileResponse, JSONResponse, HTMLResponse
+from fastapi.responses import Response, FileResponse, JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from scipy import stats
@@ -198,10 +198,8 @@ async def health():
         return {"status": "warning", "message": str(e)}
 @app.get("/")
 async def root():
-    html_file = STATIC_DIR / "index.html"
-    if html_file.exists():
-        return FileResponse(str(html_file))
-    return {"message": "Evidently Data Drift API is running"}
+    # Always redirect root to the full drift report; use relative path so reverse-proxy prefix (/evidently) is preserved
+    return RedirectResponse(url="drift_full_report", status_code=307)
 
 @app.get("/drift")
 async def get_drift_endpoint():
