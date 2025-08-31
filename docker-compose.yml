@@ -476,11 +476,12 @@ services:
       - --providers.docker.exposedbydefault=false
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      # Let's Encrypt configuration
+      # Let's Encrypt configuration with DNS Challenge for wildcard
       - --certificatesresolvers.letsencrypt.acme.email=admin@marcolopes.fr
       - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
-      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=ovh
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
       # Global HTTP to HTTPS redirect
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
@@ -490,6 +491,11 @@ services:
       - "80:80"
       - "443:443"
       - "127.0.0.1:8088:8080"
+    environment:
+      - OVH_ENDPOINT=ovh-eu
+      - OVH_APPLICATION_KEY=${OVH_APPLICATION_KEY}
+      - OVH_APPLICATION_SECRET=${OVH_APPLICATION_SECRET}
+      - OVH_CONSUMER_KEY=${OVH_CONSUMER_KEY}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/letsencrypt:/letsencrypt
@@ -502,6 +508,11 @@ services:
       - "traefik.http.routers.dashboard.rule=Host(`localhost`)"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.entrypoints=web"
+      # Force wildcard certificate generation
+      - "traefik.http.routers.wildcard.rule=Host(`*.marcolopes.fr`)"
+      - "traefik.http.routers.wildcard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.wildcard.tls.domains[0].main=marcolopes.fr"
+      - "traefik.http.routers.wildcard.tls.domains[0].sans=*.marcolopes.fr"
 
   loki:
     image: grafana/loki:2.9.0
@@ -730,6 +741,7 @@ services:
 
     networks:
       - default
+
 
 networks:
   default:
