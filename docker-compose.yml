@@ -318,7 +318,12 @@ services:
     networks:
       - default
       - streamlit_pg
-
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.streamlit.rule=Host(`mlops.marcolopes.fr`)"
+      - "traefik.http.routers.streamlit.entrypoints=websecure"
+      - "traefik.http.routers.streamlit.tls.certresolver=letsencrypt"
+      - "traefik.http.services.streamlit.loadbalancer.server.port=8501"
 
   log_processor:
     container_name: log_processor_service
@@ -349,13 +354,20 @@ services:
       - ./agent/agent_events:/agent_events
     ports:
       - "8003:8003"
-
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8003/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.agent.rule=Host(`mlops.marcolopes.fr`) && PathPrefix(`/agent`)"
+      - "traefik.http.routers.agent.entrypoints=websecure"
+      - "traefik.http.routers.agent.tls.certresolver=letsencrypt"
+      - "traefik.http.services.agent.loadbalancer.server.port=8003"
+      - "traefik.http.middlewares.agent-stripprefix.stripprefix.prefixes=/agent"
+      - "traefik.http.routers.agent.middlewares=agent-stripprefix"
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8003/healthz"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 10s
     deploy:
       resources:
         limits:
@@ -364,6 +376,8 @@ services:
         reservations:
           cpus: '0.2'
           memory: 256M
+    networks:
+      - default
 
   evidently-api:
     logging: *logging                       
@@ -381,7 +395,14 @@ services:
       - ./evidently/current:/app/current     
     ports:
       - "8001:8001"
-
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.evidently.rule=Host(`mlops.marcolopes.fr`) && PathPrefix(`/evidently`)"
+      - "traefik.http.routers.evidently.entrypoints=websecure"
+      - "traefik.http.routers.evidently.tls.certresolver=letsencrypt"
+      - "traefik.http.services.evidently.loadbalancer.server.port=8001"
+      - "traefik.http.middlewares.evidently-stripprefix.stripprefix.prefixes=/evidently"
+      - "traefik.http.routers.evidently.middlewares=evidently-stripprefix"
     restart: always
     deploy:
       resources:
@@ -445,25 +466,42 @@ services:
     networks:
       - default
 
-  nginx:
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    container_name: nginx_service
+  traefik:
+    image: traefik:v2.11
+    container_name: traefik
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      # Let's Encrypt configuration
+      - --certificatesresolvers.letsencrypt.acme.email=admin@marcolopes.fr
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      # Global HTTP to HTTPS redirect
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      # Enable debug logs for SSL issues
+      - --log.level=DEBUG
     ports:
       - "80:80"
       - "443:443"
+      - "127.0.0.1:8088:8080"
     volumes:
-      - airflow_static:/var/www/static
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      - airflow-webserver
-      - streamlit
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/letsencrypt:/letsencrypt
     networks:
       - default
-    restart: always
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # Dashboard access
+      - "traefik.http.routers.dashboard.rule=Host(`localhost`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=web"
 
   loki:
     image: grafana/loki:2.9.0
@@ -523,6 +561,11 @@ services:
     restart: always
     labels:
       - "com.company.always_on=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`mlops.marcolopes.fr`) && PathPrefix(`/grafana`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
     ports:
       - 3000:3000
     networks:
@@ -615,6 +658,12 @@ services:
     command: webserver
     ports:
       - "8080:8080"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.airflow.rule=Host(`mlops.marcolopes.fr`) && PathPrefix(`/airflow`)"
+      - "traefik.http.routers.airflow.entrypoints=websecure"
+      - "traefik.http.routers.airflow.tls.certresolver=letsencrypt"
+      - "traefik.http.services.airflow.loadbalancer.server.port=8080"
     healthcheck:
       test: ["CMD-SHELL", "curl --fail http://localhost:8080/healthz || exit 0"]
       interval: 30s
@@ -697,6 +746,5 @@ volumes:
   alertmanager_data:
   postgres_airflow_data:
   airflow_logs:
-  airflow-static-volume:
   airflow_static:
   agent_events:

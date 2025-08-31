@@ -1570,10 +1570,10 @@ def show_logs_infra(config):
         grafana_base = config.get('grafana', {}).get('public_url', '').rstrip('/')
         if not grafana_base:
             st.error("URL publique de Grafana non configurée. Veuillez la définir dans config.yaml (grafana.public_url).")
-            grafana_base = "https://vmi2734167.contaboserver.net/grafana"  # URL par défaut basée sur la valeur de infrastructure.base_url
+            grafana_base = "https://mlops.marcolopes.fr/grafana"  # URL par défaut basée sur la valeur de infrastructure.base_url
     # Dashboard path fourni par l'utilisateur (lien goto)
     grafana_url = (
-        "https://vmi2734167.contaboserver.net/grafana/goto/jCW9UMlNg?orgId=1"
+        "https://mlops.marcolopes.fr/grafana/goto/jCW9UMlNg?orgId=1"
     )
     
     # Afficher l'iframe intégré
