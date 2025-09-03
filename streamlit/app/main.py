@@ -229,13 +229,32 @@ def fetch_data_from_db(query: str):
         import psycopg2
         from psycopg2.extras import RealDictCursor
         
-        # Connection parameters for local PostgreSQL
+        # Load connection parameters from config.yaml if available
+        pg_cfg = {}
+        try:
+            # Prefer absolute path in container; fallback to project root
+            candidates = [
+                Path("/app/config.yaml"),
+                Path("/app/config.yml"),
+                Path(__file__).resolve().parents[2] / "config.yaml",
+                Path(__file__).resolve().parents[2] / "config.yml",
+            ]
+            for p in candidates:
+                if p.exists():
+                    with open(p, "r", encoding="utf-8") as f:
+                        cfg = yaml.safe_load(f) or {}
+                        pg_cfg = cfg.get("postgresql", {}) or {}
+                    break
+        except Exception:
+            pg_cfg = {}
+
+        # Connection parameters for PostgreSQL
         conn_params = {
-            "host": "postgres",  # Service name in docker-compose
-            "database": "road_accidents",
-            "user": "postgres",
-            "password": "postgres",
-            "port": "5432"
+            "host": pg_cfg.get("host", "postgres_service"),
+            "database": pg_cfg.get("database", "road_accidents"),
+            "user": pg_cfg.get("user", "postgres"),
+            "password": pg_cfg.get("password", "postgres"),
+            "port": str(pg_cfg.get("port", 5432))
         }
         
         # Database connection
@@ -373,12 +392,16 @@ def get_best_model_overview():
     try:
         # Query to get the most recent best model metrics
         query = """
-            SELECT model_name, model_version::INT AS version, accuracy,
-                   "macro avg_precision" AS precision, "macro avg_recall" AS recall,
-                   "macro avg_f1-score" AS f1_score,
-                   run_date
+            SELECT 
+                model_name, 
+                model_version::INT AS version, 
+                accuracy,
+                precision_macro_avg AS precision,
+                recall_macro_avg AS recall,
+                f1_macro_avg AS f1_score,
+                run_date
             FROM best_model_metrics
-            ORDER BY version DESC
+            ORDER BY model_version DESC
             LIMIT 1;
         """
         
