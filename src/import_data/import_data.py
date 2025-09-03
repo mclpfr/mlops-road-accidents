@@ -21,26 +21,50 @@ def load_config(config_path="/app/config.yaml"):
             return config
     except Exception as e:
         logger.error(f"Error loading configuration: {str(e)}")
-        return {
-            "data_extraction": {"year": "2023"},
+        cfg = {
+            "data_extraction": {"year": os.getenv("DATA_YEAR", "2023")},
             "mlflow": {
                 "tracking_uri": os.getenv("MLFLOW_TRACKING_URI", ""),
                 "username": os.getenv("MLFLOW_TRACKING_USERNAME", ""),
                 "password": os.getenv("MLFLOW_TRACKING_PASSWORD", "")
             },
             "postgresql": {
-                "host": "localhost",
-                "port": "5432",
-                "user": "postgres",
-                "password": "postgres",
-                "database": "road_accidents"
+                "host": os.getenv("POSTGRES_HOST", "postgres"),
+                "port": os.getenv("POSTGRES_PORT", "5432"),
+                "user": os.getenv("POSTGRES_USER", "postgres"),
+                "password": os.getenv("POSTGRES_PASSWORD", "postgres"),
+                "database": os.getenv("POSTGRES_DB", "road_accidents")
             }
         }
+        if not cfg["postgresql"]["user"] or not cfg["postgresql"]["password"]:
+            raise ValueError("PostgreSQL credentials not provided. Ensure config.yaml is present or set POSTGRES_USER and POSTGRES_PASSWORD environment variables.")
+        return cfg
 
 def get_postgres_connection(config):
     pg_config = config["postgresql"]
     connection_string = f"postgresql://{pg_config['user']}:{pg_config['password']}@{pg_config['host']}:{pg_config['port']}/{pg_config['database']}"
     return sqlalchemy.create_engine(connection_string)
+
+def log_pg_debug(config):
+    try:
+        env_pg = {
+            "POSTGRES_HOST": os.getenv("POSTGRES_HOST", ""),
+            "POSTGRES_PORT": os.getenv("POSTGRES_PORT", ""),
+            "POSTGRES_USER": os.getenv("POSTGRES_USER", ""),
+            "POSTGRES_DB": os.getenv("POSTGRES_DB", ""),
+            "POSTGRES_PASSWORD": "***" if os.getenv("POSTGRES_PASSWORD") else "",
+        }
+        logger.info(
+            "ENV Postgres => host=%s port=%s user=%s db=%s password=%s",
+            env_pg["POSTGRES_HOST"], env_pg["POSTGRES_PORT"], env_pg["POSTGRES_USER"], env_pg["POSTGRES_DB"], env_pg["POSTGRES_PASSWORD"]
+        )
+        pg = config.get("postgresql", {})
+        logger.info(
+            "CONFIG Postgres => host=%s port=%s user=%s db=%s password=%s",
+            pg.get("host", ""), pg.get("port", ""), pg.get("user", ""), pg.get("database", ""), "***" if pg.get("password") else ""
+        )
+    except Exception as e:
+        logger.warning(f"Failed to log Postgres debug info: {e}")
 
 def import_accidents_data(engine, data_path):
     try:
@@ -223,6 +247,8 @@ def main():
     time.sleep(5)
     
     config = load_config()
+    # Debug: show connection variables
+    log_pg_debug(config)
     engine = get_postgres_connection(config)
 
     year = config["data_extraction"]["year"]

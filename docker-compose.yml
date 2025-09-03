@@ -128,6 +128,13 @@ services:
       - ./config.yaml:/app/config.yaml
       - ./src/import_data/wait-for-postgres.sh:/app/wait-for-postgres.sh
     working_dir: /app
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=road_accidents
+      - CONFIG_PATH=/app/config.yaml
     deploy:
       resources:
         limits:
@@ -209,8 +216,6 @@ services:
         reservations:
           cpus: '0.3'
           memory: 512M
-    networks:
-      - streamlit_pg
 
   auth_api:
     container_name: auth_api_service
@@ -315,9 +320,6 @@ services:
           cpus: '1.0'
           memory: 2G
     restart: always
-    networks:
-      - default
-      - streamlit_pg
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.streamlit.rule=Host(`mlops.marcolopes.fr`)"
@@ -376,8 +378,6 @@ services:
         reservations:
           cpus: '0.2'
           memory: 256M
-    networks:
-      - default
 
   evidently-api:
     logging: *logging                       
@@ -412,8 +412,6 @@ services:
         reservations:
           cpus: '0.2'
           memory: 256M
-    networks:
-      - default
 
   prometheus:
     logging: *logging
@@ -439,8 +437,6 @@ services:
           cpus: '0.1'
           memory: 256M
 
-    networks:
-      - default
 
   alertmanager:
     logging: *logging
@@ -463,8 +459,6 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
-    networks:
-      - default
 
   traefik:
     image: traefik:v2.11
@@ -499,9 +493,10 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/letsencrypt:/letsencrypt
+    restart: unless-stopped
     networks:
       - default
-    restart: unless-stopped
+      - n8n-net
     labels:
       - "traefik.enable=true"
       # Dashboard access
@@ -579,8 +574,6 @@ services:
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
     ports:
       - 3000:3000
-    networks:
-      - default
     volumes:
       - ./config.yaml:/app/config.yaml:ro
       - ./monitoring/grafana/config/grafana.ini:/etc/grafana/grafana.ini
@@ -739,15 +732,13 @@ services:
           cpus: '0.1'
           memory: 128M
 
-    networks:
-      - default
 
 
 networks:
   default:
     driver: bridge
-  streamlit_pg:
-    driver: bridge
+  n8n-net:
+    external: true
 
 volumes:
   postgres_data:

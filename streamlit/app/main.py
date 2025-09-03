@@ -396,9 +396,9 @@ def get_best_model_overview():
                 model_name, 
                 model_version::INT AS version, 
                 accuracy,
-                precision_macro_avg AS precision,
-                recall_macro_avg AS recall,
-                f1_macro_avg AS f1_score,
+                "macro avg_precision" AS precision,
+                "macro avg_recall" AS recall,
+                "macro avg_f1-score" AS f1_score,
                 run_date
             FROM best_model_metrics
             ORDER BY model_version DESC
