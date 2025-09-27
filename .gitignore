@@ -14,6 +14,8 @@ models/
 !models/best_model_2023_metadata.json
 agent/__init__.py
 agent/__pycache__/
+agent/config.yaml
+!agent/
 
 .dvc/tmp/
 .dvc/cache/
@@ -37,4 +39,5 @@ airflow/logs/
 *.csv
 .env
 streamlit/config/
+traefik/letsencrypt/acme.json
 traefik/letsencrypt/

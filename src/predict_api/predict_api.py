@@ -4,6 +4,8 @@ import os
 import io
 import warnings
 import logging
+from pathlib import Path
+
 import yaml
 import pandas as pd
 import mlflow
@@ -31,25 +33,84 @@ import jwt
 #         async def get_current_user(token: str = None):
 #             return User()
 
-# Load configuration for JWT
-with open("config.yaml", "r") as file:
-    config = yaml.safe_load(file)
-auth_config = config.get('auth_api', {})
+# Configure logging early so helpers can use it
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-SECRET_KEY = auth_config.get('jwt_secret_key')
-ALGORITHM = auth_config.get('jwt_algorithm')
+# Resolve configuration path
+CONFIG_PATH_ENV = os.environ.get("PREDICT_API_CONFIG")
+DEFAULT_CONFIG_LOCATIONS = [
+    Path(p)
+    for p in {
+        CONFIG_PATH_ENV,
+        "/app/config.yaml",
+        "config.yaml",
+    }
+    if p
+]
+# Add parent directories to search order
+_file_ancestors = list(Path(__file__).resolve().parents)
+for ancestor in _file_ancestors:
+    candidate = ancestor / "config.yaml"
+    if candidate not in DEFAULT_CONFIG_LOCATIONS:
+        DEFAULT_CONFIG_LOCATIONS.append(candidate)
+
+
+def load_config(config_path: str | os.PathLike[str] | None = None) -> dict:
+    """Load configuration from YAML.
+
+    Tries multiple fallback locations and ensures a dictionary is always
+    returned. Raises FileNotFoundError with detailed context if nothing can be
+    loaded.
+    """
+
+    candidates: list[Path] = []
+    if config_path:
+        candidates.append(Path(config_path))
+    candidates.extend(DEFAULT_CONFIG_LOCATIONS)
+
+    tried_paths: list[str] = []
+    for candidate in candidates:
+        candidate = Path(candidate)
+        if not candidate.is_absolute():
+            candidate = (Path.cwd() / candidate).resolve()
+        if candidate.exists():
+            try:
+                with candidate.open("r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f) or {}
+                if not isinstance(data, dict):
+                    logger.warning("Configuration file %s did not return a mapping. Ignoring.", candidate)
+                    tried_paths.append(f"{candidate} (not a mapping)")
+                    continue
+                logger.info("Configuration loaded from %s", candidate)
+                return data
+            except yaml.YAMLError as exc:
+                tried_paths.append(f"{candidate} (YAML error: {exc})")
+                continue
+        else:
+            tried_paths.append(f"{candidate} (missing)")
+
+    raise FileNotFoundError(
+        "Unable to load configuration for predict_api. Tried: "
+        + ", ".join(tried_paths)
+    )
+
+
+CONFIG = load_config(CONFIG_PATH_ENV)
+auth_config = CONFIG.get("auth_api", {})
+
+SECRET_KEY = auth_config.get("jwt_secret_key")
+ALGORITHM = auth_config.get("jwt_algorithm")
 
 if not SECRET_KEY or not ALGORITHM:
-    raise ValueError("JWT_SECRET_KEY and JWT_ALGORITHM must be set in config.yaml for predict_api")
+    raise ValueError(
+        "JWT_SECRET_KEY and JWT_ALGORITHM must be set in config for predict_api"
+    )
 
 router = APIRouter()
 security = HTTPBearer()
 
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Modèles Pydantic pour les données
 class Feature(BaseModel):
@@ -87,16 +148,9 @@ class InputData(BaseModel):
     atm: Literal[-1, 1, 2, 3, 4, 5, 6, 7, 8, 9] = 1
     col: Literal[-1, 1, 2, 3, 4, 5, 6, 7] = 1
 
-def load_config(config_path="config.yaml"):
-    """Load configuration from a YAML file."""
-    try:
-        with open(config_path, "r", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-            logger.info(f"Configuration loaded from {config_path}")
-            return config
-    except FileNotFoundError as e:
-        logger.error(f"Config file {config_path} not found.")
-        raise e
+def load_config_legacy(config_path="config.yaml"):
+    """Backward-compatible wrapper kept for existing imports."""
+    return load_config(config_path)
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
@@ -136,9 +190,9 @@ def is_admin(user: dict = Depends(get_current_user_role)):
         )
     return user
 
-def find_best_model(config_path="config.yaml"):
+def find_best_model(config_path: str | os.PathLike[str] | None = None):
     try:
-        config = load_config(config_path)
+        config = load_config(config_path or CONFIG_PATH_ENV)
         year = config["data_extraction"]["year"]
         logger.info(f"Loaded configuration for year {year}")
 

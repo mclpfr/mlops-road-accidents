@@ -1,0 +1,64 @@
+2025-08-31 09:39:43,455 - asyncio - ERROR - Task exception was never retrieved
+future: <Task finished name='Task-3809' coro=<WebSocketProtocol13.write_message.<locals>.wrapper() done, defined at /usr/local/lib/python3.11/site-packages/tornado/websocket.py:1111> exception=WebSocketClosedError()>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/tornado/websocket.py", line 1113, in wrapper
+    await fut
+tornado.iostream.StreamClosedError: Stream is closed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/tornado/websocket.py", line 1115, in wrapper
+    raise WebSocketClosedError()
+tornado.websocket.WebSocketClosedError
+2025-08-31 09:40:14,593 - asyncio - ERROR - Task exception was never retrieved
+future: <Task finished name='Task-4209' coro=<WebSocketProtocol13.write_message.<locals>.wrapper() done, defined at /usr/local/lib/python3.11/site-packages/tornado/websocket.py:1111> exception=WebSocketClosedError()>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/tornado/websocket.py", line 1113, in wrapper
+    await fut
+tornado.iostream.StreamClosedError: Stream is closed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/tornado/websocket.py", line 1115, in wrapper
+    raise WebSocketClosedError()
+tornado.websocket.WebSocketClosedError
+2025-08-31 09:49:04,794 - asyncio - ERROR - Task exception was never retrieved
+future: <Task finished name='Task-11324' coro=<WebSocketProtocol13.write_message.<locals>.wrapper() done, defined at /usr/local/lib/python3.11/site-packages/tornado/websocket.py:1111> exception=WebSocketClosedError()>
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/tornado/websocket.py", line 1113, in wrapper
+    await fut
+tornado.iostream.StreamClosedError: Stream is closed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/tornado/websocket.py", line 1115, in wrapper
+    raise WebSocketClosedError()
+tornado.websocket.WebSocketClosedError
+2025-09-03 05:31:11,752 - STDERR - ERROR - 2025-09-03 05:31:11.751 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2025-09-03 05:31:11,923 - STDERR - ERROR - 2025-09-03 05:31:11.923 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:11,928 - STDERR - ERROR - 2025-09-03 05:31:11.928 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:11,931 - STDERR - ERROR - 2025-09-03 05:31:11.931 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:11,933 - STDERR - ERROR - 2025-09-03 05:31:11.933 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:28,509 - STDERR - ERROR - 2025-09-03 05:31:28.509 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:28,510 - STDERR - ERROR - 2025-09-03 05:31:28.510 No runtime found, using MemoryCacheStorageManager
+2025-09-03 05:31:28,513 - STDERR - ERROR - 2025-09-03 05:31:28.513 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:28,762 - STDERR - ERROR - 2025-09-03 05:31:28.762
+2025-09-03 05:31:28,763 - STDERR - ERROR -   [33m[1mWarning:[0m to view a Streamlit app on a browser, use Streamlit in a file and
+2025-09-03 05:31:28,763 - STDERR - ERROR -   run it with the following command:
+2025-09-03 05:31:28,763 - STDERR - ERROR - 
+2025-09-03 05:31:28,763 - STDERR - ERROR -     streamlit run [FILE_NAME] [ARGUMENTS]
+2025-09-03 05:31:28,763 - STDERR - ERROR - 2025-09-03 05:31:28.763 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:28,764 - STDERR - ERROR - 2025-09-03 05:31:28.763 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:28,764 - STDERR - ERROR - 2025-09-03 05:31:28.764 No runtime found, using MemoryCacheStorageManager
+2025-09-03 05:31:28,771 - STDERR - ERROR - 2025-09-03 05:31:28.771 No runtime found, using MemoryCacheStorageManager
+2025-09-03 05:31:28,773 - STDERR - ERROR - 2025-09-03 05:31:28.773 No runtime found, using MemoryCacheStorageManager
+2025-09-03 05:31:28,774 - STDERR - ERROR - 2025-09-03 05:31:28.774 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:28,775 - STDERR - ERROR - 2025-09-03 05:31:28.775 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:28,775 - STDERR - ERROR - 2025-09-03 05:31:28.775 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:28,775 - STDERR - ERROR - 2025-09-03 05:31:28.775 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:28,804 - STDERR - ERROR - 2025-09-03 05:31:28.804 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:28,805 - STDERR - ERROR - 2025-09-03 05:31:28.805 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-09-03 05:31:28,805 - STDERR - ERROR - 2025-09-03 05:31:28.805 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
