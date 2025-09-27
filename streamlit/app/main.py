@@ -219,7 +219,7 @@ st.set_page_config(
 
 
 @st.cache_data(ttl=60)  # Cache results for 1 minute (reduced from 10 minutes)
-def fetch_data_from_db(query: str):
+def fetch_data_from_db(query: str, *, timeout_ms: int = 10_000):
     """
     Connect to the local PostgreSQL database and execute the provided SQL query.
     Returns a Pandas DataFrame.
@@ -262,7 +262,7 @@ def fetch_data_from_db(query: str):
         
         # Query execution with context management
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute("SET statement_timeout = 10000") # Timeout de 10 secondes
+            cursor.execute(f"SET statement_timeout = {int(timeout_ms)}")  # Timeout configurable
             cursor.execute(query)
             
             # Fetching results
@@ -471,6 +471,40 @@ def get_class_distribution():
         "Nombre": [pas_grave_count, grave_count]
     })
     return class_distribution
+
+
+def get_total_accidents_count() -> int:
+    """Return an estimated total of accidents without locking the table.
+
+    Uses `pg_class.reltuples` for a fast estimate (typically accurate enough for
+    dashboard purposes) and falls back to an exact COUNT with a higher timeout
+    only if the estimate is unavailable.
+    """
+    try:
+        estimate_query = (
+            """
+            SELECT COALESCE(reltuples, 0)::bigint AS count
+            FROM pg_class
+            WHERE oid = 'public.accidents'::regclass;
+            """
+        )
+        df_estimate = fetch_data_from_db(estimate_query, timeout_ms=2_000)
+        if not df_estimate.empty and 'count' in df_estimate.columns:
+            estimate = int(df_estimate.iloc[0]['count'])
+            if estimate > 0:
+                return estimate
+    except Exception as estimate_error:
+        st.warning(f"Impossible d'estimer rapidement le nombre d'accidents : {estimate_error}")
+
+    try:
+        exact_query = "SELECT COUNT(*) AS count FROM accidents"
+        df_exact = fetch_data_from_db(exact_query, timeout_ms=60_000)
+        if not df_exact.empty and 'count' in df_exact.columns:
+            return int(df_exact.iloc[0]['count'])
+    except Exception as exact_error:
+        st.error(f"Impossible de récupérer le nombre d'accidents : {exact_error}")
+
+    return 0
 
 @st.cache_data(ttl=21600)
 def fetch_best_model_info():
@@ -1774,12 +1808,7 @@ if __name__ == "__main__":
     setup_mlflow()
 
     # Récupérer le nombre total d'accidents pour l'affichage
-    try:
-        accidents_count_df = fetch_data_from_db("SELECT COUNT(*) as count FROM accidents")
-        accidents_count = accidents_count_df['count'][0] if not accidents_count_df.empty else 0
-    except Exception as e:
-        accidents_count = 0  # Fallback en cas d'erreur
-        st.warning(f"Could not fetch accident count: {e}")
+    accidents_count = get_total_accidents_count()
 
     # Charger la configuration d'authentification
     authenticator = get_authenticator()
