@@ -35,3 +35,6 @@ agent/__pycache__/
 tmp/
 airflow/logs/
 *.csv
+.env
+streamlit/config/
+traefik/letsencrypt/
